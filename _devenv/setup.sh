@@ -244,6 +244,21 @@ add_action( 'igbz_booted', function () {
 } );
 PHP
 
+cat > "$WORK/mu/015-no-emoji-cdn.php" <<'PHP'
+<?php
+/**
+ * Harness only. s.w.org (WordPress emoji CDN) is blocked in this sandbox, so
+ * the emoji-to-<img> conversion produced broken images in both wp-admin and
+ * the storefront (finding of the 1406/06/02 visual test). Disable it and let
+ * native system emoji render instead. No production impact.
+ */
+remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
+remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
+remove_action( 'wp_print_styles', 'print_emoji_styles' );
+remove_action( 'admin_print_styles', 'print_emoji_styles' );
+add_filter( 'emoji_svg_url', '__return_false' );
+PHP
+
 cat > "$WORK/mu/020-healthcheck.php" <<'PHP'
 <?php
 /**
@@ -333,6 +348,9 @@ add_action( 'wp_loaded', function () {
 	// WooCommerce basics.
 	if ( class_exists( 'WooCommerce' ) ) {
 		update_option( 'woocommerce_default_country', 'IR' );
+		// بدون این، فرم تسویه کشور را از geolocation می‌گیرد و «United States» پیش‌فرض
+		// می‌شود (یافتهٔ تست ویژوال ۱۴۰۶/۰۶/۰۲) — پیش‌فرض مشتری = آدرس فروشگاه (IR)
+		update_option( 'woocommerce_default_customer_address', 'base' );
 		update_option( 'woocommerce_currency', 'IRR' );
 		update_option( 'woocommerce_currency_pos', 'right_space' );
 		update_option( 'woocommerce_price_thousand_sep', ',' );
@@ -426,6 +444,26 @@ PHP
 # ---------------------------------------------------------------------------
 # Written to the mu-plugins dir so it only runs on the Playground harness,
 # not in production. Guarded by an option so it is strictly one-shot.
+cat > "$WORK/mu/031-fix-customer-address.php" <<'PHP'
+<?php
+/**
+ * Harness only. Ensure checkout defaults to the store base country (IR), not
+ * geolocated US (finding of the 1406/06/02 visual test). Also flushes stale
+ * WC sessions once, because the customer session caches the old geolocated
+ * country even after the option changes. Idempotent via guard option.
+ */
+add_action( 'init', function () {
+	if ( get_option( 'woocommerce_default_customer_address' ) !== 'base' ) {
+		update_option( 'woocommerce_default_customer_address', 'base' );
+	}
+	if ( ! get_option( 'igbz_devenv_addrfix_v1' ) ) {
+		global $wpdb;
+		$wpdb->query( "DELETE FROM {$wpdb->prefix}woocommerce_sessions" ); // phpcs:ignore
+		update_option( 'igbz_devenv_addrfix_v1', 1 );
+	}
+} );
+PHP
+
 cat > "$WORK/mu/100-seed-sample-shop.php" <<'PHP'
 <?php
 /**
@@ -666,6 +704,7 @@ cat > "$WORK/mu/040-rtl-demo.php" <<'PHP'
 if ( is_admin() || wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
 	return;
 }
+
 add_action( 'wp_head', function () {
 	?>
 <style id="igbz-rtl-demo">
@@ -683,6 +722,19 @@ html, body { direction: rtl !important; text-align: right !important; unicode-bi
 .woocommerce .onsale { right: 10px !important; left: auto !important; }
 .site-header .site-branding, .site-header .site-navigation { float: right !important; }
 .woocommerce-breadcrumb { direction: ltr !important; text-align: left !important; opacity: .8; }
+/* رفع سرریز افقی صفحهٔ تسویه (یافتهٔ تست ویژوال ۱۴۰۶/۰۶/۰۲):
+   ووکامرس بلاک، اینپوت مخفی address_2 را با left:-19481px پنهان می‌کند که در RTL
+   عرض سند را ~۱۹هزار پیکسل بزرگ می‌کند. مخفی‌سازی درست: */
+.wc-block-components-address-form__address_2-hidden-input {
+	position: absolute !important;
+	inset-inline-start: 0 !important;
+	left: auto !important;
+	clip: rect(0, 0, 0, 0) !important;
+	clip-path: inset(50%) !important;
+	width: 1px !important;
+	height: 1px !important;
+	overflow: hidden !important;
+}
 </style>
 	<?php
 }, 5 );
@@ -745,12 +797,13 @@ add_filter( 'woocommerce_currency_symbol', function ( $symbol, $currency ) {
 add_action( 'template_redirect', function () {
 	ob_start( function ( $html ) {
 		if ( ! is_string( $html ) ) { return $html; }
-		// Protect <script>, <style>, and HTML tag attributes/blocks from digit replacement
-		// by doing a coarse split: replace digits only in text nodes outside tags/scripts.
-		// Simpler safe approach: replace digits that are NOT between % and a format
-		// letter (sprintf placeholders) and are not inside <script>/<style>.
+		// Convert digits ONLY in text nodes. Two bugs fixed after the 1406/06/02
+		// visual test: (1) the old pattern contained a literal backspace byte instead
+		// of \b, so <script>/<style> were NOT protected and inline JS got Persian
+		// digits (SyntaxError); (2) tag attributes were converted too, breaking svg
+		// width="۲۴", upload URLs (/uploads/۲۰۲۶/... → 404) and gravatar hashes.
 		$html = preg_replace_callback(
-			'/(<script[^>]*>.*?<\/script>|<style[^>]*>.*?<\/style>)|([0-9]+)/si',
+			'/(<script\b[^>]*>.*?<\/script>|<style\b[^>]*>.*?<\/style>|<[^>]*>|&#x?[0-9a-fA-F]+;)|([0-9]+)/si',
 			function ( $m ) {
 				if ( ! empty( $m[1] ) ) { return $m[1]; }
 				return igbz_persian_digits( $m[0] );
@@ -771,7 +824,7 @@ if ( ! function_exists( 'igbz_persian_digits' ) ) {
 }
 PHP
 
-ok "7 mu-plugins written (activator + modules + health + default-theme + RTL demo + FA demo + sample seeder)"
+ok "9 mu-plugins written (activator + no-emoji-cdn + modules + health + default-theme + RTL demo + FA demo + sample seeder)"
 
 # ---------------------------------------------------------------------------
 # 6c. Stage bundled plugins/themes into .work/ so run.sh can mount them.

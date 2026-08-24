@@ -88,7 +88,9 @@ final class PadoPage {
 			View::notice( $notice, '' !== $err ? 'error' : 'success' );
 		}
 		$this->render_tabs( $tab );
-		echo '<div class="igbz-card" style="max-width:980px;">';
+		// dir=rtl: the tab content is Persian; without it the sentences render
+		// scrambled inside the LTR admin (found by the 1406/06/02 visual test).
+		echo '<div class="igbz-card" dir="rtl" style="max-width:980px;text-align:right;">';
 		match ( $tab ) {
 			self::TAB_SETTINGS  => $this->render_tab_settings(),
 			self::TAB_DESIGN    => $this->render_tab_design(),

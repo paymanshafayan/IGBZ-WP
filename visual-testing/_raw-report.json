@@ -1,0 +1,687 @@
+[
+  {
+    "name": "admin:igbz (Status)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz",
+    "file": "01-igbz.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 10,
+      "forms": 0,
+      "buttons": 5,
+      "inputs": 0,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Status ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-tenants (Tenants)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-tenants",
+    "file": "02-igbz-tenants.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 4,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Tenants ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-plans (Plans)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-plans",
+    "file": "03-igbz-plans.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 3,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 26,
+      "checkboxes": 10,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Plans ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-wallet (Wallet)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-wallet",
+    "file": "04-igbz-wallet.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 3,
+      "forms": 2,
+      "buttons": 4,
+      "inputs": 13,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Wallet ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-payments (Payments)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-payments",
+    "file": "05-igbz-payments.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 4,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Payments ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-master-payment (Master payment)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-master-payment",
+    "file": "06-igbz-master-payment.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 0,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 4,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Master payment ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-bnpl (Instalments)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-bnpl",
+    "file": "07-igbz-bnpl.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 3,
+      "forms": 2,
+      "buttons": 6,
+      "inputs": 11,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Instalments ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-courses (Courses)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-courses",
+    "file": "08-igbz-courses.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 4,
+      "inputs": 3,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Courses ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-affiliate (Affiliates)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-affiliate",
+    "file": "09-igbz-affiliate.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 3,
+      "forms": 1,
+      "buttons": 4,
+      "inputs": 7,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Affiliates ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-gamification (Gamification)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-gamification",
+    "file": "10-igbz-gamification.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 0,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 5,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Gamification ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-logistics (Logistics)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-logistics",
+    "file": "11-igbz-logistics.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 2,
+      "buttons": 4,
+      "inputs": 17,
+      "checkboxes": 1,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Logistics ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-marketplaces (Marketplaces)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-marketplaces",
+    "file": "12-igbz-marketplaces.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 7,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Marketplaces ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-seo (SEO & ads)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-seo",
+    "file": "13-igbz-seo.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 2,
+      "forms": 2,
+      "buttons": 6,
+      "inputs": 13,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "SEO & ads ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-domains (Domain)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-domains",
+    "file": "14-igbz-domains.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 4,
+      "inputs": 11,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Domain ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-translator (Translator)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-translator",
+    "file": "15-igbz-translator.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 6,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Translator ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-fx (FX payments)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-fx",
+    "file": "16-igbz-fx.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 2,
+      "buttons": 4,
+      "inputs": 8,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "FX payments ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-hub (Master hub)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-hub",
+    "file": "17-igbz-hub.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 0,
+      "buttons": 3,
+      "inputs": 0,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Master hub ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-ig-accounts (IG Accounts)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ig-accounts",
+    "file": "18-igbz-ig-accounts.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 0,
+      "buttons": 3,
+      "inputs": 0,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "IG Accounts ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-ig-content (IG Content)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ig-content",
+    "file": "19-igbz-ig-content.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 4,
+      "inputs": 4,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "IG Content ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-ig-funnels (DM Funnels)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ig-funnels",
+    "file": "20-igbz-ig-funnels.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 0,
+      "buttons": 4,
+      "inputs": 0,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "DM Funnels ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-ig-subscribers (IG Subscribers)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ig-subscribers",
+    "file": "21-igbz-ig-subscribers.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 4,
+      "inputs": 3,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "IG Subscribers ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-ig-insights (IG Insights)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ig-insights",
+    "file": "22-igbz-ig-insights.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 0,
+      "forms": 0,
+      "buttons": 3,
+      "inputs": 0,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "IG Insights ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-ig-intake (Registrations)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ig-intake",
+    "file": "23-igbz-ig-intake.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 3,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Registrations ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-giveaways (Giveaways)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-giveaways",
+    "file": "24-igbz-giveaways.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 6,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Giveaways ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-vip (VIP channel)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-vip",
+    "file": "25-igbz-vip.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 6,
+      "inputs": 4,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "VIP channel ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-ai-studio (AI studio)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ai-studio",
+    "file": "26-igbz-ai-studio.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 8,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "AI studio ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-pado (Pado center)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-pado",
+    "file": "27-igbz-pado.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 10,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Pado (AI Center) ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-mobile-api (Mobile API)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-mobile-api",
+    "file": "28-igbz-mobile-api.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 0,
+      "buttons": 2,
+      "inputs": 0,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Mobile API ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "admin:igbz-settings (Settings)",
+    "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-settings",
+    "file": "29-igbz-settings.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 3,
+      "inputs": 11,
+      "checkboxes": 2,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "Settings ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress"
+    }
+  },
+  {
+    "name": "shop:home",
+    "url": "http://127.0.0.1:9400/",
+    "file": "30-storefront-home.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 2,
+      "buttons": 24,
+      "inputs": 5,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "شاپ بیوتی — فروشگاه نمونه آرایشی"
+    },
+    "productLink": "http://127.0.0.1:9400/product/%d8%a7%d8%af%da%a9%d9%84%d9%86-%d9%85%d8%b1%d8%af%d8%a7%d9%86%d9%87-%da%86%d9%88%d8%a8%db%8c-%d8%b4%d8%b1%d9%82%db%8c-%db%b1%db%b0%db%b0%d9%85%db%8c%d9%84-21/",
+    "cartLink": "http://127.0.0.1:9400/%d8%b3%d8%a8%d8%af-%d8%ae%d8%b1%db%8c%d8%af/"
+  },
+  {
+    "name": "shop:product",
+    "url": "http://127.0.0.1:9400/product/%d8%a7%d8%af%da%a9%d9%84%d9%86-%d9%85%d8%b1%d8%af%d8%a7%d9%86%d9%87-%da%86%d9%88%d8%a8%db%8c-%d8%b4%d8%b1%d9%82%db%8c-%db%b1%db%b0%db%b0%d9%85%db%8c%d9%84-21/",
+    "file": "31-storefront-product.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 2,
+      "forms": 3,
+      "buttons": 17,
+      "inputs": 10,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "ادکلن مردانه چوبی-شرقی ۱۰۰میل – شاپ بیوتی — فروشگاه نمونه آرایشی"
+    },
+    "addToCart": "“ادکلن مردانه چوبی-شرقی ۱۰۰میل” has been added to your cart.\nمشاهده سبد"
+  },
+  {
+    "name": "shop:cart",
+    "url": "http://127.0.0.1:9400/%d8%b3%d8%a8%d8%af-%d8%ae%d8%b1%db%8c%d8%af/",
+    "file": "33-storefront-cart.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 7,
+      "inputs": 3,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "سبد خرید – شاپ بیوتی — فروشگاه نمونه آرایشی"
+    },
+    "cartRows": 1
+  },
+  {
+    "name": "shop:checkout",
+    "url": "http://127.0.0.1:9400/%d8%aa%d8%b3%d9%88%db%8c%d9%87-%d8%ad%d8%b3%d8%a7%d8%a8/",
+    "file": "34-storefront-checkout.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 0,
+      "tables": 0,
+      "forms": 2,
+      "buttons": 2,
+      "inputs": 14,
+      "checkboxes": 1,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "تسویه حساب – شاپ بیوتی — فروشگاه نمونه آرایشی"
+    },
+    "checkoutFields": 14
+  },
+  {
+    "name": "shop:my-account",
+    "url": "http://127.0.0.1:9400/حساب-کاربری-من/",
+    "file": "35-storefront-account.png",
+    "ok": true,
+    "problems": [],
+    "status": 200,
+    "stats": {
+      "h1": 1,
+      "tables": 1,
+      "forms": 1,
+      "buttons": 8,
+      "inputs": 3,
+      "checkboxes": 0,
+      "unlabeled": 0,
+      "brokenImgs": 0,
+      "notices": 0,
+      "title": "حساب کاربری من – شاپ بیوتی — فروشگاه نمونه آرایشی"
+    }
+  }
+]
