@@ -1,17 +1,12 @@
 # دکمهٔ «Preview in WordPress Playground» روی هر Pull Request
 #
-# چه می‌کند: با هر PR (باز شدن یا به‌روزرسانی)، اکشن رسمی وردپرس یک دکمهٔ
-# پیش‌نمایش به توضیحات PR اضافه می‌کند. کلیک روی دکمه، وردپرس تازه‌ای را در
-# مرورگرِ خودِ بیننده بالا می‌آورد (PHP-WASM؛ بدون هیچ سرور و سندباکسی) با:
-#   - ووکامرس نصب و فعال
-#   - igbz-suite مستقیم از همین ریپو و «همان شاخهٔ PR» نصب و فعال
-#   - هر ۶ ماژول روشن (multitenant, instagram, hub, fx, rest_api, pado)
-#   - ورود خودکار admin
+# طراحی: خود Blueprint داخل این فایل نیست — از فایل
+# `_devenv/playground-blueprint.json` در «همان شاخهٔ PR» خوانده می‌شود و فقط
+# ref آن به شاخهٔ PR عوض می‌شود. نتیجه: برای اصلاح/بهبود Blueprint هیچ‌وقت
+# لازم نیست این فایل ورک‌فلو دوباره ویرایش شود (ایجنت مجوز پوش به
+# .github/workflows را ندارد؛ این فایل فقط یک‌بار توسط مالک ریپو نصب می‌شود).
 #
-# نیازی به build نیست — igbz-suite مستقیم از checkout ریپو اجرا می‌شود
-# (بدون Composer/npm)، پس حالت بدون build کافی است.
-#
-# مرجع: https://github.com/WordPress/action-wp-playground-pr-preview (v3)
+# مرجع اکشن: https://github.com/WordPress/action-wp-playground-pr-preview (v3)
 
 name: PR Playground Preview
 
@@ -27,45 +22,22 @@ jobs:
   preview:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Build blueprint from repo file (ref = PR branch)
+        id: bp
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const fs = require('fs');
+            let bp = fs.readFileSync('_devenv/playground-blueprint.json', 'utf8');
+            // نصب igbz-suite از همان شاخهٔ PR به‌جای main
+            bp = bp.replace(/"ref":\s*"[^"]*"/, `"ref": "${context.payload.pull_request.head.ref}"`);
+            JSON.parse(bp); // اعتبارسنجی
+            return bp;
+
       - uses: WordPress/action-wp-playground-pr-preview@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          blueprint: |
-            {
-              "$schema": "https://playground.wordpress.net/blueprint-schema.json",
-              "preferredVersions": { "php": "8.2", "wp": "latest" },
-              "features": { "networking": true },
-              "login": true,
-              "landingPage": "/wp-admin/plugins.php",
-              "steps": [
-                {
-                  "step": "defineWpConfigConsts",
-                  "consts": { "WP_MEMORY_LIMIT": "256M", "WP_MAX_MEMORY_LIMIT": "512M" }
-                },
-                {
-                  "step": "writeFile",
-                  "path": "/wordpress/wp-content/mu-plugins/000-memory.php",
-                  "data": "<?php @ini_set( 'memory_limit', '512M' );"
-                },
-                {
-                  "step": "installPlugin",
-                  "pluginData": { "resource": "wordpress.org/plugins", "slug": "woocommerce" },
-                  "options": { "activate": true }
-                },
-                {
-                  "step": "installPlugin",
-                  "pluginData": {
-                    "resource": "git:directory",
-                    "url": "https://github.com/${{ github.repository }}",
-                    "ref": "${{ github.event.pull_request.head.ref }}",
-                    "refType": "branch",
-                    "path": "igbz-suite"
-                  },
-                  "options": { "activate": true }
-                },
-                {
-                  "step": "runPHP",
-                  "code": "<?php require_once '/wordpress/wp-load.php'; update_option('igbz_enabled_modules', ['multitenant','instagram','hub','fx','rest_api','pado']); update_option('timezone_string','Asia/Tehran');"
-                }
-              ]
-            }
+          blueprint: ${{ steps.bp.outputs.result }}
