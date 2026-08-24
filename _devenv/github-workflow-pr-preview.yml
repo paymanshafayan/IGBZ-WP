@@ -49,7 +49,7 @@ jobs:
                     "resource": "git:directory",
                     "url": "https://github.com/${{ github.repository }}",
                     "ref": "${{ github.event.pull_request.head.ref }}",
-                    "refType": "refname",
+                    "refType": "branch",
                     "path": "igbz-suite"
                   },
                   "options": { "activate": true }

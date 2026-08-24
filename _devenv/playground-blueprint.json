@@ -16,7 +16,7 @@
         "resource": "git:directory",
         "url": "https://github.com/paymanshafayan/IGBZ-WP",
         "ref": "main",
-        "refType": "refname",
+        "refType": "branch",
         "path": "igbz-suite"
       },
       "options": { "activate": true }
