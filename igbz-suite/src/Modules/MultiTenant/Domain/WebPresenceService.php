@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
  * Web presence: auto-register stores with a verified standalone domain in
  * Google Search Console, Google Indexing and Bing Webmaster via the
  * operator's central account (automatic + default). GBP/Emalls/Torob need
- * per-store steps and are tracked here for Hushvare guidance.
+ * per-store steps and are tracked here for Pado guidance.
  */
 final class WebPresenceService {
 
@@ -28,7 +28,7 @@ final class WebPresenceService {
 			$results[ $service ] = $this->register_one( $tenant_id, $service, $domain );
 		}
 		foreach ( [ 'emalls', 'torob', 'google_business' ] as $service ) {
-			$this->set_status( $tenant_id, $service, 'pending', __( 'Per-store step — Hushvare guides the admin.', 'igbz-suite' ) );
+			$this->set_status( $tenant_id, $service, 'pending', __( 'Per-store step — Pado guides the admin.', 'igbz-suite' ) );
 		}
 		return [ 'ok' => true, 'results' => $results ];
 	}

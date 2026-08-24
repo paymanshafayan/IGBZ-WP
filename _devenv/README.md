@@ -15,7 +15,20 @@ Two zip files, committed to git:
 | `wordpress-7.0.4.zip` | WordPress core | <https://wordpress.org/latest.zip> |
 | `woocommerce-11.0.1.zip` | WooCommerce plugin | <https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip> |
 
-The exact filenames do not matter. `setup.sh` globs for `wordpress-*.zip` and
+Plus two **bundled-in-repo source trees** (plain directories, not zips):
+
+| Directory | What it is | Version |
+| --- | --- | --- |
+| `elementor/` | Elementor Website Builder plugin | 4.3.0 (commit of `main`) |
+| `hello-elementor/` | Hello Elementor theme | 3.4.9 (commit of `main`) |
+
+These are shipped as source trees because the Elementor repo on GitHub does not require a
+build step to run — the plugin's own autoloader covers `core/` and `includes/` directly, and
+the missing Composer vendor packages (Jetpack autoloader, wp-one-package) are optional for
+booting. If you upgrade them, overwrite the directory contents with the new upstream source
+and bump the version number comments at the top of each source file.
+
+The exact WP/WC filenames do not matter. `setup.sh` globs for `wordpress-*.zip` and
 `woocommerce-*.zip` and picks the newest match, so `wordpress-7.1.zip` or
 `woocommerce-11.0.1-fa_IR.zip` work just as well.
 
@@ -68,7 +81,28 @@ This replaces the previous approach, which monkey-patched `fetch` inside the CLI
 is needed any more.
 
 WooCommerce needs no server: it is simply extracted and bind-mounted into the site as
-`wp-content/plugins/woocommerce`.
+`wp-content/plugins/woocommerce`. Elementor and Hello Elementor are also bind-mounted from
+`.work/plugins/elementor` and `.work/themes/hello-elementor`, which `setup.sh` stages from
+the directories above.
+
+## Sample seed data
+
+On first boot, a mu-plugin seeder (`_devenv/.work/mu/100-seed-sample-shop.php`) populates the
+site with a cosmetics demo storefront:
+
+- 8 product categories (skin care, hair care, face/eye/lip makeup, perfume, body care, tools).
+- 25 simple WooCommerce products with Persian names, prices in IRR, stock counts and a
+  locally-generated gradient placeholder image (drawn via PHP GD, no network access).
+- 100 customer accounts with Persian first/last names, dummy mobile numbers and Tehran/Karaj
+  addresses. The default password for every demo customer is **`Customer123!`**.
+- 8 sample orders distributed across customers (processing / completed / on-hold).
+- Site title/tagline set to «شاپ بیوتی — فروشگاه نمونه آرایشی».
+- Permalink structure set to `/%postname%/`, WooCommerce currency to IRR (right-to-left,
+  thousand-separator `,`, no decimals), country default IR, and all four WC pages (shop,
+  cart, checkout, my-account) auto-created if missing.
+
+The seed is guarded by the `igbz_seeded_v1` option so it runs exactly once per Playground
+instance; wiping `_devenv/.work/` and re-running `setup.sh` will reseed from scratch.
 
 ## Translation template
 

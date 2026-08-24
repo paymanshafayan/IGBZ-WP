@@ -10,17 +10,18 @@ final class Modules {
 	public const HUB         = 'hub';
 	public const REST_API    = 'rest_api';
 	public const FX          = 'fx';
+	public const PADO    = 'pado';
 
 	public const OPTION = 'igbz_enabled_modules';
 
 	/** @return string[] */
 	public static function all(): array {
-		return [ self::MULTITENANT, self::INSTAGRAM, self::HUB, self::FX, self::REST_API ];
+		return [ self::MULTITENANT, self::INSTAGRAM, self::HUB, self::FX, self::REST_API, self::PADO ];
 	}
 
 	/** @return string[] */
 	public static function defaults(): array {
-		return [ self::MULTITENANT ];
+		return [ self::MULTITENANT, self::PADO ];
 	}
 
 	/** @return string[] */

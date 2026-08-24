@@ -831,7 +831,7 @@ final class SettingsPage {
 
 			case 'legal':
 				return [
-					[ 'key' => 'legal.enamad_active', 'label' => __( 'Enamad active (verified)', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'Hushvare guides the admin through obtaining Enamad; bank gateways unlock only with a verified domain + this flag.', 'igbz-suite' ) ],
+					[ 'key' => 'legal.enamad_active', 'label' => __( 'Enamad active (verified)', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'Pado guides the admin through obtaining Enamad; bank gateways unlock only with a verified domain + this flag.', 'igbz-suite' ) ],
 					[ 'key' => 'legal.national_id_check', 'label' => __( 'National-id match at payment', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'Only active once the senior admin stores the Shahkar key.', 'igbz-suite' ) ],
 					[ 'key' => 'legal.shahkar_api_key', 'label' => __( 'Shahkar API key (senior admin only)', 'igbz-suite' ), 'type' => 'password' ],
 					[ 'key' => 'legal.shahkar_base_url', 'label' => __( 'Shahkar base URL', 'igbz-suite' ) ],

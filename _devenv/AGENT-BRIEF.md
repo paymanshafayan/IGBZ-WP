@@ -42,7 +42,7 @@ The Instagram gateway sits behind an adapter interface so Graph API can be added
   commits and pushes; the explicit "شروع کن" keyword was made mandatory on ۱۴۰۵/۰۵/۲۸).
 - **No progress reports. One final report only.** Until the plan is completely finished, send
   the client nothing — no status updates, no "step one done", no interim findings.
-- **Keep testing light, especially in `hoosha/`.** For a small change, a few normal tests that
+- **Keep testing light, especially in `vira/`.** For a small change, a few normal tests that
   show the change actually took effect are enough. **The client does the full testing himself.**
   Do not burn time on exhaustive suites (client's rule, ۱۴۰۵/۰۵/۲۹, reaffirmed ۱۴۰۵/۰۵/۲۸).
 - **Never modify the `IGBZ-NopCommerce` project.** It was a read-only review, and that review is

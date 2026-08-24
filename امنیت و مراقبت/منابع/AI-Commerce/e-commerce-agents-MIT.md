@@ -34,8 +34,8 @@
 |---|---|---|
 | **`rate_limit.py`** | محدودیت نرخ | قاعدهٔ ۵ در `§۵.۵` |
 | **`idempotency.py`** | جلوگیری از اجرای تکراری | قاعدهٔ مالی موجود ما |
-| **`hitl.py`** | **تأیید انسانی پیش از اقدام پرریسک** | ⭐ مسئلهٔ مجوز هوشواره |
-| `guardrails/injection_middleware.py` | دفاع در برابر تزریق پرامپت | لایهٔ ۱۳ هوشا |
+| **`hitl.py`** | **تأیید انسانی پیش از اقدام پرریسک** | ⭐ مسئلهٔ مجوز پادو |
+| `guardrails/injection_middleware.py` | دفاع در برابر تزریق پرامپت | لایهٔ ۱۳ ویرا |
 | `guardrails/cost_budget_middleware.py` | سقف هزینهٔ توکن | بودجهٔ توکن |
 | `guardrails/moderation.py` + `output_middleware.py` | پالایش ورودی و خروجی | «آبرو» در جدول ریسک |
 | `guardrails/sanitize.py` · `roles.py` | پاک‌سازی و نقش‌ها | مجوزها |
@@ -54,7 +54,7 @@ _create_hitl_request → list_hitl_requests → claim_hitl_request
 → resolve_hitl_request → execute_approved_action
 ```
 
-**این دقیقاً همان چیزی است که سند هوشواره می‌خواهد:** «چرخه: مشاهده → پلن → **تأیید ادمین**
+**این دقیقاً همان چیزی است که سند پادو می‌خواهد:** «چرخه: مشاهده → پلن → **تأیید ادمین**
 → اجرا → گزارش». ما قرار بود این را از صفر طراحی کنیم؛ اینجا یک پیاده‌سازی آزموده هست
 که می‌شود **الگو**ی طراحی‌مان باشد.
 
@@ -72,7 +72,7 @@ _create_hitl_request → list_hitl_requests → claim_hitl_request
 | Inventory & Fulfillment | موجودی، تخمین ارسال | فاز ۵ و ۸ |
 
 **تفکیک مسئولیت‌ها تقریباً منطبق بر فازبندی ماست** — که تأیید می‌کند فازبندی سند
-`DESIGN-HUSHVARE.md` بی‌راه نبوده.
+`DESIGN-PADO.md` بی‌راه نبوده.
 
 ---
 
@@ -98,7 +98,7 @@ _create_hitl_request → list_hitl_requests → claim_hitl_request
 
 ۱. **الگوی `hitl.py`** برای تأیید ادمین — به‌جای اختراع از صفر
 ۲. **فهرست گاردریل‌ها** به‌عنوان چک‌لیست: تزریق پرامپت، بودجهٔ هزینه، پالایش خروجی،
-   grounding — چیزهایی که در سند هوشوارهٔ ما **هنوز نیستند**
+   grounding — چیزهایی که در سند پادؤ ما **هنوز نیستند**
 ۳. **تفکیک شش‌گانهٔ عامل‌ها** برای اعتبارسنجی فازبندی
 
 ---
@@ -108,9 +108,9 @@ _create_hitl_request → list_hitl_requests → claim_hitl_request
 | مورد | نکته |
 |---|---|
 | **`MentionNetwork/awesome-agentic-commerce`** | فهرست منتخب «تجارت عاملی» — استانداردهای UCP، ACP، AP2، MCP |
-| **`nexscope-ai/eCommerce-Skills`** | اسکیل‌های آمادهٔ فرمت `SKILL.md` — شامل `woocommerce-seo` و `product-description-generator`. **مستقیماً به کار اسکیل‌نویسی هوشواره می‌آید** |
+| **`nexscope-ai/eCommerce-Skills`** | اسکیل‌های آمادهٔ فرمت `SKILL.md` — شامل `woocommerce-seo` و `product-description-generator`. **مستقیماً به کار اسکیل‌نویسی پادو می‌آید** |
 | `AutomateWoo` | اتوماسیون بازاریابی ووکامرس (سبد رهاشده، پیگیری) — تجاری |
 | StoreAgent / Octocom / AI Engine | افزونه‌های تجاری AI برای ووکامرس — **رقیب مستقیم محصول ما**، ارزش رقابت‌سنجی دارند |
 
 > **`nexscope-ai/eCommerce-Skills` ارزش بررسی جداگانه دارد** — چون فرمت `SKILL.md` همان
-> چیزی است که سند هوشوارهٔ ما (`§لایهٔ ۳`) به‌عنوان استاندارد پذیرفته.
+> چیزی است که سند پادؤ ما (`§لایهٔ ۳`) به‌عنوان استاندارد پذیرفته.

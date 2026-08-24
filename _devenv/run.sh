@@ -108,3 +108,7 @@ exec node node_modules/@wp-playground/cli/wp-playground.js server \
 	--mount "$REPO/igbz-suite:/wordpress/wp-content/plugins/igbz-suite" \
 	--mount "$WORK/woocommerce:/wordpress/wp-content/plugins/woocommerce" \
 	--mount "$WORK/mu:/wordpress/wp-content/mu-plugins"
+# NOTE (1406/05/31): Elementor + Hello Elementor removed to keep repo lightweight (~108 MB saved).
+# Mount lines for elementor/hello-elementor intentionally omitted. If needed later, re-add:
+#   --mount "$WORK/plugins/elementor:/wordpress/wp-content/plugins/elementor" \
+#   --mount "$WORK/themes/hello-elementor:/wordpress/wp-content/themes/hello-elementor"

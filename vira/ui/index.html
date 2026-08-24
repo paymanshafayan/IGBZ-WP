@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ویرا</title>
+<link rel="icon" type="image/svg+xml" href="/assets/logo.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-32.png" />
+<link rel="apple-touch-icon" href="/assets/icons/icon-192.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<meta name="theme-color" content="#faf9f5" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+<!-- وقتی سرور از یک کپیِ منجمد اجرا شده باشد، این نوار ظاهر می‌شود. پیش‌فرض پنهان است
+     و فقط app.js با دیدن install.frozen بازش می‌کند. -->
+<div class="stale-bar" id="stale-bar" hidden></div>
+
+<!--
+	چیدمان: دو ستون.
+
+	یک نوار کناری و یک ناحیهٔ محتوا — همان چیزی که در تصاویر Claude هست. ستون میانیِ
+	فهرست گفتگو و ریل سمت دیگر حذف شدند: اولی داخل نوار کناری رفت (زیر «اخیر») و دومی
+	به صفحهٔ فضای کار.
+-->
+<div class="app">
+
+	<!-- ══════════════════════════════════════════════════ نوار کناری -->
+	<aside class="sidebar" id="sidebar">
+
+		<div class="side-top">
+			<div class="wordmark"><span class="brand-mark" id="brand-mark"></span>ویرا<span class="ver" id="brand-version"></span></div>
+			<div class="side-top-actions">
+				<button class="btn icon round quiet" id="btn-search" title="جستجو (Ctrl+K)" data-t-title="جستجو (Ctrl+K)">
+					<svg class="ic " viewBox="0 0 512 512" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M508.5 481.6l-129-129c-2.3-2.3-5.3-3.5-8.5-3.5h-10.3C395 312 416 262.5 416 208 416 93.1 322.9 0 208 0S0 93.1 0 208s93.1 208 208 208c54.5 0 104-21 141.1-55.2V371c0 3.2 1.3 6.2 3.5 8.5l129 129c4.7 4.7 12.3 4.7 17 0l9.9-9.9c4.7-4.7 4.7-12.3 0-17zM208 384c-97.3 0-176-78.7-176-176S110.7 32 208 32s176 78.7 176 176-78.7 176-176 176z" /></svg>
+				</button>
+				<button class="btn icon round quiet" id="btn-collapse" title="بستن نوار کناری" data-t-title="بستن نوار کناری">
+					<svg class="ic " viewBox="0 0 512 512" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M464 32H48C21.49 32 0 53.49 0 80v352c0 26.51 21.49 48 48 48h416c26.51 0 48-21.49 48-48V80c0-26.51-21.49-48-48-48zM240 448H48c-8.837 0-16-7.163-16-16V96h208v352zm240-16c0 8.837-7.163 16-16 16H272V96h208v336z" /></svg>
+				</button>
+			</div>
+		</div>
+
+		<button class="btn quiet row new-chat" id="btn-new">
+			<span class="nc-plus"><svg class="ic " viewBox="0 0 384 512" width="15" height="15" fill="currentColor" aria-hidden="true" focusable="false"><path d="M376 232H216V72c0-4.42-3.58-8-8-8h-32c-4.42 0-8 3.58-8 8v160H8c-4.42 0-8 3.58-8 8v32c0 4.42 3.58 8 8 8h160v160c0 4.42 3.58 8 8 8h32c4.42 0 8-3.58 8-8V280h160c4.42 0 8-3.58 8-8v-32c0-4.42-3.58-8-8-8z" /></svg></span><span data-t="گفتگوی تازه">گفتگوی تازه</span>
+		</button>
+
+		<nav class="side-nav" id="side-nav">
+			<button class="btn quiet row nav-item" data-view="chats">
+				<svg class="ic " viewBox="0 0 576 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M569.9 441.1c-.5-.4-22.6-24.2-37.9-54.9 27.5-27.1 44-61.1 44-98.2 0-80-76.5-146.1-176.2-157.9C368.4 72.5 294.3 32 208 32 93.1 32 0 103.6 0 192c0 37 16.5 71 44 98.2-15.3 30.7-37.3 54.5-37.7 54.9-6.3 6.7-8.1 16.5-4.4 25 3.6 8.5 12 14 21.2 14 53.5 0 96.7-20.2 125.2-38.8 9.1 2.1 18.4 3.7 28 4.8 31.5 57.5 105.5 98 191.8 98 20.8 0 40.8-2.4 59.8-6.8 28.5 18.5 71.6 38.8 125.2 38.8 9.2 0 17.5-5.5 21.2-14 3.6-8.5 1.9-18.3-4.4-25zM155.4 314l-13.2-3-11.4 7.4c-20.1 13.1-50.5 28.2-87.7 32.5 8.8-11.3 20.2-27.6 29.5-46.4L83 283.7l-16.5-16.3C50.7 251.9 32 226.2 32 192c0-70.6 79-128 176-128s176 57.4 176 128-79 128-176 128c-17.7 0-35.4-2-52.6-6zm289.8 100.4l-11.4-7.4-13.2 3.1c-17.2 4-34.9 6-52.6 6-65.1 0-122-25.9-152.4-64.3C326.9 348.6 416 278.4 416 192c0-9.5-1.3-18.7-3.3-27.7C488.1 178.8 544 228.7 544 288c0 34.2-18.7 59.9-34.5 75.4L493 379.7l10.3 20.7c9.4 18.9 20.8 35.2 29.5 46.4-37.1-4.2-67.5-19.4-87.6-32.4z" /></svg>
+				<span data-t="گفتگوها">گفتگوها</span>
+			</button>
+			<button class="btn quiet row nav-item" data-view="projects">
+				<svg class="ic " viewBox="0 0 512 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M512 256.01c0-9.98-5.81-18.94-14.77-22.81l-99.74-43.27 99.7-43.26c9-3.89 14.81-12.84 14.81-22.81s-5.81-18.92-14.77-22.79L271.94 3.33c-10.1-4.44-21.71-4.45-31.87-.02L14.81 101.06C5.81 104.95 0 113.9 0 123.87s5.81 18.92 14.77 22.79l99.73 43.28-99.7 43.26C5.81 237.08 0 246.03 0 256.01c0 9.97 5.81 18.92 14.77 22.79l99.72 43.26-99.69 43.25C5.81 369.21 0 378.16 0 388.14c0 9.97 5.81 18.92 14.77 22.79l225.32 97.76a40.066 40.066 0 0 0 15.9 3.31c5.42 0 10.84-1.1 15.9-3.31l225.29-97.74c9-3.89 14.81-12.84 14.81-22.81 0-9.98-5.81-18.94-14.77-22.81l-99.72-43.26 99.69-43.25c9-3.89 14.81-12.84 14.81-22.81zM45.23 123.87l208.03-90.26.03-.02c1.74-.71 3.65-.76 5.45.02l208.03 90.26-208.03 90.27c-1.81.77-3.74.77-5.48 0L45.23 123.87zm421.54 264.27L258.74 478.4c-1.81.77-3.74.77-5.48 0L45.23 388.13l110.76-48.06 84.11 36.49a40.066 40.066 0 0 0 15.9 3.31c5.42 0 10.84-1.1 15.9-3.31l84.11-36.49 110.76 48.07zm-208.03-41.87c-1.81.77-3.74.77-5.48 0L45.23 256 156 207.94l84.1 36.5a40.066 40.066 0 0 0 15.9 3.31c5.42 0 10.84-1.1 15.9-3.31l84.1-36.49 110.77 48.07-208.03 90.25z" /></svg>
+				<span data-t="پروژه‌ها">پروژه‌ها</span>
+			</button>
+			<button class="btn quiet row nav-item" data-view="tools">
+				<svg class="ic " viewBox="0 0 512 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M502.6 389.5L378.2 265c-15.6-15.6-36.1-23.4-56.6-23.4-15.4 0-30.8 4.4-44.1 13.3L192 169.4V96L64 0 0 64l96 128h73.4l85.5 85.5c-20.6 31.1-17.2 73.3 10.2 100.7l124.5 124.5c6.2 6.2 14.4 9.4 22.6 9.4 8.2 0 16.4-3.1 22.6-9.4l67.9-67.9c12.4-12.6 12.4-32.8-.1-45.3zM160 158.1v1.9h-48L42.3 67 67 42.3l93 69.7v46.1zM412.1 480L287.7 355.5c-9.1-9.1-14.1-21.1-14.1-33.9 0-12.8 5-24.9 14.1-33.9 9.1-9.1 21.1-14.1 33.9-14.1 12.8 0 24.9 5 33.9 14.1L480 412.1 412.1 480zM64 432c0 8.8 7.2 16 16 16s16-7.2 16-16-7.2-16-16-16-16 7.2-16 16zM276.8 66.9C299.5 44.2 329.4 32 360.6 32c6.9 0 13.8.6 20.7 1.8L312 103.2l13.8 83 83.1 13.8 69.3-69.3c6.7 38.2-5.3 76.8-33.1 104.5-8.9 8.9-19.1 16-30 21.5l23.6 23.6c10.4-6.2 20.2-13.6 29-22.5 37.8-37.8 52.7-91.4 39.7-143.3-2.3-9.5-9.7-17-19.1-19.6-9.5-2.6-19.7 0-26.7 7l-63.9 63.9-44.2-7.4-7.4-44.2L410 50.3c6.9-6.9 9.6-17.1 7-26.5-2.6-9.5-10.2-16.8-19.7-19.2C345.6-8.3 292 6.5 254.1 44.3c-12.9 12.9-22.9 27.9-30.1 44v67.8l22.1 22.1c-9.6-40.4 1.6-82.2 30.7-111.3zM107 467.1c-16.6 16.6-45.6 16.6-62.2 0-17.1-17.1-17.1-45.1 0-62.2l146.1-146.1-22.6-22.6L22.2 382.3c-29.6 29.6-29.6 77.8 0 107.5C36.5 504.1 55.6 512 75.9 512c20.3 0 39.4-7.9 53.7-22.3L231.4 388c-6.7-9.2-11.8-19.3-15.5-29.8L107 467.1z" /></svg>
+				<span data-t="ابزارها">ابزارها</span>
+			</button>
+			<button class="btn quiet row nav-item" data-view="changes">
+				<svg class="ic " viewBox="0 0 576 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M228.5 511.8l-25-7.1c-3.2-.9-5-4.2-4.1-7.4L340.1 4.4c.9-3.2 4.2-5 7.4-4.1l25 7.1c3.2.9 5 4.2 4.1 7.4L235.9 507.6c-.9 3.2-4.3 5.1-7.4 4.2zm-75.6-125.3l18.5-20.9c1.9-2.1 1.6-5.3-.5-7.1L49.9 256l121-102.5c2.1-1.8 2.4-5 .5-7.1l-18.5-20.9c-1.8-2.1-5-2.3-7.1-.4L1.7 252.3c-2.3 2-2.3 5.5 0 7.5L145.8 387c2.1 1.8 5.3 1.6 7.1-.5zm277.3.4l144.1-127.2c2.3-2 2.3-5.5 0-7.5L430.2 125.1c-2.1-1.8-5.2-1.6-7.1.4l-18.5 20.9c-1.9 2.1-1.6 5.3.5 7.1l121 102.5-121 102.5c-2.1 1.8-2.4 5-.5 7.1l18.5 20.9c1.8 2.1 5 2.3 7.1.4z" /></svg>
+				<span data-t="تغییرات">تغییرات</span>
+				<b class="nav-badge" id="nav-changes-count" hidden></b>
+			</button>
+			<button class="btn quiet row nav-item" data-view="customize">
+				<svg class="ic " viewBox="0 0 512 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M464 128H352V56c0-13.26-10.74-24-24-24H184c-13.26 0-24 10.74-24 24v72H48c-26.51 0-48 21.49-48 48v256c0 26.51 21.49 48 48 48h416c26.51 0 48-21.49 48-48V176c0-26.51-21.49-48-48-48zM192 64h128v64H192V64zm288 368c0 8.82-7.18 16-16 16H48c-8.82 0-16-7.18-16-16V288h160v40c0 13.25 10.75 24 24 24h80c13.25 0 24-10.75 24-24v-40h160v144zM224 320v-32h64v32h-64zm256-64H32v-80c0-8.82 7.18-16 16-16h416c8.82 0 16 7.18 16 16v80z" /></svg>
+				<span data-t="سفارشی‌سازی">سفارشی‌سازی</span>
+			</button>
+		</nav>
+
+		<div class="side-label" data-t="امکانات">امکانات</div>
+		<nav class="side-nav">
+			<button class="btn quiet row nav-item" data-view="hub">
+				<svg class="ic " viewBox="0 0 640 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M384 320H256c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32zM192 32c0-17.67-14.33-32-32-32H32C14.33 0 0 14.33 0 32v128c0 17.67 14.33 32 32 32h95.72l73.16 128.04C211.98 300.98 232.4 288 256 288h.28L192 175.51V128h224V64H192V32zM608 0H480c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32z" /></svg>
+				<span data-t="هاب پرووایدر">هاب پرووایدر</span>
+			</button>
+			<button class="btn quiet row nav-item" data-view="workspace">
+				<svg class="ic " viewBox="0 0 640 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M266.34 277.65l11.31-11.31c3.12-3.12 3.12-8.19 0-11.31L230.62 208l47.03-47.03c3.12-3.12 3.12-8.19 0-11.31l-11.31-11.31c-3.12-3.12-8.19-3.12-11.31 0l-64 64c-3.12 3.12-3.12 8.19 0 11.31l64 64c3.13 3.12 8.19 3.12 11.31-.01zm96-11.31l11.31 11.31c3.12 3.12 8.19 3.12 11.31 0l64-64c3.12-3.12 3.12-8.19 0-11.31l-64-64c-3.12-3.12-8.19-3.12-11.31 0l-11.31 11.31c-3.12 3.12-3.12 8.19 0 11.31L409.38 208l-47.03 47.03a7.994 7.994 0 0 0-.01 11.31zM624 368h-48V96c0-35.3-28.72-64-64-64H128c-35.28 0-64 28.7-64 64v272H16c-8.84 0-16 7.16-16 16v48c0 44.11 35.88 80 80 80h480c44.12 0 80-35.89 80-80v-48c0-8.84-7.16-16-16-16zM96 96c0-17.67 14.33-32 32-32h384c17.67 0 32 14.33 32 32v272H391.13c-4.06 0-7.02 3.13-7.92 7.09C379.98 389.35 367.23 400 352 400h-64c-15.23 0-27.98-10.65-31.21-24.91-.9-3.96-3.86-7.09-7.92-7.09H96V96zm512 336c0 26.47-21.53 48-48 48H80c-26.47 0-48-21.53-48-48v-32h194.75c6.59 18.62 24.38 32 45.25 32h96c20.88 0 38.66-13.38 45.25-32H608v32z" /></svg>
+				<span data-t="فضای کار">فضای کار</span>
+			</button>
+		</nav>
+
+		<div class="side-label">
+			<span class="grow" data-t="اخیر">اخیر</span>
+			<button class="btn icon round quiet" id="btn-recents-more" title="همهٔ گفتگوها" data-t-title="همهٔ گفتگوها">
+				<svg class="ic " viewBox="0 0 512 512" width="15" height="15" fill="currentColor" aria-hidden="true" focusable="false"><path d="M32.39 224C14.73 224 0 238.33 0 256s14.73 32 32.39 32a32 32 0 0 0 0-64zm0-160C14.73 64 0 78.33 0 96s14.73 32 32.39 32a32 32 0 0 0 0-64zm0 320C14.73 384 0 398.33 0 416s14.73 32 32.39 32a32 32 0 0 0 0-64zM504 80H136a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h368a8 8 0 0 0 8-8V88a8 8 0 0 0-8-8zm0 160H136a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h368a8 8 0 0 0 8-8v-16a8 8 0 0 0-8-8zm0 160H136a8 8 0 0 0-8 8v16a8 8 0 0 0 8 8h368a8 8 0 0 0 8-8v-16a8 8 0 0 0-8-8z" /></svg>
+			</button>
+		</div>
+		<div class="side-scroll" id="session-list"></div>
+
+		<div class="side-bottom">
+			<div class="account-row">
+				<button class="btn quiet row account-main" id="btn-account" title="حساب و تنظیمات" data-t-title="حساب و تنظیمات">
+					<span class="avatar-dot" id="account-initial">ه</span>
+					<span class="acc-lines">
+						<b id="account-name">پروفایل</b>
+						<span class="acc-text" id="chip-provider">—</span>
+					</span>
+					<svg class="ic acc-chev" viewBox="0 0 448 512" width="13" height="13" fill="currentColor" aria-hidden="true" focusable="false"><path d="M4.465 366.475l7.07 7.071c4.686 4.686 12.284 4.686 16.971 0L224 178.053l195.494 195.493c4.686 4.686 12.284 4.686 16.971 0l7.07-7.071c4.686-4.686 4.686-12.284 0-16.97l-211.05-211.051c-4.686-4.686-12.284-4.686-16.971 0L4.465 349.505c-4.687 4.686-4.687 12.284 0 16.97z" /></svg>
+				</button>
+				<button class="btn icon round quiet" id="btn-export" title="خروجی گفتگو">
+					<svg class="ic " viewBox="0 0 512 512" width="15" height="15" fill="currentColor" aria-hidden="true" focusable="false"><path d="M452 432c0 11-9 20-20 20s-20-9-20-20 9-20 20-20 20 9 20 20zm-84-20c-11 0-20 9-20 20s9 20 20 20 20-9 20-20-9-20-20-20zm144-48v104c0 24.3-19.7 44-44 44H44c-24.3 0-44-19.7-44-44V364c0-24.3 19.7-44 44-44h99.4L87 263.6c-25.2-25.2-7.3-68.3 28.3-68.3H168V40c0-22.1 17.9-40 40-40h96c22.1 0 40 17.9 40 40v155.3h52.7c35.6 0 53.4 43.1 28.3 68.3L368.6 320H468c24.3 0 44 19.7 44 44zm-261.7 17.7c3.1 3.1 8.2 3.1 11.3 0L402.3 241c5-5 1.5-13.7-5.7-13.7H312V40c0-4.4-3.6-8-8-8h-96c-4.4 0-8 3.6-8 8v187.3h-84.7c-7.1 0-10.7 8.6-5.7 13.7l140.7 140.7zM480 364c0-6.6-5.4-12-12-12H336.6l-52.3 52.3c-15.6 15.6-41 15.6-56.6 0L175.4 352H44c-6.6 0-12 5.4-12 12v104c0 6.6 5.4 12 12 12h424c6.6 0 12-5.4 12-12V364z" /></svg>
+				</button>
+			</div>
+			<div class="account-menu" id="account-menu" hidden></div>
+		</div>
+	</aside>
+
+	<!-- ══════════════════════════════════════════════════ ناحیهٔ اصلی -->
+	<main class="main">
+	 <div class="main-card">
+
+		<header class="topbar">
+			<button class="btn icon round quiet" id="btn-back" title="بازگشت به گفتگو" data-t-title="بازگشت به گفتگو" hidden>
+				<svg class="ic " viewBox="0 0 448 512" width="15" height="15" fill="currentColor" aria-hidden="true" focusable="false"><path d="M216.464 36.465l-7.071 7.07c-4.686 4.686-4.686 12.284 0 16.971L387.887 239H12c-6.627 0-12 5.373-12 12v10c0 6.627 5.373 12 12 12h375.887L209.393 451.494c-4.686 4.686-4.686 12.284 0 16.971l7.071 7.07c4.686 4.686 12.284 4.686 16.97 0l211.051-211.05c4.686-4.686 4.686-12.284 0-16.971L233.434 36.465c-4.686-4.687-12.284-4.687-16.97 0z" /></svg>
+			</button>
+
+			<!-- در گفتگو: نام گفتگو با فلش. در صفحهٔ خالی: نام پروژه، وسط‌چین. -->
+			<button class="btn quiet chat-title" id="session-title" hidden>
+				<span id="session-title-text">گفتگوی تازه</span>
+				<svg class="ic " viewBox="0 0 448 512" width="12" height="12" fill="currentColor" aria-hidden="true" focusable="false"><path d="M443.5 162.6l-7.1-7.1c-4.7-4.7-12.3-4.7-17 0L224 351 28.5 155.5c-4.7-4.7-12.3-4.7-17 0l-7.1 7.1c-4.7 4.7-4.7 12.3 0 17l211 211.1c4.7 4.7 12.3 4.7 17 0l211-211.1c4.8-4.7 4.8-12.3.1-17z" /></svg>
+			</button>
+
+			<button class="btn quiet sm plan-chip" id="plan-chip" tabindex="-1">
+				<span id="plan-text">—</span>
+			</button>
+
+			<div class="top-right">
+				<button class="btn outline" id="btn-share" hidden title="خروجی گفتگو" data-t="اشتراک">اشتراک</button>
+				<span class="ctx-chip" id="context-meter" title="مصرف کانتکست" data-t-title="مصرف کانتکست"><span id="meter-text">۰٪</span></span>
+				<button class="btn icon round quiet" id="btn-more" title="بیشتر" data-t-title="بیشتر">
+					<svg class="ic " viewBox="0 0 320 512" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M192 256c0 17.7-14.3 32-32 32s-32-14.3-32-32 14.3-32 32-32 32 14.3 32 32zm88-32c-17.7 0-32 14.3-32 32s14.3 32 32 32 32-14.3 32-32-14.3-32-32-32zm-240 0c-17.7 0-32 14.3-32 32s14.3 32 32 32 32-14.3 32-32-14.3-32-32-32z" /></svg>
+				</button>
+				<div id="more-menu" class="pop-menu more-menu" hidden></div>
+			</div>
+		</header>
+
+		<!-- نمای گفتگو -->
+		<div class="view view-chat" id="view-chat">
+			<div class="thread" id="chat"></div>
+
+			<!--
+				خوش‌آمد، بیرونِ ناحیهٔ اسکرول‌شوندهٔ گفتگو و بالای ردیف دکمهٔ «برو به آخر».
+				مرکز‌چینی گروهِ «خوش‌آمد + کادر نوشتن» با مارجین auto انجام می‌شود، نه با
+				`justify-content: center` — سرریزِ center نیمی از محتوا را بالای مبدأ می‌برد
+				که اسکرول به دست نمی‌رسد. شرح کامل: DESIGN-UI-PARITY.md §۱۷.
+			-->
+			<div class="welcome-slot" id="welcome-slot">
+				<div class="welcome" id="welcome">
+					<span class="greet-mark" id="greet-mark"></span>
+					<h2 class="greet" id="greet-text" data-t="به ویرا خوش آمدی">به ویرا خوش آمدی</h2>
+					<p class="greet-sub" id="greet-sub" data-t="چه کاری برایت انجام بدهم؟">چه کاری برایت انجام بدهم؟</p>
+				</div>
+			</div>
+
+			<div class="composer-wrap">
+				<!-- جای دکمهٔ «برو به آخر»: بالای کادر نوشتن، وسطِ همان ستون. -->
+				<div class="jump-slot" id="jump-slot"></div>
+				<div id="queue" class="queue" hidden></div>
+				<div id="cmd-menu" class="pop-menu" hidden></div>
+				<div id="plus-menu" class="pop-menu plus-menu" hidden></div>
+				<div id="model-menu" class="pop-menu model-menu" hidden></div>
+
+				<form id="composer" class="composer">
+					<div id="attachments" class="attachments" hidden></div>
+					<textarea id="input" rows="1" placeholder="امروز چه کمکی از من برمی‌آید؟" data-t-ph="امروز چه کمکی از من برمی‌آید؟"></textarea>
+
+					<div class="composer-bar">
+						<button type="button" class="btn icon quiet" id="btn-plus" title="افزودن و ابزارها" data-t-title="افزودن و ابزارها"><svg class="ic " viewBox="0 0 384 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M376 232H216V72c0-4.42-3.58-8-8-8h-32c-4.42 0-8 3.58-8 8v160H8c-4.42 0-8 3.58-8 8v32c0 4.42 3.58 8 8 8h160v160c0 4.42 3.58 8 8 8h32c4.42 0 8-3.58 8-8V280h160c4.42 0 8-3.58 8-8v-32c0-4.42-3.58-8-8-8z" /></svg></button>
+						<input type="file" id="file-input" accept="image/*" multiple hidden />
+
+						<span class="grow"></span>
+
+						<button type="button" class="btn quiet" id="pill-model" title="مدل">
+							<span id="model-name">—</span>
+						</button>
+						<button type="button" class="btn quiet sm" id="pill-mode" data-mode="default" title="حالت کار (Shift+Tab)">عادی</button>
+						<button type="button" class="btn icon quiet" id="btn-mic" title="گفتن به‌جای نوشتن (Ctrl+M)" data-t-title="گفتن به‌جای نوشتن (Ctrl+M)">
+							<svg class="ic " viewBox="0 0 320 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M160 352c53.02 0 96-42.98 96-96V96c0-53.02-42.98-96-96-96S64 42.98 64 96v160c0 53.02 42.98 96 96 96zM96 96c0-35.29 28.71-64 64-64s64 28.71 64 64v160c0 35.29-28.71 64-64 64s-64-28.71-64-64V96zm216 96h-16c-4.42 0-8 3.58-8 8v56c0 73.46-62.2 132.68-136.73 127.71C83.3 379.18 32 319.61 32 251.49V200c0-4.42-3.58-8-8-8H8c-4.42 0-8 3.58-8 8v50.34c0 83.39 61.65 156.12 144 164.43V480H72c-4.42 0-8 3.58-8 8v16c0 4.42 3.58 8 8 8h176c4.42 0 8-3.58 8-8v-16c0-4.42-3.58-8-8-8h-72v-65.01C256.71 406.9 320 338.8 320 256v-56c0-4.42-3.58-8-8-8z" /></svg>
+						</button>
+						<button type="button" class="btn icon quiet" id="btn-voice" title="بلندخوانی پاسخ" data-t-title="بلندخوانی پاسخ">
+							<svg class="ic " viewBox="0 0 640 512" width="17" height="17" fill="currentColor" aria-hidden="true" focusable="false"><path d="M232 96h-16a8 8 0 0 0-8 8v304a8 8 0 0 0 8 8h16a8 8 0 0 0 8-8V104a8 8 0 0 0-8-8zm-96 96h-16a8 8 0 0 0-8 8v112a8 8 0 0 0 8 8h16a8 8 0 0 0 8-8V200a8 8 0 0 0-8-8zm-96 32H24a8 8 0 0 0-8 8v48a8 8 0 0 0 8 8h16a8 8 0 0 0 8-8v-48a8 8 0 0 0-8-8zm384-96h-16a8 8 0 0 0-8 8v240a8 8 0 0 0 8 8h16a8 8 0 0 0 8-8V136a8 8 0 0 0-8-8zm192 96h-16a8 8 0 0 0-8 8v48a8 8 0 0 0 8 8h16a8 8 0 0 0 8-8v-48a8 8 0 0 0-8-8zM520 64h-16a8 8 0 0 0-8 8v368a8 8 0 0 0 8 8h16a8 8 0 0 0 8-8V72a8 8 0 0 0-8-8zM328 0h-16a8 8 0 0 0-8 8v496a8 8 0 0 0 8 8h16a8 8 0 0 0 8-8V8a8 8 0 0 0-8-8z" /></svg>
+						</button>
+						<button id="stop" type="button" class="btn icon solid" hidden title="توقف (Esc)" data-t-title="توقف (Esc)"><svg class="ic " viewBox="0 0 448 512" width="11" height="11" fill="currentColor" aria-hidden="true" focusable="false"><path d="M400 32H48C21.5 32 0 53.5 0 80v352c0 26.5 21.5 48 48 48h352c26.5 0 48-21.5 48-48V80c0-26.5-21.5-48-48-48z" /></svg></button>
+						<button id="send" type="submit" class="btn icon brand" hidden title="ارسال" data-t-title="ارسال">
+							<svg class="ic " viewBox="0 0 448 512" width="15" height="15" fill="currentColor" aria-hidden="true" focusable="false"><path d="M34.9 289.5l-22.2-22.2c-9.4-9.4-9.4-24.6 0-33.9L207 39c9.4-9.4 24.6-9.4 33.9 0l194.3 194.3c9.4 9.4 9.4 24.6 0 33.9L413 289.4c-9.5 9.5-25 9.3-34.3-.4L264 168.6V456c0 13.3-10.7 24-24 24h-32c-13.3 0-24-10.7-24-24V168.6L69.2 289.1c-9.3 9.8-24.8 10-34.3.4z" /></svg>
+						</button>
+					</div>
+
+				</form>
+
+				<!--
+					نوار گیت — این یکی در Claude نیست و عمداً اضافه شده: خواستهٔ صریح
+					کارفرما از روی رابط Arena بود. بقیهٔ اجزا کپی برابر اصل‌اند.
+				-->
+				<div class="git-bar" id="git-bar" hidden>
+					<button type="button" class="btn quiet sm git-chip" id="git-repo" title="مخزن — کلیک برای تعویض یا اتصال">
+						<svg class="ic " viewBox="0 0 448 512" width="13" height="13" fill="currentColor" aria-hidden="true" focusable="false"><path d="M356 160H188c-6.6 0-12-5.4-12-12v-8c0-6.6 5.4-12 12-12h168c6.6 0 12 5.4 12 12v8c0 6.6-5.4 12-12 12zm12 52v-8c0-6.6-5.4-12-12-12H188c-6.6 0-12 5.4-12 12v8c0 6.6 5.4 12 12 12h168c6.6 0 12-5.4 12-12zm64.7 268h3.3c6.6 0 12 5.4 12 12v8c0 6.6-5.4 12-12 12H80c-44.2 0-80-35.8-80-80V80C0 35.8 35.8 0 80 0h344c13.3 0 24 10.7 24 24v368c0 10-6.2 18.6-14.9 22.2-3.6 16.1-4.4 45.6-.4 65.8zM128 384h288V32H128v352zm-96 16c13.4-10 30-16 48-16h16V32H80c-26.5 0-48 21.5-48 48v320zm372.3 80c-3.1-20.4-2.9-45.2 0-64H80c-64 0-64 64 0 64h324.3z" /></svg>
+						<span id="git-repo-name">—</span>
+					</button>
+
+					<button type="button" class="btn quiet sm git-chip" id="git-branch" title="شاخه — کلیک برای تعویض یا ساخت">
+						<svg class="ic " viewBox="0 0 384 512" width="13" height="13" fill="currentColor" aria-hidden="true" focusable="false"><path d="M384 144c0-44.2-35.8-80-80-80s-80 35.8-80 80c0 39.2 28.2 71.8 65.5 78.7-.8 17.2-5 30.4-12.7 40-17.5 21.8-53.1 25.2-90.7 28.7-28.2 2.6-57.4 5.4-80.4 16.9-3.4 1.7-6.7 3.6-9.7 5.7V158.4c36.5-7.4 64-39.7 64-78.4 0-44.2-35.8-80-80-80S0 35.8 0 80c0 38.7 27.5 71 64 78.4v195.2C27.5 361 0 393.3 0 432c0 44.2 35.8 80 80 80s80-35.8 80-80c0-36.9-24.9-67.9-58.9-77.2 5-9.6 12.3-14.6 19-18 17.5-8.8 42.5-11.2 68.9-13.7 42.6-4 86.7-8.1 112.7-40.5 12.4-15.5 19-35.5 19.8-60.7C357.3 214 384 182.1 384 144zM32 80c0-26.5 21.5-48 48-48s48 21.5 48 48-21.5 48-48 48-48-21.5-48-48zm96 352c0 26.5-21.5 48-48 48s-48-21.5-48-48c0-26.4 21.4-47.9 47.8-48h.6c26.3.2 47.6 21.7 47.6 48zm187.8-241.5L304 192c-26.5 0-48-21.5-48-48s21.5-48 48-48 48 21.5 48 48c0 22.4-15.4 41.2-36.2 46.5z" /></svg>
+						<span id="git-branch-name">—</span>
+					</button>
+
+					<button type="button" class="btn quiet sm mono" id="git-stat" title="تغییرات — کلیک برای دیدن دیف">
+						<span class="plus" id="git-plus">+۰</span>
+						<span class="minus" id="git-minus">−۰</span>
+					</button>
+
+					<button type="button" class="btn solid sm push-end" id="git-action">ثبت تغییرات</button>
+				</div>
+
+				<div id="git-menu" class="pop-menu git-menu" hidden></div>
+
+				<p class="disclaimer" data-t="ویرا هم اشتباه می‌کند. کارهای مهم را خودت بازبینی کن.">ویرا هم اشتباه می‌کند. کارهای مهم را خودت بازبینی کن.</p>
+			</div>
+		</div>
+
+		<!-- نمای صفحه‌ها (گفتگوها، پروژه‌ها، ابزارها، تغییرات، فضای کار) -->
+		<div class="view page" id="view-panel" hidden>
+			<div class="page-inner" id="panel-body"></div>
+		</div>
+	 </div>
+	</main>
+</div>
+
+<!-- ═══════════════════════════════════════════════ تنظیمات: مودال بزرگ -->
+<dialog class="set-modal" id="settings">
+	<div class="set-shell">
+		<nav class="set-nav" id="set-nav"></nav>
+		<div class="set-main">
+			<div class="set-head">
+				<h2 id="set-title" data-t="تنظیمات">تنظیمات</h2>
+				<div class="set-head-actions" id="set-head-actions"></div>
+				<button class="btn icon round quiet" id="set-close" title="بستن" data-t-title="بستن">
+					<svg class="ic " viewBox="0 0 320 512" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M193.94 256L296.5 153.44l21.15-21.15c3.12-3.12 3.12-8.19 0-11.31l-22.63-22.63c-3.12-3.12-8.19-3.12-11.31 0L160 222.06 36.29 98.34c-3.12-3.12-8.19-3.12-11.31 0L2.34 120.97c-3.12 3.12-3.12 8.19 0 11.31L126.06 256 2.34 379.71c-3.12 3.12-3.12 8.19 0 11.31l22.63 22.63c3.12 3.12 8.19 3.12 11.31 0L160 289.94 262.56 392.5l21.15 21.15c3.12 3.12 8.19 3.12 11.31 0l22.63-22.63c3.12-3.12 3.12-8.19 0-11.31L193.94 256z" /></svg>
+				</button>
+			</div>
+			<div class="set-body" id="set-body"></div>
+		</div>
+	</div>
+</dialog>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -34,6 +34,7 @@ final class Settings {
 		'hub.vip_link_secret',
 		'stt.api_key',
 		'dm.custom.api_key',
+		'pado.api_key',
 	];
 
 	/** @return array<string,mixed> */

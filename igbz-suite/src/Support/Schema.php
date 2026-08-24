@@ -90,6 +90,8 @@ final class Schema {
 			'ig_courier_tracking',
 			'ig_courier_chat',
 			'logs',
+			'approval_requests',
+			'themes',
 		];
 	}
 
@@ -1309,6 +1311,64 @@ final class Schema {
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY level_channel (level,channel),
+			KEY created_at (created_at)
+		) {$charset};";
+
+		// ---------------------------------------------------------------------
+		// Pado (AI assistant) scaffolding (v19, 1406/05/31).
+		//
+		// approval_requests is the single table behind the "درخواست‌های مجوز"
+		// tab in the Pado center. Every sensitive operation that needs a
+		// human yes/no (theme apply/rollback, price change, refund, instagram
+		// publish of any of the four content kinds, bulk delete, campaign
+		// send, policy change, ...) creates one row. Statuses: pending /
+		// approved / rejected / executed / failed / cancelled.
+		// ---------------------------------------------------------------------
+		$sql[] = "CREATE TABLE {$p}approval_requests (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			kind VARCHAR(64) NOT NULL DEFAULT '',
+			title VARCHAR(255) NOT NULL DEFAULT '',
+			reason TEXT NULL,
+			payload LONGTEXT NULL,
+			impact VARCHAR(32) NOT NULL DEFAULT 'low',
+			requested_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			decided_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			status VARCHAR(16) NOT NULL DEFAULT 'pending',
+			decision_note TEXT NULL,
+			metadata LONGTEXT NULL,
+			created_at DATETIME NOT NULL,
+			decided_at DATETIME NULL,
+			executed_at DATETIME NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_status (tenant_id,status,created_at),
+			KEY kind (kind),
+			KEY created_at (created_at)
+		) {$charset};";
+
+		// Theme artefacts produced by Pado (or uploaded) and validated by
+		// the backend gate. Statuses: draft / preview / live / rejected /
+		// archived.
+		$sql[] = "CREATE TABLE {$p}themes (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			slug VARCHAR(128) NOT NULL DEFAULT '',
+			name VARCHAR(191) NOT NULL DEFAULT '',
+			source VARCHAR(16) NOT NULL DEFAULT 'pado',
+			zip_path VARCHAR(512) NOT NULL DEFAULT '',
+			size_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			status VARCHAR(16) NOT NULL DEFAULT 'draft',
+			validation LONGTEXT NULL,
+			preview_url VARCHAR(512) NOT NULL DEFAULT '',
+			approval_request_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			generated_by VARCHAR(64) NOT NULL DEFAULT '',
+			prompt LONGTEXT NULL,
+			metadata LONGTEXT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_status (tenant_id,status),
+			KEY slug (slug),
 			KEY created_at (created_at)
 		) {$charset};";
 
