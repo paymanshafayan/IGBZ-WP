@@ -59,12 +59,32 @@ https://playground.wordpress.net/#eyIkc2NoZW1hIjoiaHR0cHM6Ly9wbGF5Z3JvdW5kLndvcm
 }
 ```
 
-## گزینهٔ تکمیلی (پیشنهادی — نیازمند تأیید و «شروع کن»)
+## لینک سادهٔ دائمی (پیشنهادی — بدون base64)
 
-**اکشن رسمی `WordPress/action-wp-playground-pr-preview@v3`**: با افزودن یک workflow به
-`.github/workflows/`، روی هر Pull Request به‌طور خودکار دکمهٔ «Preview in WordPress
-Playground» اضافه می‌شود و هر PR را با یک کلیک در مرورگر تست می‌کنید. چون تغییر
-فایل در ریپو (کد CI) است، طبق قاعدهٔ ۱ فقط با تأیید کارفرما اضافه می‌شود.
+فایل Blueprint در خود ریپو نگهداری می‌شود (`_devenv/playground-blueprint.json`).
+پس از ادغام این شاخه در `main`، این لینک کوتاه همیشه کار می‌کند:
+
+```
+https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/paymanshafayan/IGBZ-WP/main/_devenv/playground-blueprint.json
+```
+
+تا قبل از ادغام، همین لینک با نام شاخهٔ جاری:
+
+```
+https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/paymanshafayan/IGBZ-WP/arena/01a03227-igbz-wp/_devenv/playground-blueprint.json
+```
+
+## دکمهٔ خودکار پیش‌نمایش روی هر PR (workflow — نصب دستی توسط کارفرما)
+
+**اکشن رسمی `WordPress/action-wp-playground-pr-preview@v3`**: روی هر Pull Request
+به‌طور خودکار دکمهٔ «Preview in WordPress Playground» اضافه می‌کند.
+
+⚠️ **محدودیت سندباکس:** توکن GitHub این محیط مجوز `workflows` ندارد و پوشِ فایل به
+`.github/workflows/` رد می‌شود (خطای «refusing to allow a GitHub App to create or
+update workflow»). فایل آماده در `_devenv/github-workflow-pr-preview.yml` گذاشته شده؛
+کارفرما باید خودش آن را (از UI گیت‌هاب) در مسیر
+`.github/workflows/pr-playground-preview.yml` بسازد — دستورالعمل دقیق در پیام چت
+۱۴۰۶/۰۶/۰۲ داده شد.
 
 ## نکته دربارهٔ پیش‌نمایش سندباکس
 
