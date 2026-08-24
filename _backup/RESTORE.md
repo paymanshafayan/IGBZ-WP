@@ -1,8 +1,8 @@
-# بکاپ هوشا — نقطهٔ بازگشت سالم
+# بکاپ ویرا — نقطهٔ بازگشت سالم
 
 ## این بکاپ چیست
 
-عکس کامل پوشهٔ `hoosha/` به‌علاوهٔ دو راه‌انداز ریشه، در وضعیتی که **آزموده و سالم**
+عکس کامل پوشهٔ `vira/` به‌علاوهٔ دو راه‌انداز ریشه، در وضعیتی که **آزموده و سالم**
 است. اگر Codex (یا هر تغییر دیگری) چیزی را خراب کرد، با یک دستور به همین نقطه
 برمی‌گردی.
 
@@ -16,8 +16,8 @@
 
 ## چه چیزی داخلش هست
 
-کل `hoosha/` (۱۲۶ فایل: `src/`, `ui/`, `test/`, اسناد طراحی، `package.json`،
-`package-lock.json`) به‌علاوهٔ `hoosha.sh` و `hoosha.cmd` از ریشهٔ مخزن.
+کل `vira/` (۱۲۶ فایل: `src/`, `ui/`, `test/`, اسناد طراحی، `package.json`،
+`package-lock.json`) به‌علاوهٔ `vira.sh` و `vira.cmd` از ریشهٔ مخزن.
 
 `node_modules/` عمداً داخلش **نیست** — با `npm ci` از روی `package-lock.json`
 بازسازی می‌شود و گذاشتنش حجم را ۳۰ مگابایت می‌کرد.
@@ -36,16 +36,16 @@ cd /home/user/IGBZ-WP
 
 ```bash
 cd /home/user/IGBZ-WP
-rm -rf hoosha
-tar -xzf _backup/hoosha-0.9.9-647b5b1-*.tar.gz
-cd hoosha && npm ci
+rm -rf vira
+tar -xzf _backup/vira-0.9.9-647b5b1-*.tar.gz
+cd vira && npm ci
 ```
 
 ### فقط یک فایل را برگردان
 
 ```bash
-tar -xzf _backup/hoosha-*.tar.gz -C /tmp hoosha/src/net.js
-cp /tmp/hoosha/src/net.js hoosha/src/net.js
+tar -xzf _backup/vira-*.tar.gz -C /tmp vira/src/net.js
+cp /tmp/vira/src/net.js vira/src/net.js
 ```
 
 ## راه دوم: از خود گیت
@@ -54,7 +54,7 @@ cp /tmp/hoosha/src/net.js hoosha/src/net.js
 GitHub هم هست:
 
 ```bash
-git checkout 647b5b1 -- hoosha/          # فقط پوشهٔ هوشا
+git checkout 647b5b1 -- vira/          # فقط پوشهٔ ویرا
 git reset --hard 647b5b1                 # کل مخزن (مواظب باش)
 ```
 
@@ -64,7 +64,7 @@ git reset --hard 647b5b1                 # کل مخزن (مواظب باش)
 ## بعد از بازگرداندن، این را چک کن
 
 ```bash
-cd hoosha
+cd vira
 node src/cli.js --version     # باید 0.9.9 بدهد
 node test/run.mjs             # باید ۳۷۷ موفق، ۱ ناموفق بدهد
 ```

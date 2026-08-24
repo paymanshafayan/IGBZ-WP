@@ -16,6 +16,14 @@ WORK="$DEVENV/.work"
 PLAYGROUND_VERSION="3.1.49"
 PHPWASM_VERSION="3.1.49"
 
+# Bundled-in-repo third-party plugins/themes served to the Playground (offline).
+# NOTE (1406/05/31): Elementor + Hello Elementor were removed (~108 MB) to keep
+# the repo lightweight. The harness now uses WordPress's bundled default
+# theme (Twenty Twenty-Five) and only ships WooCommerce + igbz-suite out of
+# the box. Elementor may be re-added later as an optional on-demand install.
+BUNDLED_PLUGINS=()
+BUNDLED_THEMES=()
+
 die()  { printf '\n\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
 info() { printf '\033[36m==>\033[0m %s\n' "$*"; }
 ok()   { printf '  \033[32mok\033[0m %s\n' "$*"; }
@@ -199,13 +207,19 @@ mkdir -p "$WORK/mu"
 cat > "$WORK/mu/000-activate.php" <<'PHP'
 <?php
 /**
- * Harness only. Force-activate WooCommerce and the plugin under test, in that order, so
- * WooCommerce is fully loaded before igbz-suite boots.
+ * Harness only. Force-activate WooCommerce and the plugin under test, in that
+ * order, so dependencies are fully loaded before igbz-suite boots.
+ * (Elementor removed 1406/05/31 — repo-size decision.)
  */
 add_action( 'plugins_loaded', function () {
-	$want = [ 'woocommerce/woocommerce.php', 'igbz-suite/igbz-suite.php' ];
+	$want = [
+		'woocommerce/woocommerce.php',
+		'igbz-suite/igbz-suite.php',
+	];
 	$have = (array) get_option( 'active_plugins', [] );
 	$new  = array_values( array_unique( array_merge( $want, array_diff( $have, $want ) ) ) );
+	// Defensive: also drop elementor from active list so stale DB options don't fatal.
+	$new  = array_values( array_filter( $new, fn( $p ) => strpos( $p, 'elementor' ) === false ) );
 	if ( $new !== $have ) {
 		update_option( 'active_plugins', $new );
 	}
@@ -215,12 +229,18 @@ PHP
 cat > "$WORK/mu/010-enable-modules.php" <<'PHP'
 <?php
 /**
- * Harness only. Turn on all five modules once, so every admin screen and REST route exists.
+ * Harness only. Turn on every registered module once, so every admin screen
+ * and REST route exists (including the new Pado module added in v19).
+ * Uses Modules::all() so future modules are auto-enabled without touching
+ * this file — but we bump the guard option to force a re-sync when the list
+ * grows.
  */
 add_action( 'igbz_booted', function () {
-	if ( get_option( 'igbz_devenv_modules_on' ) ) { return; }
-	update_option( 'igbz_enabled_modules', [ 'multitenant', 'instagram', 'hub', 'rest_api', 'fx' ] );
-	update_option( 'igbz_devenv_modules_on', 1 );
+	$guard = 'igbz_devenv_modules_on_v3';
+	if ( get_option( $guard ) ) { return; }
+	if ( ! class_exists( '\\IGBZ\\Suite\\Support\\Modules' ) ) { return; }
+	update_option( \IGBZ\Suite\Support\Modules::OPTION, \IGBZ\Suite\Support\Modules::all() );
+	update_option( $guard, 1 );
 } );
 PHP
 
@@ -260,11 +280,536 @@ add_action( 'init', function () {
 }, 99 );
 PHP
 
-ok "3 mu-plugins written"
+cat > "$WORK/mu/030-default-theme.php" <<'PHP'
+<?php
+/**
+ * Harness only. On first load, stage the default theme (WordPress bundled
+ * default — Twenty Twenty-Five when available, falling back to the oldest
+ * known core default) and WooCommerce store options. Theme switching runs
+ * on `setup_theme` priority 0 so the target theme's functions.php loads
+ * from scratch and we avoid the mid-request-switch fatal.
+ *
+ * 1406/05/31: Elementor + Hello Elementor removed (~108 MB saved).
+ */
+add_action( 'setup_theme', function () {
+	$candidates = [ 'twentytwentyfive', 'twentytwentyfour', 'twentytwentythree' ];
+	$target     = null;
+	$themes     = wp_get_themes();
+	foreach ( $candidates as $slug ) {
+		if ( isset( $themes[ $slug ] ) ) { $target = $slug; break; }
+	}
+	if ( ! $target ) {
+		foreach ( $themes as $slug => $_ ) {
+			if ( str_starts_with( $slug, 'twenty' ) ) { $target = $slug; break; }
+		}
+	}
+	if ( $target && ( get_option( 'stylesheet' ) !== $target || get_option( 'template' ) !== $target ) ) {
+		switch_theme( $target );
+	}
+}, 0 );
+
+add_action( 'wp_loaded', function () {
+	// v6: Elementor removed; RTL + Persian + WC defaults still applied.
+	$ver = 'v6';
+	$prev = get_option( 'igbz_dev_shop_defaults' );
+	if ( $prev === $ver ) { return; }
+	if ( ! function_exists( 'switch_theme' ) ) { require_once ABSPATH . 'wp-includes/theme.php'; }
+
+	// Permalinks: post-name.
+	global $wp_rewrite;
+	if ( get_option( 'permalink_structure' ) !== '/%postname%/' ) {
+		update_option( 'permalink_structure', '/%postname%/' );
+		if ( $wp_rewrite ) {
+			$wp_rewrite->set_permalink_structure( '/%postname%/' );
+			flush_rewrite_rules( false );
+		}
+	}
+
+	// Site identity.
+	if ( get_option( 'blogname' ) !== 'شاپ بیوتی — فروشگاه نمونه آرایشی' ) {
+		update_option( 'blogname', 'شاپ بیوتی — فروشگاه نمونه آرایشی' );
+	}
+
+	// WooCommerce basics.
+	if ( class_exists( 'WooCommerce' ) ) {
+		update_option( 'woocommerce_default_country', 'IR' );
+		update_option( 'woocommerce_currency', 'IRR' );
+		update_option( 'woocommerce_currency_pos', 'right_space' );
+		update_option( 'woocommerce_price_thousand_sep', ',' );
+		update_option( 'woocommerce_price_decimal_sep', '/' );
+		update_option( 'woocommerce_price_num_decimals', 0 );
+		update_option( 'woocommerce_weight_unit', 'kg' );
+		update_option( 'woocommerce_dimension_unit', 'cm' );
+		// Launch the store (turn off WooCommerce 11's "Coming soon" banner)
+		update_option( 'woocommerce_coming_soon', 'no' );
+		update_option( 'woocommerce_store_pages_only', 'no' );
+		// Taxes off for the demo, COD enabled as a default gateway
+		update_option( 'woocommerce_calc_taxes', 'no' );
+		if ( ! get_option( 'woocommerce_cod_settings' ) ) {
+			update_option( 'woocommerce_cod_settings', [
+				'enabled' => 'yes',
+				'title'   => 'پرداخت در محل',
+			] );
+		}
+
+		$pages = [
+			'woocommerce_shop_page_id'      => [ 'فروشگاه', '' ],
+			'woocommerce_cart_page_id'      => [ 'سبد خرید', '' ],
+			'woocommerce_checkout_page_id'  => [ 'تسویه حساب', '' ],
+			'woocommerce_myaccount_page_id' => [ 'حساب کاربری من', '' ],
+		];
+		foreach ( $pages as $opt => [ $title, $content ] ) {
+			$id = (int) get_option( $opt );
+			$needs_update = ! $id || get_post_type( $id ) !== 'page' || get_post_status( $id ) !== 'publish';
+			if ( ! $needs_update && get_the_title( $id ) !== $title ) {
+				// Rename default WC pages (e.g. "Shop") to Persian in place
+				wp_update_post( [ 'ID' => $id, 'post_title' => $title, 'post_name' => sanitize_title( $title ) ] );
+			}
+			if ( $needs_update ) {
+				$id = wp_insert_post( [
+					'post_type'    => 'page',
+					'post_title'   => $title,
+					'post_name'    => sanitize_title( $title ),
+					'post_content' => $content,
+					'post_status'  => 'publish',
+					'post_author'  => 1,
+				] );
+				if ( $id && ! is_wp_error( $id ) ) { update_option( $opt, $id ); }
+			}
+		}
+
+		// Make the Shop page the site homepage so visitors land on the catalog
+		$shop_id = (int) get_option( 'woocommerce_shop_page_id' );
+		if ( $shop_id ) {
+			update_option( 'show_on_front', 'page' );
+			update_option( 'page_on_front', $shop_id );
+		}
+		// Reading / time locale
+		update_option( 'timezone_string', 'Asia/Tehran' );
+		update_option( 'WPLANG', 'fa_IR' );
+	}
+
+	// RTL + Persian-friendly defaults for the demo storefront (regardless of
+	// whether fa_IR language pack is installed in the sandbox).
+	if ( ! is_admin() ) {
+		add_filter( 'language_attributes', function ( $out ) {
+			$out = preg_replace( '/dir=["\'][^"\']+["\']/', 'dir="rtl"', $out ) ?? $out;
+			if ( strpos( $out, 'dir=' ) === false ) { $out .= ' dir="rtl"'; }
+			return $out;
+		}, 99 );
+		add_action( 'wp_enqueue_scripts', function () {
+			$css = 'html[dir="rtl"] body{font-family:Tahoma,Arial,sans-serif!important;text-align:right!important;}'
+				. ' html[dir="rtl"] .site-header,html[dir="rtl"] .site-navigation,html[dir="rtl"] .woocommerce-breadcrumb,'
+				. ' html[dir="rtl"] .woocommerce-result-count,html[dir="rtl"] .woocommerce-ordering,'
+				. ' html[dir="rtl"] .products,html[dir="rtl"] .woocommerce ul.products,'
+				. ' html[dir="rtl"] .product,html[dir="rtl"] .woocommerce-loop-product__title,'
+				. ' html[dir="rtl"] .price,html[dir="rtl"] .add_to_cart_button,html[dir="rtl"] .button,'
+				. ' html[dir="rtl"] .woocommerce-pagination,html[dir="rtl"] .widget,'
+				. ' html[dir="rtl"] .entry-summary,html[dir="rtl"] .entry-content{text-align:right!important;}'
+				. ' html[dir="rtl"] .woocommerce .woocommerce-ordering{float:left!important;}'
+				. ' html[dir="rtl"] .woocommerce .woocommerce-result-count{float:right!important;}'
+				. ' html[dir="rtl"] .onsale{left:auto!important;right:10px!important;}'
+				. ' html[dir="rtl"] .woocommerce ul.products li.product,html[dir="rtl"] .woocommerce-page ul.products li.product{float:right!important;margin:0 0 2.992em 1.5em!important;}'
+				. ' html[dir="rtl"] .woocommerce ul.products[class*=columns-] li.product.last,html[dir="rtl"] .woocommerce-page ul.products[class*=columns-] li.product.last{margin-left:0!important;}';
+			wp_add_inline_style( 'woocommerce-general', $css );
+			wp_add_inline_style( 'global-styles', $css );
+		}, 99 );
+	}
+
+	update_option( 'igbz_dev_shop_defaults', $ver );
+}, 50 );
+
+PHP
 
 # ---------------------------------------------------------------------------
-# Done
+# 6b. Sample-shop seeder (25 cosmetics products + 100 customers)
 # ---------------------------------------------------------------------------
+# Written to the mu-plugins dir so it only runs on the Playground harness,
+# not in production. Guarded by an option so it is strictly one-shot.
+cat > "$WORK/mu/100-seed-sample-shop.php" <<'PHP'
+<?php
+/**
+ * Harness only. Seeds the dev environment with a sample cosmetics store:
+ * 25 simple products across realistic categories, plus 100 customer accounts
+ * with Persian names and a default password. Safe to re-run: the presence of
+ * the igbz_seeded_v1 option skips everything on subsequent boots.
+ *
+ * Runs late on wp_loaded (after 030-default-theme has created WC pages),
+ * and wraps each logical block in try/catch so a
+ * single bad record never fatal-flags the whole bootstrap.
+ */
+add_action( 'wp_loaded', function () {
+	if ( get_option( 'igbz_seeded_v1' ) ) { return; }
+	if ( ! class_exists( 'WooCommerce' ) ) { return; }
+	if ( ! get_role( 'customer' ) ) { return; } // WooCommerce not ready yet.
+
+	// Elementor Kit guard removed 1406/05/31 — Elementor no longer bundled.
+
+	$summary = [ 'products' => 0, 'customers' => 0, 'orders' => 0, 'errors' => 0 ];
+	$now = current_time( 'mysql', true );
+
+	try {
+	// ----- 1. Product categories -----
+	$cat_defs = [
+		'مراقبت پوست'      => 'پاک‌کننده، مرطوب‌کننده و ضدآفتاب',
+		'مراقبت مو'        => 'شامپو، نرم‌کننده و ماسک مو',
+		'آرایش صورت'       => 'کرم‌پودر، پنکیک، کانسیلر، رژگونه',
+		'آرایش چشم'        => 'سایه، خط‌چشم، ریمل، ابرو',
+		'آرایش لب'         => 'رژ لب، بالم لب، خط لب',
+		'عطر و ادکلن'      => 'عطرهای زنانه و مردانه',
+		'بهداشت بدن'       => 'شاور ژل، لوسیون، دئودورانت',
+		'ابزار آرایش'      => 'براش، پد پاک‌کننده، کیف',
+	];
+	$cat_ids = [];
+	foreach ( $cat_defs as $name => $desc ) {
+		$existing = term_exists( $name, 'product_cat' );
+		if ( $existing ) { $cat_ids[ $name ] = (int) $existing['term_id']; continue; }
+		$r = wp_insert_term( $name, 'product_cat', [ 'description' => $desc ] );
+		if ( ! is_wp_error( $r ) ) { $cat_ids[ $name ] = (int) $r['term_id']; }
+	}
+
+	// ----- 2. Placeholder PNG (solid gradient, generated with PHP image primitives if available) -----
+	$placeholder_url = '';
+	$placeholder_id  = 0;
+	if ( function_exists( 'imagecreatetruecolor' ) ) {
+		$upload = wp_upload_dir();
+		if ( empty( $upload['error'] ) ) {
+			$file = trailingslashit( $upload['path'] ) . 'igbz-sample-placeholder.png';
+			if ( ! file_exists( $file ) ) {
+				$w = 800; $h = 800;
+				$im = @imagecreatetruecolor( $w, $h );
+				if ( $im ) {
+					for ( $y = 0; $y < $h; $y++ ) {
+						$r = 236 - (int)( $y * 0.08 );
+						$g = 72  + (int)( $y * 0.05 );
+						$b = 153 - (int)( $y * 0.02 );
+						$c = imagecolorallocate( $im, max(0,min(255,$r)), max(0,min(255,$g)), max(0,min(255,$b)) );
+						imageline( $im, 0, $y, $w, $y, $c );
+					}
+					// Centered product-mark.
+					$white = imagecolorallocate( $im, 255, 255, 255 );
+					$bx = (int)( $w*0.18 ); $by = (int)( $h*0.18 );
+					imagefilledrectangle( $im, $bx, $by, $w-$bx, $h-$by, imagecolorallocatealpha( $im, 255, 255, 255, 60 ) );
+					imagerectangle( $im, $bx, $by, $w-$bx, $h-$by, $white );
+					imagestring( $im, 5, (int)( $w*0.32 ), (int)( $h*0.48 ), 'IGBZ SAMPLE', $white );
+					imagepng( $im, $file );
+					imagedestroy( $im );
+				}
+			}
+			if ( file_exists( $file ) ) {
+				$ft = wp_check_filetype( basename( $file ), null );
+				$attach = [
+					'guid'           => $upload['url'] . '/' . basename( $file ),
+					'post_mime_type' => $ft['type'],
+					'post_title'     => 'تصویر نمونه محصول',
+					'post_content'   => '',
+					'post_status'    => 'inherit',
+				];
+				$aid = wp_insert_attachment( $attach, $file );
+				if ( $aid && ! is_wp_error( $aid ) ) {
+					require_once ABSPATH . 'wp-admin/includes/image.php';
+					wp_update_attachment_metadata( $aid, wp_generate_attachment_metadata( $aid, $file ) );
+					$placeholder_id  = $aid;
+					$placeholder_url = wp_get_attachment_url( $aid );
+				}
+			}
+		}
+	}
+
+	// ----- 3. 25 simple products -----
+	$products = [
+		// name, category, regular price (IRR), sale price|null, short desc
+		[ 'کرم مرطوب‌کننده صورت ۱۰۰میل',          'مراقبت پوست',  3200000,  2800000, 'آبرسان قوی برای پوست خشک و حساس' ],
+		[ 'سرم ویتامین سی روشن‌کننده ۳۰میل',      'مراقبت پوست',  4500000,  null,    'روشن‌کننده و ضد لک با ویتامین سی پایدار' ],
+		[ 'ضدآفتاب فاقد چربی SPF50 ۵۰میل',         'مراقبت پوست',  1950000,  1750000, 'مناسب پوست چرب و مستعد جوش' ],
+		[ 'پاک‌کننده میسلار واتر ۴۰۰میل',          'مراقبت پوست',  1250000,  null,    'پاک‌کننده آرایش چشم و صورت بدون نیاز به آبکشی' ],
+		[ 'کرم دور چشم ضدچروک ۱۵میل',              'مراقبت پوست',  2700000,  null,    'کاهش تیرگی و پف زیر چشم' ],
+		[ 'شامپو ترمیم‌کننده مو آسیب‌دیده ۴۰۰میل', 'مراقبت مو',    1800000,  1550000, 'با کراتین و آرگان برای موهای وزدار' ],
+		[ 'نرم‌کننده مو ابریشمی ۳۰۰میل',          'مراقبت مو',    1450000,  null,    'نرم‌کننده بدون سولفات برای مو رنگ‌شده' ],
+		[ 'ماسک مو روغن آرگان ۲۵۰میل',            'مراقبت مو',    2100000,  1890000, 'تغذیه عمیق و درخشندگی فوری' ],
+		[ 'کرم‌پودر مات با پوشش متوسط',            'آرایش صورت',  3100000,  null,    'ماندگاری ۲۴ساعته، مناسب انواع پوست' ],
+		[ 'پنکیک فشرده پودری SPF15',               'آرایش صورت',  1750000,  1500000, 'فینیش طبیعی و کنترل چربی' ],
+		[ 'کانسیلر مایع با پوشش بالا',             'آرایش صورت',  1400000,  null,    'پوشاننده تیرگی، لک و جای جوش' ],
+		[ 'رژگونه مایع گل‌بهی',                    'آرایش صورت',  1250000,  null,    'بافت سبک و طبیعی، ماندگاری بالا' ],
+		[ 'پالت سایه چشم ۱۲رنگ نود',              'آرایش چشم',    2950000,  2650000, 'رنگ‌های مات و براق مناسب آرایش روزانه' ],
+		[ 'ریمل حجم‌دهنده و بلندکننده',           'آرایش چشم',     950000,  null,    'ضدریزش و ضدلک تا ۱۲ساعت' ],
+		[ 'خط چشم مایع مشکی ضدآب',                 'آرایش چشم',     850000,  null,    'نوک نمدی ظریف برای خط چشم حرفه‌ای' ],
+		[ 'مداد ابرو با برس دوسر',                 'آرایش چشم',     720000,  620000,  '۳ رنگ قهوه‌ای، بلوند و مشکی' ],
+		[ 'رژ لب مات مخملی ۲۴ساعته',              'آرایش لب',      980000,  null,    'بافت نرم، بدون خشکی لب' ],
+		[ 'بالم لب مغذی با عسل و وازلین',          'آرایش لب',      450000,  null,    'ترمیم لب‌های ترک‌خورده' ],
+		[ 'خط لب ضدخش رنگ رز',                     'آرایش لب',      550000,  null,    'ماندگاری بالا و بافت کرمی' ],
+		[ 'عطر زنانه گل رز ۱۰۰میل',                'عطر و ادکلن',  5800000,  5200000, 'رایحه گلی و شیرین با ماندگاری ۸ساعته' ],
+		[ 'ادکلن مردانه چوبی-شرقی ۱۰۰میل',         'عطر و ادکلن',  6200000,  null,    'خنک و جذاب برای استفاده روزمره' ],
+		[ 'شاور ژل کرمی شیر و عسل ۵۰۰میل',        'بهداشت بدن',   780000,  null,    'شست‌وشوی ملایم با حفظ رطوبت پوست' ],
+		[ 'لوسیون بدن مغذی شی باتر ۴۰۰میل',       'بهداشت بدن',  1100000,  null,    'نرم‌کننده قوی برای پوست خشک' ],
+		[ 'دئودورانت رول‌آن بانوان ۲۴ساعته',        'بهداشت بدن',   620000,  560000,  'فاقد الکل، ضدلک لباس' ],
+		[ 'ست ۱۲قلمی براش آرایش حرفه‌ای',          'ابزار آرایش', 1900000,  1650000, 'براش‌های با موی مصنوعی نرم' ],
+	];
+
+	$n = 0;
+	$customer_count = 0;
+	$order_idx = 0;
+	foreach ( $products as [ $name, $cat, $reg, $sale, $desc ] ) {
+		$product = new WC_Product_Simple();
+		$product->set_name( $name );
+		$product->set_slug( sanitize_title( $name ) . '-' . ( $n + 1 ) );
+		$product->set_status( 'publish' );
+		$product->set_catalog_visibility( 'visible' );
+		$product->set_description( '<p>' . esc_html( $desc ) . ' — محصول نمونه جهت تست و نمایش فروشگاه.</p>' );
+		$product->set_short_description( esc_html( $desc ) );
+		$product->set_regular_price( (string) $reg );
+		if ( $sale ) { $product->set_sale_price( (string) $sale ); }
+		$product->set_price( (string) ( $sale ?? $reg ) );
+		$product->set_manage_stock( true );
+		$product->set_stock_quantity( 50 + wp_rand( 0, 200 ) );
+		$product->set_stock_status( 'instock' );
+		$product->set_weight( (string) ( 0.1 + ( wp_rand( 5, 80 ) / 100 ) ) );
+		$product->set_sku( 'SAMPLE-' . str_pad( (string)( $n + 1 ), 4, '0', STR_PAD_LEFT ) );
+		$product->set_sold_individually( false );
+		if ( $placeholder_id ) { $product->set_image_id( $placeholder_id ); }
+		$pid = $product->save();
+		if ( $pid && ! is_wp_error( $pid ) && isset( $cat_ids[ $cat ] ) ) {
+			wp_set_object_terms( $pid, [ (int) $cat_ids[ $cat ] ], 'product_cat' );
+		}
+		$n++;
+	}
+
+	// ----- 4. 100 customers -----
+	$first_female = [ 'مریم','سارا','زهرا','فاطمه','نگار','پریسا','نیلوفر','الناز','آناهیتا','آتنا','مهسا','شقایق','نازنین','یاسمن','رؤیا','ترانه','بهار','ملیکا','پانته‌آ','هستی','محدثه','ریحانه','آیلین','سپیده','هلیا' ];
+	$first_male   = [ 'علی','محمدرضا','امیر','حسین','سینا','آرش','مهدی','بهرام','نیما','کامران','رضا','پوریا','سهیل','بهزاد','شاهین','فرزاد','آرمین','کیان','محمد','پدرام','میلاد','سامان','یاشار','حامد','مبین' ];
+	$last_names   = [ 'احمدی','محمدی','رضایی','کریمی','موسوی','حسینی','نوری','صادقی','فرجی','عباسی','مرادی','اکبری','رحیمی','نظری','سلطانی','شریفی','شیرازی','زاده','کاظمی','قاسمی','جعفری','پارسا','نیکو','بهروز','رستمی' ];
+
+	$customer_count = 0;
+	$password = wp_hash_password( 'Customer123!' );
+	for ( $i = 1; $i <= 100; $i++ ) {
+		$female = ( $i % 2 === 0 );
+		$first  = $female ? $first_female[ $i % count( $first_female ) ] : $first_male[ $i % count( $first_male ) ];
+		$last   = $last_names[ ( $i * 7 + 3 ) % count( $last_names ) ];
+		$email  = sprintf( 'customer%03d@example.com', $i );
+		if ( email_exists( $email ) ) { continue; }
+		$user_id = wp_insert_user( [
+			'user_login'   => $email,
+			'user_email'   => $email,
+			'user_pass'    => 'Customer123!',
+			'first_name'   => $first,
+			'last_name'    => $last,
+			'display_name' => $first . ' ' . $last,
+			'nickname'     => $first . ' ' . $last,
+			'role'         => 'customer',
+		] );
+		if ( is_wp_error( $user_id ) ) { continue; }
+		// Phone (0912/0935/0930/0901) — fake but valid format.
+		$prefixes = [ '0912','0935','0930','0901','0990','0903' ];
+		$phone = $prefixes[ $i % count( $prefixes ) ] . str_pad( (string) ( 1000000 + ( $i * 137 ) % 9000000 ), 7, '0', STR_PAD_LEFT );
+		update_user_meta( $user_id, 'billing_phone',     $phone );
+		update_user_meta( $user_id, 'billing_first_name', $first );
+		update_user_meta( $user_id, 'billing_last_name',  $last );
+		update_user_meta( $user_id, 'billing_country',   'IR' );
+		update_user_meta( $user_id, 'billing_city',       $i % 3 === 0 ? 'کرج' : 'تهران' );
+		update_user_meta( $user_id, 'billing_address_1', 'خیابان نمونه، پلاک ' . ( 10 + $i ) );
+		update_user_meta( $user_id, 'billing_postcode',  sprintf( '%010d', 1000000000 + $i * 137 % 900000000 ) );
+		$customer_count++;
+	}
+
+	// ----- 5. A handful of processing/completed orders for realism -----
+	global $wpdb;
+	$customer_ids = get_users( [ 'role' => 'customer', 'fields' => 'ID', 'number' => 12 ] );
+	$product_ids  = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' ORDER BY ID ASC LIMIT 15" );
+	$statuses     = [ 'processing','processing','completed','completed','on-hold','completed' ];
+	$order_idx    = 0;
+	foreach ( $customer_ids as $cid ) {
+		if ( $order_idx >= 8 ) { break; }
+		$order = wc_create_order( [ 'customer_id' => (int) $cid, 'status' => 'pending' ] );
+		if ( is_wp_error( $order ) ) { continue; }
+		$pick = array_slice( $product_ids, wp_rand( 0, max( 0, count( $product_ids ) - 3 ) ), wp_rand( 1, 3 ) );
+		foreach ( $pick as $pid ) {
+			$order->add_product( wc_get_product( (int) $pid ), wp_rand( 1, 3 ) );
+		}
+		$order->set_address( [
+			'first_name' => get_user_meta( $cid, 'billing_first_name', true ),
+			'last_name'  => get_user_meta( $cid, 'billing_last_name',  true ),
+			'address_1'  => get_user_meta( $cid, 'billing_address_1',  true ),
+			'city'       => get_user_meta( $cid, 'billing_city',       true ),
+			'postcode'   => get_user_meta( $cid, 'billing_postcode',   true ),
+			'country'    => 'IR',
+			'phone'      => get_user_meta( $cid, 'billing_phone',       true ),
+			'email'      => get_userdata( $cid )->user_email,
+		], 'billing' );
+		$order->calculate_totals();
+		$order->update_status( $statuses[ $order_idx % count( $statuses ) ] );
+		$order_idx++;
+	}
+
+	$summary = [
+		'products'  => (int) ( $n ?? 0 ),
+		'customers' => (int) ( $customer_count ?? 0 ),
+		'orders'    => (int) ( $order_idx ?? 0 ),
+		'at'        => $now,
+	];
+	} catch ( \Throwable $e ) {
+		$summary['fatal'] = $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine();
+	}
+	// Always mark as seeded — the site is meant for demos, not for re-seeding
+	// every request. If a partial run happened, bump 'v1' -> 'v2' to reseed.
+	update_option( 'igbz_seeded_v1', $summary );
+}, 60 );
+PHP
+
+# 040-rtl-demo — force RTL+Persian-ish fonts in the demo storefront so the
+# sample shop renders right-to-left even before fa_IR language pack is installed.
+cat > "$WORK/mu/040-rtl-demo.php" <<'PHP'
+<?php
+/**
+ * Harness only. Force Persian/RTL appearance on the demo storefront regardless
+ * of whether the fa_IR language pack is installed. No production impact.
+ */
+if ( is_admin() || wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+	return;
+}
+add_action( 'wp_head', function () {
+	?>
+<style id="igbz-rtl-demo">
+html, body { direction: rtl !important; text-align: right !important; unicode-bidi: embed !important; font-family: Tahoma, Arial, sans-serif !important; }
+.woocommerce .woocommerce-result-count { float: right !important; text-align: right !important; }
+.woocommerce .woocommerce-ordering      { float: left !important; }
+.woocommerce ul.products[class*=columns-] li.product,
+.woocommerce-page ul.products[class*=columns-] li.product { float: right !important; margin: 0 0 2.992em 1.5em !important; text-align: right !important; }
+.woocommerce ul.products[class*=columns-] li.product.last,
+.woocommerce-page ul.products[class*=columns-] li.product.last { margin-left: 0 !important; }
+.woocommerce ul.products li.product .price,
+.woocommerce ul.products li.product .woocommerce-loop-product__title { text-align: right !important; }
+.woocommerce ul.products li.product .button,
+.woocommerce ul.products li.product .added_to_cart { float: right !important; margin: 0 0 0 1em !important; }
+.woocommerce .onsale { right: 10px !important; left: auto !important; }
+.site-header .site-branding, .site-header .site-navigation { float: right !important; }
+.woocommerce-breadcrumb { direction: ltr !important; text-align: left !important; opacity: .8; }
+</style>
+	<?php
+}, 5 );
+PHP
+
+# 050-fa-demo — ترجمهٔ موقت رشته‌های پرکاربرد ووکامرس + نماد «تومان» + ارقام
+# فارسی در فرانت‌اند، برای اینکه فروشگاه نمونه بدون نیاز به بستهٔ زبان fa_IR
+# خوانا باشد. در تولید این فایل استفاده نمی‌شود و باید با بستهٔ رسمی ترجمه
+# جایگزین گردد. نکته: تبدیل ارقام فقط روی خروجی نهایی HTML انجام می‌شود تا
+# جایگزین‌سازهای sprintf (مثل %1$s) و اسکریپت/استایل آسیب نبینند.
+cat > "$WORK/mu/050-fa-demo.php" <<'PHP'
+<?php
+/**
+ * Harness only. Localize a handful of WooCommerce front-end strings for the
+ * Persian demo storefront without pulling in fa_IR translation packs (which
+ * are unreachable from this sandbox). Real production localization must use
+ * proper .mo/.po files — this is demo-only.
+ */
+if ( is_admin() || wp_doing_ajax() || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
+	return;
+}
+
+// Translate WooCommerce strings via gettext filter.
+add_filter( 'gettext_woocommerce', function ( $translated, $text, $domain ) {
+	static $map = null;
+	if ( $map === null ) {
+		$map = [
+			'Add to cart'                  => 'افزودن به سبد',
+			'Shop'                         => 'فروشگاه',
+			'Cart'                         => 'سبد خرید',
+			'Checkout'                     => 'تسویه حساب',
+			'My account'                   => 'حساب کاربری من',
+			'Sale!'                        => 'حراج!',
+			'Showing %1$d&ndash;%2$d of %3$d results' => 'نمایش %1$d–%2$d از %3$d محصول',
+			'Showing all %d results'       => 'نمایش همهٔ %d محصول',
+			'Default sorting'              => 'مرتب‌سازی پیش‌فرض',
+			'Sort by popularity'           => 'محبوب‌ترین‌ها',
+			'Sort by latest'               => 'جدیدترین‌ها',
+			'Sort by price: low to high'   => 'ارزان‌ترین‌ها',
+			'Sort by price: high to low'   => 'گران‌ترین‌ها',
+			'Product categories'           => 'دسته‌بندی‌ها',
+			'Search products…'             => 'جست‌وجوی محصول…',
+			'View cart'                    => 'مشاهده سبد',
+			'Added to cart'                => 'به سبد اضافه شد',
+		];
+	}
+	return isset( $map[ $text ] ) ? $map[ $text ] : $translated;
+}, 10, 3 );
+
+// Force WooCommerce price format to Persian Toman/RIAL look while keeping IRR.
+add_filter( 'woocommerce_currency_symbol', function ( $symbol, $currency ) {
+	if ( $currency === 'IRR' ) {
+		return 'تومان';
+	}
+	return $symbol;
+}, 99, 2 );
+
+// Convert Western digits to Persian digits in final HTML output only (so we do
+// not mangle sprintf placeholders like %1$s or internal option values).
+add_action( 'template_redirect', function () {
+	ob_start( function ( $html ) {
+		if ( ! is_string( $html ) ) { return $html; }
+		// Protect <script>, <style>, and HTML tag attributes/blocks from digit replacement
+		// by doing a coarse split: replace digits only in text nodes outside tags/scripts.
+		// Simpler safe approach: replace digits that are NOT between % and a format
+		// letter (sprintf placeholders) and are not inside <script>/<style>.
+		$html = preg_replace_callback(
+			'/(<script[^>]*>.*?<\/script>|<style[^>]*>.*?<\/style>)|([0-9]+)/si',
+			function ( $m ) {
+				if ( ! empty( $m[1] ) ) { return $m[1]; }
+				return igbz_persian_digits( $m[0] );
+			},
+			$html
+		);
+		return $html;
+	}, 0 );
+}, 0 );
+
+if ( ! function_exists( 'igbz_persian_digits' ) ) {
+	function igbz_persian_digits( $text ) {
+		if ( ! is_string( $text ) ) { return $text; }
+		$en = [ '0','1','2','3','4','5','6','7','8','9' ];
+		$fa = [ '۰','۱','۲','۳','۴','۵','۶','۷','۸','۹' ];
+		return str_replace( $en, $fa, $text );
+	}
+}
+PHP
+
+ok "7 mu-plugins written (activator + modules + health + default-theme + RTL demo + FA demo + sample seeder)"
+
+# ---------------------------------------------------------------------------
+# 6c. Stage bundled plugins/themes into .work/ so run.sh can mount them.
+# ---------------------------------------------------------------------------
+info "staging bundled plugins/themes into .work/"
+mkdir -p "$WORK/plugins" "$WORK/themes"
+
+if [ ${#BUNDLED_PLUGINS[@]} -gt 0 ]; then
+	for slug in "${BUNDLED_PLUGINS[@]}"; do
+		src="$DEVENV/$slug"
+		dst="$WORK/plugins/$slug"
+		if [ -d "$src" ]; then
+			rm -rf "$dst"
+			cp -a "$src" "$dst"
+			ok "plugin $slug staged ($(find "$dst" -type f | wc -l) files)"
+		else
+			die "missing bundled plugin source: $src"
+		fi
+	done
+else
+	ok "no bundled plugins (Elementor removed 1406/05/31)"
+fi
+
+if [ ${#BUNDLED_THEMES[@]} -gt 0 ]; then
+	for slug in "${BUNDLED_THEMES[@]}"; do
+		src="$DEVENV/$slug"
+		dst="$WORK/themes/$slug"
+		if [ -d "$src" ]; then
+			rm -rf "$dst"
+			cp -a "$src" "$dst"
+			ok "theme $slug staged ($(find "$dst" -type f | wc -l) files)"
+		else
+			die "missing bundled theme source: $src"
+		fi
+	done
+else
+	ok "no bundled themes (Hello Elementor removed 1406/05/31; using WP core default)"
+fi
 cat <<EOF
 
 $(printf '\033[32mEnvironment ready.\033[0m')

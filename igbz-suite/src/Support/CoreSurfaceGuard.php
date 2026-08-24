@@ -116,7 +116,7 @@ final class CoreSurfaceGuard {
 		}
 
 		// Log before refusing: a refusal nobody can see is a refusal nobody can investigate.
-		// This is the event class that feeds Hoosha's security layer.
+		// This is the event class that feeds Vira's security layer.
 		$this->logger->warning(
 			'security',
 			'Bulk people-data request refused',

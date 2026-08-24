@@ -19,6 +19,7 @@ final class Capabilities {
 	public const MANAGE_AFFILIATE  = 'igbz_manage_affiliate';
 	public const MANAGE_INSTAGRAM  = 'igbz_manage_instagram';
 	public const MANAGE_API        = 'igbz_manage_api';
+	public const MANAGE_PADO   = 'igbz_manage_pado';
 
 	/** @return string[] */
 	public static function all(): array {
@@ -33,6 +34,7 @@ final class Capabilities {
 			self::MANAGE_AFFILIATE,
 			self::MANAGE_INSTAGRAM,
 			self::MANAGE_API,
+			self::MANAGE_PADO,
 		];
 	}
 

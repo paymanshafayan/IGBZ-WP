@@ -2,6 +2,7 @@
 namespace IGBZ\Suite\Support;
 
 use IGBZ\Suite\Modules\Hub\HubModule;
+use IGBZ\Suite\Modules\Pado\PadoModule;
 use IGBZ\Suite\Modules\Instagram\InstagramModule;
 use IGBZ\Suite\Modules\MultiTenant\MultiTenantModule;
 use IGBZ\Suite\Modules\RestApi\RestApiModule;
@@ -93,6 +94,10 @@ final class Plugin {
 			// API can register the /fx/* routes when the FX module is on.
 			Modules::FX          => FxModule::class,
 			Modules::REST_API    => RestApiModule::class,
+			// Pado (AI assistant) is enabled by default and adds the "مرکز پادو"
+			// admin page plus the unified approval-request queue that other modules
+			// (price changes, refunds, instagram publish, bulk delete, …) post into.
+			Modules::PADO    => PadoModule::class,
 		];
 	}
 

@@ -1,7 +1,7 @@
 # IGBZ-WP — مرجع ماژول‌ها (شرح کارکرد و مستندات فنی)
 
 **آخرین به‌روزرسانی:** ۱۴۰۵/۰۵/۳۰ (2026-08-19) · **نسخهٔ افزونه:** 1.0.0 · **دیتابیس:** v17 — ۷۰ جدول
-· **هوشا:** ۰.۹.۷ (`hoosha/`، بخش ۷.۵ در `PROJECT-STATE.md`)
+· **ویرا:** ۰.۹.۷ (`vira/`، بخش ۷.۵ در `PROJECT-STATE.md`)
 
 این سند مرجع کامل «چه ماژول/زیرسیستمی وجود دارد، چه می‌کند و مستندات فنی‌اش چیست» است.
 مرجع وضعیت کلی پروژه `PROJECT-STATE.md` است و این سند هم‌عرض آن — ساختار و جزئیات فنی.
@@ -221,7 +221,7 @@ COD چهارشکل (نقد/درگاه/کارتخوان/اپ)، رصد زندهٔ
 | صفحهٔ ادمین | SEO & ads (`igbz-seo`) — انتخابگر محصول: متای تولیدی روی **محصول واقعی** ذخیره می‌شود |
 | خروجی‌ها | متای خودکار + هشتگ (قالب قطعی یا AI)؛ فید یکتانت/تپسل (`?igbz_feed=`)؛ آداپتور تریبون (`seo.triboon_api_key`) |
 | تنظیمات | `seo.enabled`، `seo.use_ai`، `seo.feed_page_size`، `seo.triboon_base_url` |
-| مستندات | `DESIGN-PHASE10-SEO.md`، `PROMPTS-SEO-HUSHVARE.md` (پرامپت‌های هوشواره) |
+| مستندات | `DESIGN-PHASE10-SEO.md`، `PROMPTS-SEO-PADO.md` (پرامپت‌های پادو) |
 
 ### ۲.۱۱ ترجمه و چندزبانه (Translation & i18n)
 
@@ -364,7 +364,7 @@ wildcard نیست.
 عمداً؛ امنیت سنگین فقط LMS). سیاست انقضا تصویب شد: ۷ روز به تعیین مدیر ارشد، سپس حذف از
 سرور، با اطلاع‌رسانی به ادمین و مشتری و امکان نگهداری نسخهٔ آفلاین در اپ — `DESIGN-VIP-EXPIRY.md`.
 
-### ۳.۵ استودیوی AI و اعتبار (پل موقت هوشواره)
+### ۳.۵ استودیوی AI و اعتبار (پل موقت پادو)
 
 | مورد | جزئیات |
 |---|---|
@@ -373,12 +373,12 @@ wildcard نیست.
 | صفحهٔ ادمین | AI studio (`igbz-ai-studio`) |
 | REST | `GET /igbz/v1/ai/credits`، `POST /igbz/v1/ai/studio/generate` |
 | تنظیمات | `ai.studio.*`، `ai.credits.*` |
-| مستندات | `PROMPTS-SEO-HUSHVARE.md`، `PROMPT-IG-GROWTH-HUSHVARE.md` |
+| مستندات | `PROMPTS-SEO-PADO.md`، `PROMPT-IG-GROWTH-PADO.md` |
 
 `AiProviderInterface` + `HttpAiStudioProvider` (تصویر/حذف پس‌زمینه/ویدیو/TTS/عکس مدل با
 Endpoint تنظیم‌پذیر)، خروجی در مدیالایبری ذخیره می‌شود. اعتبار مشتری با لجر (`ig_ai_credit_ledger`)
 — شارژ با درصدی از خرید + خرید نقدی (`purpose=ai_credit_topup`). **این «پل موقت» است؛ هستهٔ
-هوشواره هنوز طراحی نشده** (منتظر دستور کارفرما) و AI Studio بعداً یکی از Skill های آن می‌شود.
+پادو هنوز طراحی نشده** (منتظر دستور کارفرما) و AI Studio بعداً یکی از Skill های آن می‌شود.
 
 ### ۳.۶ قرعه‌کشی (Giveaways)
 
@@ -599,10 +599,10 @@ VIP channel، AI studio، Giveaways
 | `DESIGN-FX.md` | واسط پرداخت ارزی |
 | `DESIGN-VIP.md` | کانال VIP |
 | `DESIGN-APPS-ROADMAP.md` | نقشهٔ راه اپ‌های فلاتر |
-| `PROMPTS-SEO-HUSHVARE.md` / `PROMPT-IG-GROWTH-HUSHVARE.md` | پرامپت‌های هوشواره |
+| `PROMPTS-SEO-PADO.md` / `PROMPT-IG-GROWTH-PADO.md` | پرامپت‌های پادو |
 | `_devenv/AGENT-BRIEF.md` | جزئیات فنی عمیق و تله‌ها |
 | `igbz-suite/README.md` | مرجع فنی افزونه (نصب/تنظیمات/REST) |
-| `hoosha/README.md` | **هوشا** — ابزار عاملِ خودمان (نسخهٔ ۰.۹.۷): نصب، هاب پرووایدر، تونل، پراکسی، لاگ‌ها، ابزارها، MCP، معماری، تست |
-| `hoosha/DESIGN-PROVIDER-HUB.md` | هاب پرووایدر و عیب‌یاب چهارپله |
-| `hoosha/DESIGN-UI-PARITY.md` | تاریخچهٔ رابط هوشا و باگ‌هایی که سر راه پیدا شد |
-| `DESIGN-DEPLOY-HOOSHA.md` | استقرار هوشا روی سرور (پیشنهاد، پیاده‌نشده) |
+| `vira/README.md` | **ویرا** — ابزار عاملِ خودمان (نسخهٔ ۰.۹.۷): نصب، هاب پرووایدر، تونل، پراکسی، لاگ‌ها، ابزارها، MCP، معماری، تست |
+| `vira/DESIGN-PROVIDER-HUB.md` | هاب پرووایدر و عیب‌یاب چهارپله |
+| `vira/DESIGN-UI-PARITY.md` | تاریخچهٔ رابط ویرا و باگ‌هایی که سر راه پیدا شد |
+| `DESIGN-DEPLOY-VIRA.md` | استقرار ویرا روی سرور (پیشنهاد، پیاده‌نشده) |
