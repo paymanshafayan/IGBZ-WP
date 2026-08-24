@@ -39,6 +39,15 @@ jobs:
               "landingPage": "/wp-admin/plugins.php",
               "steps": [
                 {
+                  "step": "defineWpConfigConsts",
+                  "consts": { "WP_MEMORY_LIMIT": "256M", "WP_MAX_MEMORY_LIMIT": "512M" }
+                },
+                {
+                  "step": "writeFile",
+                  "path": "/wordpress/wp-content/mu-plugins/000-memory.php",
+                  "data": "<?php @ini_set( 'memory_limit', '512M' );"
+                },
+                {
                   "step": "installPlugin",
                   "pluginData": { "resource": "wordpress.org/plugins", "slug": "woocommerce" },
                   "options": { "activate": true }

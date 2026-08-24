@@ -6,6 +6,18 @@
   "landingPage": "/wp-admin/plugins.php",
   "steps": [
     {
+      "step": "defineWpConfigConsts",
+      "consts": {
+        "WP_MEMORY_LIMIT": "256M",
+        "WP_MAX_MEMORY_LIMIT": "512M"
+      }
+    },
+    {
+      "step": "writeFile",
+      "path": "/wordpress/wp-content/mu-plugins/000-memory.php",
+      "data": "<?php @ini_set( 'memory_limit', '512M' );"
+    },
+    {
       "step": "installPlugin",
       "pluginData": { "resource": "wordpress.org/plugins", "slug": "woocommerce" },
       "options": { "activate": true }
@@ -23,7 +35,7 @@
     },
     {
       "step": "runPHP",
-      "code": "<?php require_once '/wordpress/wp-load.php'; update_option('igbz_enabled_modules', ['multitenant','instagram','hub','fx','rest_api','pado']); update_option('timezone_string','Asia/Tehran');"
+      "code": "<?php require_once '/wordpress/wp-load.php'; update_option('igbz_enabled_modules', ['multitenant','instagram','hub','fx','rest_api','pado']); update_option('timezone_string','Asia/Tehran'); update_option('woocommerce_coming_soon','no'); update_option('woocommerce_store_pages_only','no');"
     }
   ]
 }
