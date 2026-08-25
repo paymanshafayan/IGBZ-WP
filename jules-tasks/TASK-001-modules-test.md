@@ -39,3 +39,5 @@ Also update any assertion message strings that still say "five modules" or
 - Diff touches exactly one file: `igbz-suite/tests/ModulesTest.php`.
 - Assertion messages match the new expectations (six modules; multitenant+pado
   by default).
+
+<!-- dispatch: 1406-06-02 -->
