@@ -19,6 +19,26 @@
 
 ۲. **دیتابیس:** دکمهٔ + ← ‏Database ← **MySQL** (قاعدهٔ پروژه: همیشه مای‌اس‌کیوال).
 
+> ⚠️ **اگر گزینهٔ MySQL در پنل شما نبود** (گزارش کارفرما ۱۴۰۶/۰۶/۰۳: فقط پستگرس و مونگو
+> نمایش داده می‌شد)، از راه ایمیج داکر اضافه‌اش کنید — نتیجه همان است:
+> ۱) دکمهٔ + ← ‏**Docker Image** ← نام ایمیج: `mysql:8.0` — نام سرویس را `MySQL` بگذارید.
+> ۲) متغیرهای همین سرویس:
+> ```
+> MYSQL_DATABASE=wordpress
+> MYSQL_USER=wpuser
+> MYSQL_PASSWORD=<رمز قوی>
+> MYSQL_ROOT_PASSWORD=<رمز قوی دیگر>
+> ```
+> ۳) ولوم روی مسیر `/var/lib/mysql` به آن وصل کنید (ماندگاری دادهٔ دیتابیس).
+> ۴) در گام ۴ پایین، به‌جای متغیرهای مرجع `${{MySQL...}}` این‌ها را بگذارید:
+> ```
+> WORDPRESS_DB_HOST=mysql.railway.internal:3306
+> WORDPRESS_DB_NAME=wordpress
+> WORDPRESS_DB_USER=wpuser
+> WORDPRESS_DB_PASSWORD=<همان MYSQL_PASSWORD>
+> ```
+> (`mysql.railway.internal` = نام سرویس با حروف کوچک روی شبکهٔ خصوصی ریل‌وی.)
+
 ۳. **سرویس فروشگاه:** دکمهٔ + ← ‏GitHub Repo ← مخزن `IGBZ-WP` را انتخاب کنید.
    نام سرویس را همان **IGBZ-WP** (نام مخزن) بگذارید — ورک‌فلوی ولوم به همین نام تکیه دارد.
    ریل‌وی `railway.json` را می‌خواند و از `railway/Dockerfile` بیلد می‌گیرد.
