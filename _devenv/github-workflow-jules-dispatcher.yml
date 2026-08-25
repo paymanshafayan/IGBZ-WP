@@ -1,0 +1,108 @@
+# Jules Dispatcher — ارسال خودکار تسک‌های jules-tasks/ به API جولز
+#
+# چرخه: پوش فایل TASK-*.md به jules-tasks/ → این اکشن یک session در جولز
+# می‌سازد (AUTO_CREATE_PR) → جولز PR باز می‌کند → بازبینی توسط ایجنت/کارفرما.
+# ضد-تکرار: برای هر تسک ارسال‌شده مارکر jules-tasks/.dispatched/<file>.json
+# کامیت می‌شود؛ تا مارکر هست، همان تسک دوباره ارسال نمی‌شود.
+#
+# پیش‌نیازها:
+#   - Secret ریپو: JULES_API_KEY (از Settings وب‌اپ جولز)
+#   - اپ گیت‌هاب جولز روی همین ریپو نصب باشد (jules.google.com → Connect GitHub)
+#
+# نسخهٔ مرجع در _devenv/github-workflow-jules-dispatcher.yml نگهداری می‌شود؛
+# نصب در .github/workflows/jules-dispatcher.yml توسط مالک ریپو انجام می‌گیرد
+# (توکن ایجنت مجوز workflows ندارد — HANDOFF §7.6-پ).
+
+name: Jules Dispatcher
+
+on:
+  push:
+    paths:
+      - 'jules-tasks/TASK-*.md'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jules-dispatcher
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Dispatch new tasks to Jules
+        env:
+          JULES_API_KEY: ${{ secrets.JULES_API_KEY }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "${JULES_API_KEY}" ]; then
+            echo "::error::JULES_API_KEY secret is not set"; exit 1
+          fi
+          mkdir -p jules-tasks/.dispatched
+          DISPATCHED=0
+
+          for f in jules-tasks/TASK-*.md; do
+            [ -f "$f" ] || continue
+            base="$(basename "$f")"
+            marker="jules-tasks/.dispatched/${base}.json"
+            if [ -f "$marker" ]; then
+              echo "skip (already dispatched): $base"
+              continue
+            fi
+
+            # متادیتا: شاخهٔ مبدأ از کامنت <!-- branch: ... --> (پیش‌فرض main)
+            BRANCH="$(sed -n 's/.*<!-- *branch: *\([^ ]*\) *-->.*/\1/p' "$f" | head -1)"
+            BRANCH="${BRANCH:-main}"
+            TITLE="$(sed -n 's/^# *//p' "$f" | head -1)"
+            TITLE="${TITLE:-$base}"
+
+            # source name طبق قرارداد API جولز: sources/github/<owner>/<repo>
+            SOURCE="sources/github/${REPO}"
+
+            echo "dispatching: $base (branch=$BRANCH)"
+            PAYLOAD="$(jq -n \
+              --arg prompt "$(cat "$f")" \
+              --arg source "$SOURCE" \
+              --arg branch "$BRANCH" \
+              --arg title "$TITLE" \
+              '{prompt:$prompt,
+                sourceContext:{source:$source, githubRepoContext:{startingBranch:$branch}},
+                automationMode:"AUTO_CREATE_PR",
+                title:$title}')"
+
+            RESP="$(curl -sS -X POST 'https://jules.googleapis.com/v1alpha/sessions' \
+              -H 'Content-Type: application/json' \
+              -H "X-Goog-Api-Key: ${JULES_API_KEY}" \
+              -d "$PAYLOAD")"
+
+            SESSION="$(echo "$RESP" | jq -r '.name // empty')"
+            if [ -z "$SESSION" ]; then
+              echo "::error::Jules API did not return a session for $base"
+              echo "$RESP" | jq . || echo "$RESP"
+              exit 1
+            fi
+
+            jq -n --arg session "$SESSION" --arg task "$base" \
+                  --arg branch "$BRANCH" --arg at "$(date -u +%FT%TZ)" \
+                  '{session:$session, task:$task, branch:$branch, dispatched_at:$at}' \
+                  > "$marker"
+            echo "session: $SESSION"
+            echo "### $base → \`$SESSION\`" >> "$GITHUB_STEP_SUMMARY"
+            DISPATCHED=$((DISPATCHED+1))
+          done
+
+          if [ "$DISPATCHED" -gt 0 ]; then
+            git config user.name "jules-dispatcher[bot]"
+            git config user.email "jules-dispatcher@users.noreply.github.com"
+            git add jules-tasks/.dispatched
+            git commit -m "chore(jules): mark $DISPATCHED task(s) as dispatched [skip ci]"
+            git push
+          else
+            echo "nothing new to dispatch"
+          fi
