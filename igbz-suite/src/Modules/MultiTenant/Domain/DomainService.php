@@ -122,7 +122,13 @@ final class DomainService {
 				'updated_at'   => $now,
 			]
 		);
-		return [ 'ok' => true, 'domain_id' => $id, 'error' => '' ];
+		// The tenant resolver reads the canonical tenant_domains mapping; keep it in sync with
+		// the domain-service registry so a newly provisioned store is routable immediately.
+		$mapping_id = igbz()->get( 'tenants' )->add_domain( $tenant_id, $name, true );
+		if ( $mapping_id > 0 ) {
+			igbz()->get( 'tenants' )->verify_domain( $mapping_id );
+		}
+		return [ 'ok' => $id > 0 && $mapping_id > 0, 'domain_id' => $id, 'error' => $id > 0 && $mapping_id > 0 ? '' : __( 'The subdomain could not be mapped.', 'igbz-suite' ) ];
 	}
 
 	/** Transfer an existing domain the admin already owns (auth code optional). */
