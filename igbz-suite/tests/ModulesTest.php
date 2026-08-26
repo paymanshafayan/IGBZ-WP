@@ -10,8 +10,8 @@ final class ModulesTest extends TestCase {
 	public function run(): void {
 		igbz_test_reset_settings();
 
-		$this->assert_same( 5, count( Modules::all() ), 'the suite ships five modules' );
-		$this->assert_same( [ Modules::MULTITENANT ], Modules::defaults(), 'only multi-tenant is on by default' );
+		$this->assert_same( 6, count( Modules::all() ), 'the suite ships six modules' );
+		$this->assert_same( [ Modules::MULTITENANT, Modules::PADO ], Modules::defaults(), 'multi-tenant and pado are on by default' );
 		$this->assert_same( Modules::defaults(), Modules::enabled_list(), 'a fresh install falls back to the defaults' );
 		$this->assert_true( Modules::enabled( Modules::MULTITENANT ), 'multi-tenant is enabled out of the box' );
 		$this->assert_false( Modules::enabled( Modules::HUB ), 'the hub is off out of the box' );
