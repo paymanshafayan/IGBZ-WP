@@ -24,13 +24,18 @@ final class StatusPage {
 
 	public function add_page(): void {
 		Menu::ensure_parent();
+		// Same slug as the parent menu: WordPress maps both the top-level entry and
+		// this submenu onto the SAME page hook (toplevel_page_igbz). Registering a
+		// callback here as well made the page render TWICE (found by the 1406/06/02
+		// visual test). Pass an empty callback: the parent's render_static() —
+		// registered by Menu::ensure_parent() — remains the single renderer.
 		add_submenu_page(
 			Menu::SLUG,
 			__( 'Status', 'igbz-suite' ),
 			__( 'Status', 'igbz-suite' ),
 			Capabilities::MANAGE_SUITE,
 			self::SLUG,
-			[ $this, 'render' ]
+			''
 		);
 	}
 

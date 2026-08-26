@@ -1,0 +1,43 @@
+# دکمهٔ «Preview in WordPress Playground» روی هر Pull Request
+#
+# طراحی: خود Blueprint داخل این فایل نیست — از فایل
+# `_devenv/playground-blueprint.json` در «همان شاخهٔ PR» خوانده می‌شود و فقط
+# ref آن به شاخهٔ PR عوض می‌شود. نتیجه: برای اصلاح/بهبود Blueprint هیچ‌وقت
+# لازم نیست این فایل ورک‌فلو دوباره ویرایش شود (ایجنت مجوز پوش به
+# .github/workflows را ندارد؛ این فایل فقط یک‌بار توسط مالک ریپو نصب می‌شود).
+#
+# مرجع اکشن: https://github.com/WordPress/action-wp-playground-pr-preview (v3)
+
+name: PR Playground Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build blueprint from repo file (ref = PR branch)
+        id: bp
+        uses: actions/github-script@v7
+        with:
+          result-encoding: string
+          script: |
+            const fs = require('fs');
+            let bp = fs.readFileSync('_devenv/playground-blueprint.json', 'utf8');
+            // نصب igbz-suite از همان شاخهٔ PR به‌جای main
+            bp = bp.replace(/"ref":\s*"[^"]*"/, `"ref": "${context.payload.pull_request.head.ref}"`);
+            JSON.parse(bp); // اعتبارسنجی
+            return bp;
+
+      - uses: WordPress/action-wp-playground-pr-preview@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          blueprint: ${{ steps.bp.outputs.result }}
