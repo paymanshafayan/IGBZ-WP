@@ -5,9 +5,6 @@ FROM wordpress:php8.2-apache
 # ابزار خط فرمان وردپرس (برای نصب خودکار بدون ویزارد)
 COPY --from=wordpress:cli-php8.2 /usr/local/bin/wp /usr/local/bin/wp
 
-# رفع مشکل شناخته‌شدهٔ ماژول وب‌سرور در بعضی محیط‌ها (بی‌ضرر اگر از قبل درست باشد)
-RUN a2dismod mpm_event mpm_worker 2>/dev/null; a2enmod mpm_prefork 2>/dev/null; true
-
 # کد افزونه و mu-pluginها در مسیر منبع — در هر استارت به ولوم همگام می‌شوند
 COPY igbz-suite /usr/src/igbz/plugins/igbz-suite
 COPY railway/mu-plugins /usr/src/igbz/mu-plugins
