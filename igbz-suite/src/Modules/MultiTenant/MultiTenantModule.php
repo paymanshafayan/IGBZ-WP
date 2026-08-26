@@ -54,6 +54,8 @@ final class MultiTenantModule implements ModuleInterface {
 
 		// --- WooCommerce integration -----------------------------------------
 		add_filter( 'woocommerce_payment_gateways', [ $this, 'register_gateways' ] );
+		add_filter( 'woocommerce_product_query_meta_query', [ $this, 'scope_product_query' ], 10, 2 );
+		add_action( 'woocommerce_new_product', [ $this, 'stamp_new_product' ], 10, 2 );
 		add_action( 'woocommerce_order_status_completed', [ $this, 'on_order_completed' ] );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'on_order_completed' ] );
 		add_action( 'woocommerce_order_status_refunded', [ $this, 'on_order_reversed' ] );
@@ -358,6 +360,31 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 			$order_id,
 			__( 'Purchase cashback', 'igbz-suite' )
 		);
+	}
+
+	/**
+	 * Scope WooCommerce catalog queries before SQL is generated. A product with no tenant marker
+	 * is never exposed inside a tenant store; this prevents the shared platform catalogue leaking
+	 * into a merchant's storefront.
+	 *
+	 * @param array<int,array<string,mixed>> $meta_query
+	 * @param mixed $query
+	 * @return array<int,array<string,mixed>>
+	 */
+	public function scope_product_query( array $meta_query, $query = null ): array {
+		$tenant_id = (int) igbz()->tenancy()->id();
+		if ( $tenant_id > 0 ) {
+			$meta_query[] = [ 'key' => '_igbz_tenant_id', 'value' => $tenant_id, 'compare' => '=' ];
+		}
+		return $meta_query;
+	}
+
+	/** Stamp products created by a tenant owner at the data boundary. */
+	public function stamp_new_product( int $product_id, $product = null ): void {
+		$tenant_id = (int) igbz()->tenancy()->id();
+		if ( $tenant_id > 0 && $product_id > 0 ) {
+			update_post_meta( $product_id, '_igbz_tenant_id', $tenant_id );
+		}
 	}
 
 	/** @param \WC_Order $order */
