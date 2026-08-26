@@ -1,13 +1,3 @@
-# Railway Volume Guard — اطمینان از وجود ولوم دائمی قبل/بعد از استقرار
-#
-# کاری که می‌کند: با CLI رسمی ریل‌وی چک می‌کند سرویسِ هم‌نام مخزن (IGBZ-WP)
-# ولومی روی مسیر /var/www/html/wp-content دارد یا نه؛ اگر نداشت، خودش می‌سازد.
-# احراز هویت: سیکرت RAILWAY_TOKEN (توکن پروژهٔ ریل‌وی) — ساختهٔ کارفرما.
-#
-# نسخهٔ مرجع: _devenv/github-workflow-railway-volume.yml
-# نصب: .github/workflows/railway-volume.yml (دستی توسط مالک مخزن — توکن ایجنت
-# مجوز workflows ندارد؛ HANDOFF §۷.۶-پ)
-
 name: Railway Volume Guard
 
 on:
@@ -38,19 +28,21 @@ jobs:
 
           echo "service: ${SERVICE_NAME} · mount: ${MOUNT_PATH}"
 
-          # فهرست ولوم‌های پروژه؛ اگر ولومی با این mount-path روی سرویس بود، کاری نمی‌کنیم
-          LIST="$(railway volume list 2>&1 || true)"
+          # اعتبار توکن را همین اول قطعی چک کن (بدون || true تا خطا پنهان نشود)
+          if ! LIST="$(railway volume -s "${SERVICE_NAME}" list 2>&1)"; then
+            echo "$LIST"
+            echo "::error::RAILWAY_TOKEN invalid or has no access — use a PROJECT token (Project Settings → Tokens, environment: production)"
+            exit 1
+          fi
           echo "$LIST"
 
           if echo "$LIST" | grep -q "${MOUNT_PATH}"; then
             echo "volume already exists — nothing to do ✅"
-            echo "### ولوم از قبل موجود است ✅" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
           echo "volume not found — creating…"
-          railway volume add \
-            --service "${SERVICE_NAME}" \
-            --mount-path "${MOUNT_PATH}"
+          # نحو درست نسخهٔ جدید CLI: سرویس قبل از زیرفرمان، مسیر با -m
+          railway volume -s "${SERVICE_NAME}" add -m "${MOUNT_PATH}"
 
-          echo "### ولوم ساخته شد: ${MOUNT_PATH} روی ${SERVICE_NAME} ✅" >> "$GITHUB_STEP_SUMMARY"
+          echo "volume created ✅"
