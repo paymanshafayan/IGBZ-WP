@@ -47,8 +47,10 @@ bootstrap() {
 	mkdir -p "$WEBROOT/wp-content/plugins" "$WEBROOT/wp-content/mu-plugins"
 	rsync -a --delete "$SRC/plugins/igbz-suite/" "$WEBROOT/wp-content/plugins/igbz-suite/"
 	rsync -a "$SRC/mu-plugins/" "$WEBROOT/wp-content/mu-plugins/"
-	chown -R www-data:www-data "$WEBROOT/wp-content/plugins/igbz-suite" "$WEBROOT/wp-content/mu-plugins"
-	echo "igbz: plugin files synced"
+	mkdir -p "$WEBROOT/wp-content/uploads/igbz-sample-assets"
+	rsync -a "$SRC/assets/" "$WEBROOT/wp-content/uploads/igbz-sample-assets/"
+	chown -R www-data:www-data "$WEBROOT/wp-content/plugins/igbz-suite" "$WEBROOT/wp-content/mu-plugins" "$WEBROOT/wp-content/uploads/igbz-sample-assets"
+	echo "igbz: plugin and sample image files synced"
 
 	# ۳) صبر برای دیتابیس — خطا عمداً پنهان نمی‌شود تا علت توقف در لاگ مشخص باشد
 	echo "igbz: waiting for database"
