@@ -114,6 +114,7 @@ final class MultiTenantModule implements ModuleInterface {
 				$plugin->bind( 'logistics.courier', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\CourierService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'domain', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Domain\DomainService( $c->db(), $c->get( 'http' ), $c->logger() ) );
 		$plugin->bind( 'legal.nid', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Otp\NationalIdVerifier( $c->db(), $c->get( 'http' ) ) );
+		$plugin->bind( 'legal.waiver', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Payments\LegalWaiverService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'logistics.labels', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\LabelPrintingService( $c->db() ) );
 		$plugin->bind( 'i18n', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Translation\I18nService( $c->db() ) );
 		$plugin->bind( 'marketplace.basalam', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Marketplace\BasalamAdapter( $c->get( 'http' ) ) );

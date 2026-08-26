@@ -96,14 +96,27 @@ final class PaymentService {
 		if ( igbz()->has( 'domain' ) ) {
 			$domain_ok = igbz()->get( 'domain' )->has_verified_domain( (int) igbz()->tenancy()->id() );
 		}
-		return $domain_ok && igbz()->settings()->bool( 'legal.enamad_active', false );
+		if ( ! $domain_ok || ! igbz()->settings()->bool( 'legal.enamad_active', false ) ) {
+			return false;
+		}
+		if ( igbz()->has( 'legal.waiver' ) ) {
+			return (bool) igbz()->get( 'legal.waiver' )->payment_allowed( (int) igbz()->tenancy()->id() )['allowed'];
+		}
+		return false;
 	}
 
 	public function is_enabled( string $id ): bool {
 		$gateway = $this->gateway( $id );
-		return null !== $gateway
-			&& igbz()->settings()->bool( 'payments.' . $id . '.enabled', false )
-			&& $gateway->is_configured();
+		if ( null === $gateway
+			|| ! igbz()->settings()->bool( 'payments.' . $id . '.enabled', false )
+			|| ! $gateway->is_configured() ) {
+			return false;
+		}
+		return ! $this->is_bank_gateway( $id ) || $this->bank_gateway_allowed();
+	}
+
+	private function is_bank_gateway( string $id ): bool {
+		return in_array( $id, [ 'zarinpal', 'idpay', 'nextpay', 'payir', 'httppsp', 'sadad', 'asanpardakht', 'parsian', 'irankish', 'mellat', 'saman', 'pasargad', 'sepehr' ], true );
 	}
 
 	/**
