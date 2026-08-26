@@ -23,8 +23,13 @@ normalize_apache_mpm() {
 
 normalize_apache_mpm
 
+# ابتدا راه‌انداز رسمی وردپرس را تا پایان اجرای مرحلهٔ آماده‌سازی خودش اجرا می‌کنیم.
+# اجرای هم‌زمان bootstrap با این مرحله باعث race condition روی wp-config.php می‌شود.
+echo "igbz: initializing WordPress files and configuration"
+docker-entrypoint.sh true
+
 bootstrap() {
-	# ۱) صبر تا فایل‌های هسته توسط انتری‌پوینت رسمی در وب‌روت قرار بگیرند
+	# ۱) اطمینان از قرارگرفتن فایل‌های هسته در وب‌روت
 	until [ -f "$WEBROOT/wp-load.php" ]; do sleep 2; done
 
 	# ۲) همگام‌سازی کد افزونه و mu-pluginها (هر استقرار = آخرین نسخهٔ مخزن)
@@ -68,5 +73,5 @@ bootstrap() {
 	echo "igbz: bootstrap done — $URL"
 }
 
-bootstrap &
-exec docker-entrypoint.sh "$@"
+bootstrap
+exec "$@"
