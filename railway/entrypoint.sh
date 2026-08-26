@@ -23,10 +23,20 @@ normalize_apache_mpm() {
 
 normalize_apache_mpm
 
-# ابتدا راه‌انداز رسمی وردپرس را تا پایان اجرای مرحلهٔ آماده‌سازی خودش اجرا می‌کنیم.
-# اجرای هم‌زمان bootstrap با این مرحله باعث race condition روی wp-config.php می‌شود.
+# راه‌انداز رسمی وردپرس فقط مراحل آماده‌سازی را هنگام دریافت فرمان apache2 اجرا می‌کند.
+# آن را در پس‌زمینه اجرا می‌کنیم تا فایل‌های وردپرس و wp-config.php ساخته شوند؛
+# سپس bootstrap را اجرا کرده و در پایان همان فرایند آپاچی را نگه می‌داریم.
 echo "igbz: initializing WordPress files and configuration"
-docker-entrypoint.sh true
+docker-entrypoint.sh apache2-foreground &
+APACHE_PID=$!
+trap 'kill "$APACHE_PID" 2>/dev/null || true' TERM INT
+
+until [ -f "$WEBROOT/wp-load.php" ] && [ -s "$WEBROOT/wp-config.php" ]; do
+	if ! kill -0 "$APACHE_PID" 2>/dev/null; then
+		wait "$APACHE_PID"
+	fi
+	sleep 2
+done
 
 bootstrap() {
 	# ۱) اطمینان از قرارگرفتن فایل‌های هسته در وب‌روت
@@ -74,4 +84,4 @@ bootstrap() {
 }
 
 bootstrap
-exec "$@"
+wait "$APACHE_PID"
