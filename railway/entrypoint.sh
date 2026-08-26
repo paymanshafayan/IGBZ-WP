@@ -7,6 +7,22 @@ set -Eeuo pipefail
 WEBROOT=/var/www/html
 SRC=/usr/src/igbz
 
+# ریل‌وی ممکن است تصویر پایه را با چند MPM فعال اجرا کند. برای mod_php وردپرس
+# فقط prefork مجاز است؛ این کار باید در زمان اجرا و پیش از راه‌انداز رسمی انجام شود.
+normalize_apache_mpm() {
+	echo "igbz: normalizing Apache MPM modules"
+	a2dismod mpm_event mpm_worker mpm_prefork >/dev/null 2>&1 || true
+	rm -f /etc/apache2/mods-enabled/mpm_event.* \
+		/etc/apache2/mods-enabled/mpm_worker.* \
+		/etc/apache2/mods-enabled/mpm_prefork.*
+	a2enmod mpm_prefork >/dev/null
+	echo "igbz: enabled MPM modules:"
+	find /etc/apache2/mods-enabled -maxdepth 1 -type l -name 'mpm_*.*' -printf '  %f -> %l\n' | sort
+	apache2ctl -t
+}
+
+normalize_apache_mpm
+
 bootstrap() {
 	# ۱) صبر تا فایل‌های هسته توسط انتری‌پوینت رسمی در وب‌روت قرار بگیرند
 	until [ -f "$WEBROOT/wp-load.php" ]; do sleep 2; done
