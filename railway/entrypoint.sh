@@ -53,7 +53,7 @@ bootstrap() {
 	# ۳) صبر برای دیتابیس — خطا عمداً پنهان نمی‌شود تا علت توقف در لاگ مشخص باشد
 	echo "igbz: waiting for database"
 	local tries=0
-	until wp --allow-root --path="$WEBROOT" db check; do
+	until wp --allow-root --path="$WEBROOT" db check --skip-ssl-verify-server-cert; do
 		tries=$((tries+1))
 		if [ "$tries" -gt 60 ]; then
 			echo "igbz: db unreachable after 60 attempts"
