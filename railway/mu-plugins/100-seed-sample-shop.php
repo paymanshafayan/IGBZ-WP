@@ -10,9 +10,17 @@
  * single bad record never fatal-flags the whole bootstrap.
  */
 add_action( 'wp_loaded', function () {
-	if ( get_option( 'igbz_seeded_v1' ) ) { return; }
-	if ( ! class_exists( 'WooCommerce' ) ) { return; }
-	if ( ! get_role( 'customer' ) ) { return; } // WooCommerce not ready yet.
+	// v2 is deliberately completion-based: an earlier partial run must be retried.
+	$seeded = get_option( 'igbz_seeded_v2' );
+	if ( is_array( $seeded ) && ! empty( $seeded['complete'] ) ) { return; }
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		error_log( 'igbz seed: WooCommerce is not loaded yet' );
+		return;
+	}
+	if ( ! get_role( 'customer' ) ) {
+		error_log( 'igbz seed: WooCommerce customer role is not ready yet' );
+		return;
+	} // WooCommerce not ready yet.
 
 	// Elementor Kit guard removed 1406/05/31 — Elementor no longer bundled.
 
@@ -121,6 +129,12 @@ add_action( 'wp_loaded', function () {
 	$customer_count = 0;
 	$order_idx = 0;
 	foreach ( $products as [ $name, $cat, $reg, $sale, $desc ] ) {
+		$sku = 'SAMPLE-' . str_pad( (string)( $n + 1 ), 4, '0', STR_PAD_LEFT );
+		$existing_id = wc_get_product_id_by_sku( $sku );
+		if ( $existing_id ) {
+			$n++;
+			continue;
+		}
 		$product = new WC_Product_Simple();
 		$product->set_name( $name );
 		$product->set_slug( sanitize_title( $name ) . '-' . ( $n + 1 ) );
@@ -135,7 +149,7 @@ add_action( 'wp_loaded', function () {
 		$product->set_stock_quantity( 50 + wp_rand( 0, 200 ) );
 		$product->set_stock_status( 'instock' );
 		$product->set_weight( (string) ( 0.1 + ( wp_rand( 5, 80 ) / 100 ) ) );
-		$product->set_sku( 'SAMPLE-' . str_pad( (string)( $n + 1 ), 4, '0', STR_PAD_LEFT ) );
+		$product->set_sku( $sku );
 		$product->set_sold_individually( false );
 		if ( $placeholder_id ) { $product->set_image_id( $placeholder_id ); }
 		$pid = $product->save();
@@ -220,7 +234,16 @@ add_action( 'wp_loaded', function () {
 	} catch ( \Throwable $e ) {
 		$summary['fatal'] = $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine();
 	}
-	// Always mark as seeded — the site is meant for demos, not for re-seeding
-	// every request. If a partial run happened, bump 'v1' -> 'v2' to reseed.
-	update_option( 'igbz_seeded_v1', $summary );
+	$summary['complete'] = empty( $summary['fatal'] ) && ( (int) ( $summary['products'] ?? 0 ) >= count( $products ?? [] ) );
+	error_log( sprintf(
+		'igbz seed: products=%d customers=%d orders=%d complete=%s',
+		(int) ( $summary['products'] ?? 0 ),
+		(int) ( $summary['customers'] ?? 0 ),
+		(int) ( $summary['orders'] ?? 0 ),
+		$summary['complete'] ? 'yes' : 'no'
+	) );
+	// Store completion separately from the old marker so partial v1 runs are retried safely.
+	if ( $summary['complete'] ) {
+		update_option( 'igbz_seeded_v2', $summary );
+	}
 }, 60 );
