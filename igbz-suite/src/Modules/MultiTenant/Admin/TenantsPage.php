@@ -407,8 +407,9 @@ final class TenantsPage {
 		}
 		if ( isset( $_GET['verify_domain'] ) ) {
 			check_admin_referer( 'igbz_verify_domain' );
-			$this->repo()->verify_domain( (int) $_GET['verify_domain'] );
-			View::notice( __( 'Domain marked as verified.', 'igbz-suite' ) );
+			$domain_id = (int) $_GET['verify_domain'];
+			$result = igbz()->has( 'hub.domains' ) ? igbz()->get( 'hub.domains' )->check( $domain_id ) : [ 'ok' => false, 'message' => __( 'Domain verification service is unavailable.', 'igbz-suite' ) ];
+			View::notice( $result['ok'] ? __( 'Domain verified after DNS check.', 'igbz-suite' ) : (string) ( $result['message'] ?? __( 'The required DNS record was not found.', 'igbz-suite' ) ), $result['ok'] ? 'success' : 'error' );
 		}
 		if ( isset( $_GET['delete_domain'] ) ) {
 			check_admin_referer( 'igbz_delete_domain' );

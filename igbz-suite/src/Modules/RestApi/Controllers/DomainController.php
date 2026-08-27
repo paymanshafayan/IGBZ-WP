@@ -79,8 +79,8 @@ final class DomainController extends BaseController {
 	}
 
 	public function verify_dns( \WP_REST_Request $request ): \WP_REST_Response {
-		igbz()->get( 'domain' )->verify_dns( (int) $request->get_param( 'id' ) );
-		return $this->ok( [ 'ok' => true ] );
+		$ok = igbz()->get( 'domain' )->verify_dns( (int) $request->get_param( 'id' ) );
+		return $ok ? $this->ok( [ 'ok' => true ] ) : $this->fail( 'dns_not_verified', __( 'The required DNS record was not found.', 'igbz-suite' ), 400 );
 	}
 
 	public function legal_waiver(): \WP_REST_Response {

@@ -171,22 +171,22 @@ final class DomainService {
 	/** Mark DNS verified (gates bank gateway + Google/Bing). */
 	public function verify_dns( int $domain_id ): bool {
 		$row = $this->db->row( 'SELECT tenant_id, name FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE id = %d', $domain_id );
-		if ( ! $row ) {
-			return false;
+		if ( ! $row || ! function_exists( 'dns_get_record' ) ) { return false; }
+		$name = strtolower( rtrim( (string) $row['name'], '.' ) );
+		$mapping = $this->db->row( 'SELECT id, verification_token FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d AND domain = %s LIMIT 1', (int) $row['tenant_id'], $name );
+		$expected = strtolower( (string) ( igbz()->settings()->string( 'hub.cname_target', '' ) ?: wp_parse_url( home_url( '/' ), PHP_URL_HOST ) ) );
+		$valid = false;
+		foreach ( (array) @dns_get_record( '_igbz-verify.' . $name, DNS_TXT ) as $record ) {
+			if ( isset( $record['txt'] ) && $mapping && hash_equals( (string) $mapping['verification_token'], trim( (string) $record['txt'] ) ) ) { $valid = true; break; }
 		}
-		$this->db->update(
-			'ig_domains',
-			[ 'dns_verified' => 1, 'status' => 'active', 'updated_at' => current_time( 'mysql', true ) ],
-			[ 'id' => $domain_id ]
-		);
-		$mapping = $this->db->row(
-			'SELECT id FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d AND domain = %s LIMIT 1',
-			(int) $row['tenant_id'],
-			strtolower( (string) $row['name'] )
-		);
-		if ( $mapping ) {
-			$this->db->update( 'tenant_domains', [ 'verified_at' => current_time( 'mysql', true ) ], [ 'id' => (int) $mapping['id'] ] );
+		if ( ! $valid ) {
+			foreach ( (array) @dns_get_record( $name, DNS_CNAME ) as $record ) {
+				if ( strtolower( rtrim( (string) ( $record['target'] ?? '' ), '.' ) ) === $expected ) { $valid = true; break; }
+			}
 		}
+		if ( ! $valid ) { $this->logger->warning( 'domain', 'DNS verification refused', [ 'domain_id' => $domain_id ] ); return false; }
+		$this->db->update( 'ig_domains', [ 'dns_verified' => 1, 'status' => 'active', 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $domain_id ] );
+		if ( $mapping ) { $this->db->update( 'tenant_domains', [ 'verified_at' => current_time( 'mysql', true ) ], [ 'id' => (int) $mapping['id'] ] ); }
 		return true;
 	}
 
