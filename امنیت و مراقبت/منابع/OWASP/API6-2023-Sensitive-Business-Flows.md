@@ -2,8 +2,10 @@
 
 **منبع رسمی:** https://owasp.org/API-Security/editions/2023/en/0xa6-unrestricted-access-to-sensitive-business-flows/
 **بازیابی:** ۱۴۰۵/۰۵/۳۱
-**چرا در پروژهٔ ما:** مبنای قاعدهٔ ۵.۱ در `PROJECT-STATE.md §۵.۵`، و یکی از دو ریسکی که
-الزام «امضای بیومتریک برای خروجی گروهی» (`DESIGN-LEGAL-AUTH.md §۷.۶`) به آن پاسخ می‌دهد.
+**ثبت محل استفاده:** ۱۴۰۵/۰۶/۰۵، فاز ۰۱
+**چرا در پروژهٔ ما:** مبنای قاعدهٔ ۵.۱ در `PROJECT-STATE.md §۵.۵`، الزام حضور انسان و
+کنترل جریان‌های حساس در `DESIGN-LEGAL-AUTH.md §۷.۶`، و نیازهای SEC-004/SEC-009 در
+`REQUIREMENTS-TRACEABILITY.md`.
 
 > ⚠️ **این ریسک در نسخهٔ ۲۰۱۹ اصلاً وجود نداشت** و در ۲۰۲۳ تازه اضافه شد.
 

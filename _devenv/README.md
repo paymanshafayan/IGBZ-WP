@@ -15,18 +15,10 @@ Two zip files, committed to git:
 | `wordpress-7.0.4.zip` | WordPress core | <https://wordpress.org/latest.zip> |
 | `woocommerce-11.0.1.zip` | WooCommerce plugin | <https://downloads.wordpress.org/plugin/woocommerce.latest-stable.zip> |
 
-Plus two **bundled-in-repo source trees** (plain directories, not zips):
-
-| Directory | What it is | Version |
-| --- | --- | --- |
-| `elementor/` | Elementor Website Builder plugin | 4.3.0 (commit of `main`) |
-| `hello-elementor/` | Hello Elementor theme | 3.4.9 (commit of `main`) |
-
-These are shipped as source trees because the Elementor repo on GitHub does not require a
-build step to run — the plugin's own autoloader covers `core/` and `includes/` directly, and
-the missing Composer vendor packages (Jetpack autoloader, wp-one-package) are optional for
-booting. If you upgrade them, overwrite the directory contents with the new upstream source
-and bump the version number comments at the top of each source file.
+No page builder or third-party theme is bundled or mounted. Elementor and Hello Elementor were
+removed from the default environment; the demo deliberately uses WordPress core's Twenty
+Twenty-Five theme. The two hidden version-marker files left from the former harness are historical
+metadata only and are not read by `setup.sh` or `run.sh`.
 
 The exact WP/WC filenames do not matter. `setup.sh` globs for `wordpress-*.zip` and
 `woocommerce-*.zip` and picks the newest match, so `wordpress-7.1.zip` or
@@ -81,9 +73,9 @@ This replaces the previous approach, which monkey-patched `fetch` inside the CLI
 is needed any more.
 
 WooCommerce needs no server: it is simply extracted and bind-mounted into the site as
-`wp-content/plugins/woocommerce`. Elementor and Hello Elementor are also bind-mounted from
-`.work/plugins/elementor` and `.work/themes/hello-elementor`, which `setup.sh` stages from
-the directories above.
+`wp-content/plugins/woocommerce`. IGBZ Suite is bind-mounted from the repository, and the active
+demo theme is the bundled WordPress core theme Twenty Twenty-Five. No Elementor files are staged
+or mounted.
 
 ## Sample seed data
 
