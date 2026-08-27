@@ -14,7 +14,7 @@ The IGBZ product ported from **nopCommerce** to **WordPress + WooCommerce**.
 
 ## The port at a glance
 
-The nopCommerce original was four separate plugins. This is **one plugin with five modules** you can
+The nopCommerce original was four separate plugins. This is **one plugin with six modules** you can
 switch on and off independently:
 
 * **Multi-Tenant Stores** — tenants, wallet, subscription plans, BNPL, affiliate, LMS, OTP login,

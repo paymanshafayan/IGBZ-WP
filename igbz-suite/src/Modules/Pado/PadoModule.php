@@ -20,10 +20,8 @@ defined( 'ABSPATH' ) || exit;
  *     including instagram publish of the four content kinds, goes through it).
  *   - Theme zip validation gate (backend, never in JS — قاعده دائمی).
  *
- * In later phases the module will add the REST gateway client that talks to the
- * unified Vira API endpoint, the actual theme zip ingest/preview/live flow,
- * and per-kind executors for approval decisions (price changes, refunds,
- * instagram publish, bulk delete, etc.).
+ * The gateway and executors are intentionally kept behind the configured Pado service endpoint;
+ * the module persists and validates every request locally before a remote execution is allowed.
  */
 final class PadoModule implements ModuleInterface {
 

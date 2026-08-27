@@ -13,8 +13,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Service container + module registry.
  *
- * The suite ships as ONE plugin with four independently toggleable modules, mirroring the four
- * nopCommerce plugins of the original IGBZ system.
+ * The suite ships as ONE plugin with six independently toggleable modules, preserving the original
+ * IGBZ boundaries while adding the Pado and FX modules.
  */
 final class Plugin {
 
