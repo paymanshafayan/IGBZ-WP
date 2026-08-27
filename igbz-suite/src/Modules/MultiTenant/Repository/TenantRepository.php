@@ -269,7 +269,7 @@ final class TenantRepository {
 
 	public function primary_domain( int $tenant_id ): string {
 		$row = $this->db->row(
-			'SELECT domain FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d ORDER BY is_primary DESC, id LIMIT 1',
+			'SELECT domain FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d AND verified_at IS NOT NULL ORDER BY is_primary DESC, id LIMIT 1',
 			$tenant_id
 		);
 		return $row ? (string) $row['domain'] : '';
