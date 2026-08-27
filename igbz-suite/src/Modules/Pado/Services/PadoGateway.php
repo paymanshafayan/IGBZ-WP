@@ -26,6 +26,9 @@ final class PadoGateway {
 			return [ 'ok' => false, 'job_id' => '', 'data' => [], 'error' => __( 'Pado service is not configured.', 'igbz-suite' ) ];
 		}
 		$endpoint = esc_url_raw( igbz()->settings()->string( 'pado.endpoint', '' ) );
+		if ( 'https' !== strtolower( (string) wp_parse_url( $endpoint, PHP_URL_SCHEME ) ) ) {
+			return [ 'ok' => false, 'job_id' => '', 'data' => [], 'error' => __( 'Pado endpoint must use HTTPS.', 'igbz-suite' ) ];
+		}
 		$response = $this->http->post(
 			$endpoint,
 			[
@@ -50,5 +53,22 @@ final class PadoGateway {
 			'data'   => $data,
 			'error'  => sanitize_text_field( (string) ( $data['error'] ?? '' ) ),
 		];
+	}
+
+	/** @return array{ok:bool,job_id:string,data:array<string,mixed>,error:string} */
+	public function status( string $job_id ): array {
+		return $this->submit( 'theme_design_status', [ 'job_id' => sanitize_text_field( $job_id ) ] );
+	}
+
+	/** @return array{ok:bool,body:string,error:string} */
+	public function download( string $url ): array {
+		if ( ! $this->configured() || ! wp_http_validate_url( $url ) || 'https' !== strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ) ) {
+			return [ 'ok' => false, 'body' => '', 'error' => 'نشانی دریافت قالب معتبر نیست.' ];
+		}
+		$response = $this->http->get( esc_url_raw( $url ), [
+			'headers' => [ 'Authorization' => 'Bearer ' . igbz()->settings()->string( 'pado.api_key', '' ) ],
+			'channel' => 'pado', 'timeout' => 120, 'retries' => 1,
+		] );
+		return $response->ok() ? [ 'ok' => true, 'body' => $response->body, 'error' => '' ] : [ 'ok' => false, 'body' => '', 'error' => $response->error_message() ];
 	}
 }
