@@ -460,16 +460,29 @@ final class PadoPage {
 	public function handle_theme_live(): void {
 		Capabilities::require( Capabilities::MANAGE_PADO );
 		check_admin_referer( self::NONCE_ACTION );
-		$result = igbz()->get( 'pado.themes' )->activate_live( (int) ( $_GET['theme_id'] ?? 0 ) );
-		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'activated' : '', 'err' => $result['error'] ] ) );
+		$theme_id = (int) ( $_GET['theme_id'] ?? 0 );
+		$this->approvals->submit( [
+			'kind' => 'theme_apply',
+			'title' => 'درخواست اعمال قالب برای فروشگاه',
+			'reason' => 'اعمال قالب زنده فقط پس از تأیید صریح مدیر انجام می‌شود.',
+			'payload' => [ 'theme_id' => $theme_id ],
+			'impact' => ApprovalRequestService::IMPACT_HIGH,
+		] );
+		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_APPROVALS, 'msg' => 'queued' ] ) );
 		exit;
 	}
 
 	public function handle_theme_rollback(): void {
 		Capabilities::require( Capabilities::MANAGE_PADO );
 		check_admin_referer( self::NONCE_ACTION );
-		$result = igbz()->get( 'pado.themes' )->rollback( igbz()->tenancy()->id() );
-		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'rolledback' : '', 'err' => $result['error'] ] ) );
+		$this->approvals->submit( [
+			'kind' => 'theme_rollback',
+			'title' => 'درخواست بازگشت قالب فروشگاه',
+			'reason' => 'بازگشت قالب زنده نیز مانند اعمال آن نیازمند تأیید مدیر است.',
+			'payload' => [ 'tenant_id' => igbz()->tenancy()->id() ],
+			'impact' => ApprovalRequestService::IMPACT_HIGH,
+		] );
+		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_APPROVALS, 'msg' => 'queued' ] ) );
 		exit;
 	}
 
@@ -526,6 +539,13 @@ final class PadoPage {
 		// job remains approved and can be retried without pretending that work was completed.
 		$executor = null;
 		$row = $this->approvals->get( $id );
+		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], [ 'theme_apply', 'theme_rollback' ], true ) ) {
+			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );
+			$action_result = 'theme_apply' === $row['kind']
+				? igbz()->get( 'pado.themes' )->activate_live( (int) ( $payload['theme_id'] ?? 0 ) )
+				: igbz()->get( 'pado.themes' )->rollback( (int) ( $payload['tenant_id'] ?? igbz()->tenancy()->id() ) );
+			$executor = static function ( array $request ) use ( $action_result ): bool { return (bool) $action_result['ok']; };
+		}
 		if ( 'approved' === $decision && $row && 'theme_design' === (string) $row['kind'] ) {
 			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );
 			$job_id  = is_array( $payload ) ? sanitize_text_field( (string) ( $payload['gateway_job_id'] ?? '' ) ) : '';
