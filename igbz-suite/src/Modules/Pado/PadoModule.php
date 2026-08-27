@@ -71,7 +71,7 @@ final class PadoModule implements ModuleInterface {
 		}
 		$svc = new ApprovalRequestService( $db );
 		$now = current_time( 'mysql', true );
-		// One pending (the "design suggestion" stub)
+		// One pending design suggestion keeps a fresh demo queue observable.
 		$svc->submit( [
 			'kind'    => 'theme_design',
 			'title'   => 'پیشنهاد طراحی قالب — نمونه (فروشگاه آرایشی)',

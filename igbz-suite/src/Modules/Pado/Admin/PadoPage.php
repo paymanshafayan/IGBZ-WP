@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * "مرکز پادو" admin page with four tabs as per the ratified design (S0):
  *   - تنظیمات (API key)
- *   - طراحی قالب (questionnaire stub + start button)
+ *   - طراحی قالب (پرسش‌نامه، فراخوانی سرویس پادو و ثبت درخواست مجوز)
  *   - درخواست‌های مجوز (unified approval queue with reason detail)
  *   - تاریخچه (all historical actions)
  *
@@ -79,7 +79,7 @@ final class PadoPage {
 		} elseif ( 'uploaded' === $msg ) {
 			$notice = 'قالب با موفقیت اعتبارسنجی و برای پیش‌نمایش ثبت شد.';
 		} elseif ( 'approved' === $msg ) {
-			$notice = 'درخواست تأیید و به اجرا سپرده شد.';
+			$notice = 'درخواست تأیید شد و تا اجرای موفق در وضعیت تأییدشده می‌ماند.';
 		} elseif ( 'rejected' === $msg ) {
 			$notice = 'درخواست رد شد.';
 		}
@@ -470,19 +470,14 @@ final class PadoPage {
 		$tab       = sanitize_key( (string) ( $_POST['tab'] ?? self::TAB_APPROVALS ) );
 		$astatus   = sanitize_key( (string) ( $_POST['astatus'] ?? 'pending' ) );
 
-		// In S0, we simply mark the row approved/rejected; actual executors for
-		// each kind will be wired in subsequent phases. This keeps the UI real
-		// and data-shaped correctly.
+		// Approval is persisted separately from execution. A request may only become
+		// executed after its concrete, validated executor reports success; never mark
+		// a design or financial action as executed merely because an admin clicked approve.
 		$ok = $this->approvals->decide(
 			$id,
 			'approved' === $decision ? ApprovalRequestService::STATUS_APPROVED : ApprovalRequestService::STATUS_REJECTED,
 			get_current_user_id(),
-			$note,
-			// Stub executor: mark executed for approved theme_design requests so the row
-			// reflects the flow end-to-end. Real generation comes in S1.
-			static function( array $req ): bool {
-				return 'theme_design' === ( $req['kind'] ?? '' );
-			}
+			$note
 		);
 
 		$args = [ 'tab' => $tab, 'astatus' => $astatus ];
