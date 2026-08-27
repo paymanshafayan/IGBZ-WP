@@ -521,14 +521,37 @@ final class PadoPage {
 		$tab       = sanitize_key( (string) ( $_POST['tab'] ?? self::TAB_APPROVALS ) );
 		$astatus   = sanitize_key( (string) ( $_POST['astatus'] ?? 'pending' ) );
 
-		// Approval is persisted separately from execution. A request may only become
-		// executed after its concrete, validated executor reports success; never mark
-		// a design or financial action as executed merely because an admin clicked approve.
+		// Approval is persisted separately from execution. For a completed design job, download,
+		// validate and store the ZIP before allowing the row to become executed. A pending remote
+		// job remains approved and can be retried without pretending that work was completed.
+		$executor = null;
+		$row = $this->approvals->get( $id );
+		if ( 'approved' === $decision && $row && 'theme_design' === (string) $row['kind'] ) {
+			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );
+			$job_id  = is_array( $payload ) ? sanitize_text_field( (string) ( $payload['gateway_job_id'] ?? '' ) ) : '';
+			if ( '' !== $job_id ) {
+				$remote = igbz()->get( 'pado.gateway' )->status( $job_id );
+				$remote_data = $remote['data'];
+				$zip_url = (string) ( $remote_data['zip_url'] ?? $remote_data['result']['zip_url'] ?? '' );
+				if ( '' !== $zip_url ) {
+					$download = igbz()->get( 'pado.gateway' )->download( $zip_url );
+					if ( $download['ok'] ) {
+						$tmp = wp_tempnam( 'igbz-pado-theme.zip' );
+						if ( $tmp && false !== file_put_contents( $tmp, $download['body'] ) ) {
+							$ingested = igbz()->get( 'pado.themes' )->ingest_zip( [ 'tmp_name' => $tmp, 'name' => 'pado-' . $job_id . '.zip', 'error' => UPLOAD_ERR_OK ], igbz()->tenancy()->id(), $id );
+							@unlink( $tmp );
+							$executor = static function ( array $request ) use ( $ingested ): bool { return (bool) $ingested['ok']; };
+						}
+					}
+				}
+			}
+		}
 		$ok = $this->approvals->decide(
 			$id,
 			'approved' === $decision ? ApprovalRequestService::STATUS_APPROVED : ApprovalRequestService::STATUS_REJECTED,
 			get_current_user_id(),
-			$note
+			$note,
+			$executor
 		);
 
 		$args = [ 'tab' => $tab, 'astatus' => $astatus ];
