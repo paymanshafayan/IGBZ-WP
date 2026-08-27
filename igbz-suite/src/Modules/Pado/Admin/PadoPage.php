@@ -239,7 +239,7 @@ final class PadoPage {
 					</td>
 				</tr>
 			</table>
-			<?php submit_button( '🚀 شروع طراحی', 'primary', 'submit', true, disabled( $have_key, false, false ) ); ?>
+			<?php submit_button( '🚀 شروع طراحی', 'primary', 'submit', true, disabled( ! $have_key, false, false ) ); ?>
 		</form>
 		<?php
 	}
