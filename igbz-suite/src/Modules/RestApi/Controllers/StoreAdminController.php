@@ -448,14 +448,14 @@ final class StoreAdminController extends BaseController {
 			$args['status'] = $status;
 		}
 
-		$orders = $this->orders_for( $this->scoped_tenant_id( $request ), $args );
-		$items  = [];
+		[ $orders, $total ] = $this->orders_page_for( $this->scoped_tenant_id( $request ), $args );
+		$items = [];
 
 		foreach ( $orders as $order ) {
 			$items[] = $this->order_summary( $order );
 		}
 
-		return $this->paged( $items, count( $items ), $page, $per_page );
+		return $this->paged( $items, $total, $page, $per_page );
 	}
 
 	public function set_order_status( \WP_REST_Request $request ): \WP_REST_Response {
@@ -495,6 +495,18 @@ final class StoreAdminController extends BaseController {
 		);
 
 		return $this->ok( [ 'ok' => true, 'status' => $order->get_status() ] );
+	}
+
+	/** @param array<string,mixed> $args @return array{0:array<int,\WC_Order>,1:int} */
+	private function orders_page_for( int $tenant_id, array $args = [] ): array {
+		$args = array_merge( [ 'limit' => 20, 'orderby' => 'date', 'order' => 'DESC', 'paginate' => true ], $args );
+		if ( $tenant_id > 0 && ! Capabilities::current_user_can( Capabilities::MANAGE_TENANTS ) ) {
+			$args['meta_key'] = '_igbz_tenant_id';
+			$args['meta_value'] = (string) $tenant_id;
+		}
+		$result = wc_get_orders( $args );
+		if ( ! is_object( $result ) ) { return [ [], 0 ]; }
+		return [ is_array( $result->orders ?? null ) ? $result->orders : [], (int) ( $result->total ?? 0 ) ];
 	}
 
 	/**
