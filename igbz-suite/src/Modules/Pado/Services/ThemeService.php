@@ -75,6 +75,12 @@ final class ThemeService {
 		return $row ?: null;
 	}
 
+	/** @return array<int,array<string,mixed>> */
+	public function list( int $tenant_id = 0, int $limit = 50 ): array {
+		$sql = 'SELECT * FROM ' . $this->db->table( 'themes' ) . ' WHERE tenant_id = %d ORDER BY id DESC LIMIT %d';
+		return $this->db->results( $sql, $tenant_id, max( 1, min( 200, $limit ) ) );
+	}
+
 	/**
 	 * Store and validate a zip without executing it. The archive is rejected before extraction if
 	 * any member escapes the temporary directory; validation then scans the extracted bytes.

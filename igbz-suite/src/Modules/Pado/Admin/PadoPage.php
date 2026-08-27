@@ -45,6 +45,8 @@ final class PadoPage {
 		add_action( 'admin_post_igbz_pado_decide', [ $this, 'handle_decide' ] );
 		add_action( 'admin_post_igbz_pado_start_design', [ $this, 'handle_start_design' ] );
 		add_action( 'admin_post_igbz_pado_upload_theme', [ $this, 'handle_upload_theme' ] );
+		add_action( 'admin_post_igbz_pado_theme_preview', [ $this, 'handle_theme_preview' ] );
+		add_action( 'admin_post_igbz_pado_theme_live', [ $this, 'handle_theme_live' ] );
 	}
 
 	public function add_page(): void {
@@ -78,6 +80,10 @@ final class PadoPage {
 			$notice = 'درخواست طراحی در صف پادو قرار گرفت و به‌زودی به درخواست‌های مجوز می‌رسد.';
 		} elseif ( 'uploaded' === $msg ) {
 			$notice = 'قالب با موفقیت اعتبارسنجی و برای پیش‌نمایش ثبت شد.';
+		} elseif ( 'previewed' === $msg ) {
+			$notice = 'قالب برای پیش‌نمایش نصب شد.';
+		} elseif ( 'activated' === $msg ) {
+			$notice = 'قالب با موفقیت اعمال شد.';
 		} elseif ( 'approved' === $msg ) {
 			$notice = 'درخواست تأیید شد و تا اجرای موفق در وضعیت تأییدشده می‌ماند.';
 		} elseif ( 'rejected' === $msg ) {
@@ -241,7 +247,23 @@ final class PadoPage {
 			</table>
 			<?php submit_button( '🚀 شروع طراحی', 'primary', 'submit', true, disabled( ! $have_key, false, false ) ); ?>
 		</form>
+		<?php $this->render_theme_list(); ?>
 		<?php
+	}
+
+	private function render_theme_list(): void {
+		$rows = igbz()->get( 'pado.themes' )->list( igbz()->tenancy()->id() );
+		if ( ! $rows ) { return; }
+		echo '<h3>قالب‌های ثبت‌شده</h3><table class="widefat striped"><thead><tr><th>نام</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>';
+		foreach ( $rows as $row ) {
+			echo '<tr><td>' . esc_html( (string) $row['name'] ) . '</td><td>' . esc_html( (string) $row['status'] ) . '</td><td>';
+			foreach ( [ 'preview' => 'پیش‌نمایش', 'live' => 'اعمال زنده' ] as $action => $label ) {
+				$url = wp_nonce_url( admin_url( 'admin-post.php?action=igbz_pado_theme_' . $action . '&theme_id=' . (int) $row['id'] ), self::NONCE_ACTION );
+				echo '<a class="button" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a> ';
+			}
+			echo '</td></tr>';
+		}
+		echo '</tbody></table>';
 	}
 
 	private function render_tab_approvals(): void {
@@ -419,6 +441,22 @@ final class PadoPage {
 		$result = igbz()->get( 'pado.themes' )->ingest_zip( $file, igbz()->tenancy()->id() );
 		$args = [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'uploaded' : '', 'err' => $result['error'] ];
 		wp_safe_redirect( Menu::url( self::SLUG, $args ) );
+		exit;
+	}
+
+	public function handle_theme_preview(): void {
+		Capabilities::require( Capabilities::MANAGE_PADO );
+		check_admin_referer( self::NONCE_ACTION );
+		$result = igbz()->get( 'pado.themes' )->install_preview( (int) ( $_GET['theme_id'] ?? 0 ) );
+		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'previewed' : '', 'err' => $result['error'] ] ) );
+		exit;
+	}
+
+	public function handle_theme_live(): void {
+		Capabilities::require( Capabilities::MANAGE_PADO );
+		check_admin_referer( self::NONCE_ACTION );
+		$result = igbz()->get( 'pado.themes' )->activate_live( (int) ( $_GET['theme_id'] ?? 0 ) );
+		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'activated' : '', 'err' => $result['error'] ] ) );
 		exit;
 	}
 
