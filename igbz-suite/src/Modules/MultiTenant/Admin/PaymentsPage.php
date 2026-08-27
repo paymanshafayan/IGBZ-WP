@@ -34,6 +34,7 @@ final class PaymentsPage {
 
 	public function render(): void {
 		$this->handle_test();
+		$this->handle_legal();
 		$this->handle_get_actions();
 
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
@@ -52,6 +53,7 @@ final class PaymentsPage {
 				'payments'    => __( 'Attempts', 'igbz-suite' ),
 				'gateways'    => __( 'Gateways', 'igbz-suite' ),
 				'otp'         => __( 'OTP', 'igbz-suite' ),
+				'legal'       => __( 'Legal', 'igbz-suite' ),
 				'marketplace' => __( 'Marketplace feeds', 'igbz-suite' ),
 			],
 			$tab,
@@ -61,6 +63,7 @@ final class PaymentsPage {
 		match ( $tab ) {
 			'gateways'    => $this->render_gateways(),
 			'otp'         => $this->render_otp(),
+			'legal'       => $this->render_legal(),
 			'marketplace' => $this->render_marketplace(),
 			default       => $this->render_payments( $status, $paged ),
 		};
@@ -290,6 +293,31 @@ final class PaymentsPage {
 			esc_url( wp_nonce_url( Menu::url( self::SLUG, [ 'tab' => 'otp', 'purge_otp' => 1 ] ), 'igbz_payments_action' ) ),
 			esc_html__( 'Purge expired codes', 'igbz-suite' )
 		);
+	}
+
+	private function handle_legal(): void {
+		if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || 'accept_legal_waiver' !== ( $_POST['igbz_pay_action'] ?? '' ) ) {
+			return;
+		}
+		View::check_nonce( 'igbz_legal_waiver' );
+		$result = igbz()->get( 'legal.waiver' )->accept( igbz()->tenancy()->id(), get_current_user_id() );
+		View::notice( $result['ok'] ? __( 'Legal waiver accepted for this store.', 'igbz-suite' ) : $result['error'], $result['ok'] ? 'success' : 'error' );
+	}
+
+	private function render_legal(): void {
+		$service = igbz()->get( 'legal.waiver' );
+		$tenant_id = igbz()->tenancy()->id();
+		$allowed = $service->payment_allowed( $tenant_id );
+		echo '<h2>' . esc_html__( 'Bank payment legal gate', 'igbz-suite' ) . '</h2>';
+		echo '<p>' . wp_kses_post( nl2br( esc_html( $service->text() ) ) ) . '</p>';
+		printf( '<p><strong>%s</strong></p>', esc_html( $allowed['allowed'] ? __( 'Bank payments are allowed.', 'igbz-suite' ) : __( 'Bank payments are blocked until national-id matching or this waiver is accepted.', 'igbz-suite' ) ) );
+		if ( ! $service->has_accepted( $tenant_id ) ) {
+			echo '<form method="post">';
+			wp_nonce_field( 'igbz_legal_waiver' );
+			echo '<input type="hidden" name="igbz_pay_action" value="accept_legal_waiver">';
+			submit_button( __( 'Accept legal waiver', 'igbz-suite' ), 'primary', 'submit', false );
+			echo '</form>';
+		}
 	}
 
 	private function render_marketplace(): void {
