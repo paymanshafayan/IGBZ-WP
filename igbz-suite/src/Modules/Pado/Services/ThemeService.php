@@ -137,6 +137,55 @@ final class ThemeService {
 		@rmdir( $dir );
 	}
 
+	public function install_preview( int $id ): array {
+		$row = $this->get( $id );
+		if ( ! $row || ! is_readable( (string) $row['zip_path'] ) ) { return [ 'ok' => false, 'error' => 'فایل قالب یافت نشد.' ]; }
+		$zip = new \ZipArchive();
+		if ( true !== $zip->open( (string) $row['zip_path'], \ZipArchive::CHECKCONS ) ) { return [ 'ok' => false, 'error' => 'آرشیو قالب معتبر نیست.' ]; }
+		$tmp = trailingslashit( get_temp_dir() ) . 'igbz-preview-' . wp_generate_uuid4();
+		wp_mkdir_p( $tmp );
+		$zip->extractTo( $tmp ); $zip->close();
+		$root = $tmp;
+		$children = array_values( array_filter( scandir( $tmp ) ?: [], static fn ( string $n ): bool => '.' !== $n && '..' !== $n ) );
+		if ( ! file_exists( $tmp . '/style.css' ) && 1 === count( $children ) && is_dir( $tmp . '/' . $children[0] ) ) { $root = $tmp . '/' . $children[0]; }
+		$theme_root = trailingslashit( get_theme_root() ) . sanitize_title( (string) $row['slug'] );
+		if ( is_dir( $theme_root ) ) { $this->remove_tree( $theme_root ); }
+		wp_mkdir_p( $theme_root );
+		$this->copy_tree( $root, $theme_root );
+		$this->remove_tree( $tmp );
+		$this->db->update( 'themes', [ 'status' => self::STATUS_PREVIEW, 'preview_url' => add_query_arg( 'igbz_theme_preview', rawurlencode( (string) $row['slug'] ), home_url( '/' ) ), 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $id ] );
+		return [ 'ok' => true, 'error' => '' ];
+	}
+
+	public function activate_live( int $id ): array {
+		$row = $this->get( $id );
+		if ( ! $row ) { return [ 'ok' => false, 'error' => 'قالب یافت نشد.' ]; }
+		$installed = wp_get_themes();
+		$slug = sanitize_title( (string) $row['slug'] );
+		if ( ! isset( $installed[ $slug ] ) ) { $preview = $this->install_preview( $id ); if ( ! $preview['ok'] ) { return $preview; } }
+		$previous = get_option( 'igbz_previous_theme_slug', get_stylesheet() );
+		update_option( 'igbz_previous_theme_slug', $previous, false );
+		switch_theme( $slug );
+		$this->db->update( 'themes', [ 'status' => self::STATUS_LIVE, 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $id ] );
+		return [ 'ok' => true, 'error' => '' ];
+	}
+
+	public function rollback(): array {
+		$previous = sanitize_title( (string) get_option( 'igbz_previous_theme_slug', '' ) );
+		if ( '' === $previous || ! isset( wp_get_themes()[ $previous ] ) ) { return [ 'ok' => false, 'error' => 'قالب قبلی برای بازگشت یافت نشد.' ]; }
+		switch_theme( $previous );
+		$this->db->query( 'UPDATE ' . $this->db->table( 'themes' ) . ' SET status = %s WHERE status = %s', self::STATUS_ARCHIVED, self::STATUS_LIVE );
+		return [ 'ok' => true, 'error' => '' ];
+	}
+
+	private function copy_tree( string $from, string $to ): void {
+		foreach ( array_values( array_filter( scandir( $from ) ?: [], static fn ( string $n ): bool => '.' !== $n && '..' !== $n ) ) as $name ) {
+			$source = $from . '/' . $name; $target = $to . '/' . $name;
+			if ( is_dir( $source ) ) { wp_mkdir_p( $target ); $this->copy_tree( $source, $target ); }
+			elseif ( is_file( $source ) ) { copy( $source, $target ); }
+		}
+	}
+
 	public function set_status( int $id, string $status ): bool {
 		if ( ! in_array( $status, [ self::STATUS_DRAFT, self::STATUS_PREVIEW, self::STATUS_LIVE, self::STATUS_REJECTED, self::STATUS_ARCHIVED ], true ) ) {
 			return false;
