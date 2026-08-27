@@ -34,8 +34,10 @@ final class TenantRepository {
 		$domains = $this->db->table( 'tenant_domains' );
 		$tenants = $this->db->table( 'tenants' );
 		$row     = $this->db->row(
-			"SELECT t.* FROM {$tenants} t INNER JOIN {$domains} d ON d.tenant_id = t.id WHERE d.domain = %s AND d.verified_at IS NOT NULL LIMIT 1",
-			strtolower( $domain )
+			"SELECT t.* FROM {$tenants} t INNER JOIN {$domains} d ON d.tenant_id = t.id WHERE d.domain = %s AND d.verified_at IS NOT NULL AND t.status IN (%s, %s) LIMIT 1",
+			strtolower( $domain ),
+			Tenant::STATUS_ACTIVE,
+			Tenant::STATUS_TRIAL
 		);
 		return $row ? Tenant::from_row( $row ) : null;
 	}
