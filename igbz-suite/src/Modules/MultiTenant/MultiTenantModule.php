@@ -73,6 +73,7 @@ final class MultiTenantModule implements ModuleInterface {
 
 		// --- admin -------------------------------------------------------------
 		if ( is_admin() ) {
+			( new Admin\StoreDashboardPage() )->register();
 			( new Admin\TenantsPage() )->register();
 			( new Admin\WalletPage() )->register();
 			( new Admin\PlansPage() )->register();
