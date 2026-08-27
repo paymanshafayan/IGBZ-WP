@@ -293,11 +293,11 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| TEN-001 | resolver مستأجر از هویت معتبر | MODULES-REFERENCE؛ Hub | `TenantResolver`, `BaseController` | پیاده‌شده؛ ممیزی تزریق tenant و همهٔ مسیرها باقی است |
-| TEN-002 | مالکیت در repository و query | OWASP Multi-Tenant | repositoryهای متعدد | پیاده‌شدهٔ ناهمگون؛ الگوی اجباری واحد ندارد |
-| TEN-003 | provision کامل و idempotent | هندآف؛ Hub | signup، tenant/member/domain creation | پیاده‌شده؛ rollback جزئی و آزمون شکست کامل نیست |
-| TEN-004 | cache/file/job/rate tenant-scoped | OWASP Multi-Tenant؛ §۵.۵ | الگوهای پراکنده | شکاف؛ ماتریس cache/فایل/صف وجود ندارد |
-| TEN-005 | قالب مستقل هر مستأجر | DESIGN-PADO §۱۹ | `switch_theme()` سراسری | شکاف بحرانی؛ معماری باید در فاز ۰۲ قطعی شود |
+| TEN-001 | resolver مستأجر از هویت معتبر | ADR-0001؛ Hub | `TenantResolver`, `BaseController` | پذیرفته‌شده: زیرسایت مرز پایه است؛ تبدیل resolver فعلی باقی است |
+| TEN-002 | مالکیت در repository و query | ADR-0001؛ OWASP Multi-Tenant | repositoryهای متعدد | شکاف؛ عضویت/سایت و control plane باید الگوی اجباری واحد بگیرند |
+| TEN-003 | provision کامل و idempotent | ADR-0001؛ Hub | signup، tenant/member/domain creation | شکاف؛ provision زیرسایت و rollback کامل هنوز کد ندارد |
+| TEN-004 | cache/file/job/rate tenant-scoped | ADR-0001؛ OWASP Multi-Tenant؛ §۵.۵ | الگوهای پراکنده | شکاف؛ ماتریس site/network برای cache/فایل/صف وجود ندارد |
+| TEN-005 | قالب مستقل هر مستأجر | ADR-0001؛ DESIGN-PADO §۱۹ | `switch_theme()` سراسری | تصمیم پذیرفته شد: فعال‌سازی per-site؛ کد فعلی شکاف بحرانی است |
 | DAT-001 | schema و migration نسخه‌دار | Schema/Activator | DB v19، ۷۲ جدول | پیاده‌شده؛ مسیر v18 متد مستقل ندارد و آزمون upgrade حجیم باقی است |
 | DAT-002 | query رشدپذیر محدود و ایندکس‌شده | §۵.۵؛ OWASP API4 | limit در بخش‌ها | شکاف: فهرست/DELETE نامحدود و batchهای ثابت |
 | DAT-003 | HPOS واقعی | WooCommerce | declaration موجود | شکاف: محیط آزمون HPOS خاموش و migration تأیید نشده |
@@ -403,11 +403,17 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 
 ---
 
-## ۸. تصمیم‌های لازم پیش از فاز ۰۲
+## ۸. تصمیم‌های فاز ۰۲
 
-این موارد باید طبق قانون سؤال تک‌به‌تک از کارفرما گرفته شوند:
+این موارد طبق قانون سؤال تک‌به‌تک از کارفرما گرفته می‌شوند.
 
-۱. معماری نهایی مستأجر و قالب؛
+### بسته‌شده
+
+۱. **معماری مستأجر و قالب:** وردپرس چندسایتی با data plane مستقل هر زیرسایت و control
+   plane مشترک IGBZ انتخاب شد. مرجع: `ADR/ADR-0001-MULTISITE-TENANCY.md`.
+
+### باز
+
 ۲. نقش قطعی پادو، n8n، سرویس مدل و ویرا؛
 ۳. نوع یا انواع خروجی قالب؛
 ۴. فهرست providerهای واقعاً فعال و providerهای حذف‌شده؛
