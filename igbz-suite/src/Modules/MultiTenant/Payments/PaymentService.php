@@ -154,8 +154,14 @@ final class PaymentService {
 		if ( ! $gateway ) {
 			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'No payment gateway is available.', 'igbz-suite' ) ];
 		}
+		if ( ! igbz()->settings()->bool( 'payments.' . $gateway->id() . '.enabled', false ) ) {
+			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'The selected payment gateway is disabled.', 'igbz-suite' ) ];
+		}
 		if ( ! $gateway->is_configured() ) {
 			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'The selected payment gateway is not configured.', 'igbz-suite' ) ];
+		}
+		if ( $this->is_bank_gateway( $gateway->id() ) && ! $this->bank_gateway_allowed() ) {
+			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'This bank gateway is locked until the verified-domain and legal requirements are complete.', 'igbz-suite' ) ];
 		}
 		if ( $amount <= 0 ) {
 			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'Invalid payment amount.', 'igbz-suite' ) ];
