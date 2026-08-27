@@ -48,7 +48,7 @@ The Instagram gateway sits behind an adapter interface so Graph API can be added
 - **Never modify the `IGBZ-NopCommerce` project.** It was a read-only review, and that review is
   finished (`REVIEW-IGBZ-NopCommerce.md`).
 - Tenancy is **single-site with `tenant_id` columns**. Not WordPress Multisite.
-- One plugin, five modules — **not** four separate plugins.
+- One plugin, six modules — **not** four separate plugins.
 - The deliverable is **complete and installable**, never a skeleton.
 - **Paid content is delivered by our own customer app**, not by a DM vendor and not by Instagram.
   This was settled after a long detour through DM vendors; ManyChat cannot send video to Instagram
@@ -157,7 +157,7 @@ enabled: `multitenant`. Option: `igbz_enabled_modules`.
 **REST**: 199 routes across `igbz/v1` (incl. 14 `/intake/*`, 29 `/vip/*`, `/fx/*`, `/courier/*`,
 `/domains/*`, `/master-payment/*`, `/ai/*`) and `igbz-hub/v1`.
 
-**Schema**: 70 tables in `src/Support/Schema.php` (DB version 17; the ladder: v8 `ig_intake`,
+**Schema**: 72 tables in `src/Support/Schema.php` (DB version 17; the ladder: v8 `ig_intake`,
 v10 nine `vip_*` tables, v11 LMS wiring, v12 `ig_content.ig_shortcode` + funnel reward relabel,
 v13 dropped the never-used `jobs` queue, v14 six `fx_*` tables, v15 phases 6–14 tables, v16 the
 master-payment/courier/domain/label/legal completion pass, v17 `vip_post_saves` plus the ratified
@@ -236,7 +236,7 @@ Confirmed live on **WP 6.5.5 / WC 9.4.2 / PHP 8.2.32** *and re-confirmed on* **W
 zips in `_devenv/` and re-running `setup.sh --force`; no plugin code differs between them.
 
 - 1209 assertions in 23 test cases; 235 files lint clean.
-- 28/28 admin screens return 200 with no notices; 70/70 tables (`/?igbz_health=1`); 3 cron hooks
+- 28/29 admin screens return 200 with no notices; 70/72 tables (`/?igbz_health=1`); 3 cron hooks
   scheduled.
 - All 14+ payment gateways register with WooCommerce and their settings screens render; the
   direct banks show a Test connection button.

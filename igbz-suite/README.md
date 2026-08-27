@@ -665,7 +665,7 @@ singletons; an unknown id throws.
 A module's services only exist while that module is enabled, so guard cross-module calls with
 `igbz()->has( 'wallet' )`.
 
-**Tenancy** is single-site with a `tenant_id` column, not WordPress Multisite. All **70 tables
+**Tenancy** is single-site with a `tenant_id` column, not WordPress Multisite. All **72 tables
 (DB v17)** carry `tenant_id` except `tenants`, `tenant_domains`, `tenant_members`, `plans`,
 `logs`, `lesson_progress` (scope inherited through `enrollment_id`), `vip_post_likes`,
 `vip_post_saves`, `vip_post_views`, `fx_rates`, `fx_prices`, `ig_label_group_items`, `ig_courier_tracking` and
