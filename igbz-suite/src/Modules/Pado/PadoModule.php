@@ -48,7 +48,7 @@ final class PadoModule implements ModuleInterface {
 			[
 				'label'  => 'Pado module',
 				'status' => 'ok',
-				'detail' => 'S0 scaffolding loaded (approval queue + theme validator).',
+				'detail' => 'Approval queue, external Pado gateway and backend theme validator are loaded.',
 			],
 		];
 	}
