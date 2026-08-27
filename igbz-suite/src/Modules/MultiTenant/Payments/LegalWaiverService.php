@@ -50,7 +50,9 @@ final class LegalWaiverService {
 	 * @return array{allowed:bool,reason:string,needs_waiver:bool}
 	 */
 	public function payment_allowed( int $tenant_id ): array {
-		if ( igbz()->settings()->bool( 'legal.national_id_check', false ) ) {
+		if ( igbz()->settings()->bool( 'legal.national_id_check', false )
+			&& '' !== igbz()->settings()->string( 'legal.shahkar_api_key', '' )
+			&& '' !== igbz()->settings()->string( 'legal.shahkar_base_url', '' ) ) {
 			return [ 'allowed' => true, 'reason' => '', 'needs_waiver' => false ];
 		}
 

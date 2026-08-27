@@ -73,11 +73,13 @@ final class TenantContext {
 		}
 
 		if ( ! $this->current && ( 'path' === $mode || 'hybrid' === $mode ) ) {
-			$uri  = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
-			$path = trim( (string) wp_parse_url( $uri, PHP_URL_PATH ), '/' );
-			$slug = explode( '/', $path )[0] ?? '';
+			$uri      = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+			$path     = trim( (string) wp_parse_url( $uri, PHP_URL_PATH ), '/' );
+			$segments = '' === $path ? [] : explode( '/', $path );
+			$base     = trim( igbz()->settings()->string( 'general.tenant_path_base', 'store' ), '/' );
+			$slug     = ( $segments && $segments[0] === $base ) ? ( $segments[1] ?? '' ) : ( $segments[0] ?? '' );
 			if ( '' !== $slug ) {
-				$this->current = $repo->find_by_slug( $slug );
+				$this->current = $repo->find_by_slug( sanitize_title( $slug ) );
 			}
 		}
 

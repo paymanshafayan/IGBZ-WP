@@ -82,6 +82,10 @@ final class CoreSurfaceGuard {
 			add_action( 'template_redirect', [ $this, 'block_author_enumeration' ], 1 );
 			add_filter( 'oembed_response_data', [ $this, 'strip_oembed_author' ] );
 		}
+
+		// WordPress XML exports can contain users, comments and site content. Keep this
+		// bulk escape hatch for the platform administrator only.
+		add_action( 'load-export.php', [ $this, 'guard_export' ], 1 );
 	}
 
 	/**
@@ -179,6 +183,13 @@ final class CoreSurfaceGuard {
 		}
 
 		return is_super_admin() || current_user_can( 'igbz_bulk_export_people' );
+	}
+
+	/** Refuse the core XML export screen to non-platform administrators. */
+	public function guard_export(): void {
+		if ( ! is_super_admin() ) {
+			wp_die( esc_html__( 'Site export is restricted to the platform administrator.', 'igbz-suite' ), 403 );
+		}
 	}
 
 	/**

@@ -85,7 +85,7 @@ real endpoints.
 
 1. Copy the `igbz-suite` directory into `wp-content/plugins/`, or zip it and upload it through
    **Plugins → Add New → Upload Plugin**.
-2. Activate **IGBZ Suite**. On activation the plugin creates its 70 database tables, registers its
+2. Activate **IGBZ Suite**. On activation the plugin creates its 72 database tables, registers its
    roles and capabilities, schedules its cron events and seeds default settings.
 3. Go to **IGBZ → Settings → Modules** and enable the modules you need. Only *Multi-Tenant Stores*
    is on by default.
@@ -665,7 +665,7 @@ singletons; an unknown id throws.
 A module's services only exist while that module is enabled, so guard cross-module calls with
 `igbz()->has( 'wallet' )`.
 
-**Tenancy** is single-site with a `tenant_id` column, not WordPress Multisite. All **70 tables
+**Tenancy** is single-site with a `tenant_id` column, not WordPress Multisite. All **72 tables
 (DB v17)** carry `tenant_id` except `tenants`, `tenant_domains`, `tenant_members`, `plans`,
 `logs`, `lesson_progress` (scope inherited through `enrollment_id`), `vip_post_likes`,
 `vip_post_saves`, `vip_post_views`, `fx_rates`, `fx_prices`, `ig_label_group_items`, `ig_courier_tracking` and

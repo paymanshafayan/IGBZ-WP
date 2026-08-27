@@ -96,14 +96,27 @@ final class PaymentService {
 		if ( igbz()->has( 'domain' ) ) {
 			$domain_ok = igbz()->get( 'domain' )->has_verified_domain( (int) igbz()->tenancy()->id() );
 		}
-		return $domain_ok && igbz()->settings()->bool( 'legal.enamad_active', false );
+		if ( ! $domain_ok || ! igbz()->settings()->bool( 'legal.enamad_active', false ) ) {
+			return false;
+		}
+		if ( igbz()->has( 'legal.waiver' ) ) {
+			return (bool) igbz()->get( 'legal.waiver' )->payment_allowed( (int) igbz()->tenancy()->id() )['allowed'];
+		}
+		return false;
 	}
 
 	public function is_enabled( string $id ): bool {
 		$gateway = $this->gateway( $id );
-		return null !== $gateway
-			&& igbz()->settings()->bool( 'payments.' . $id . '.enabled', false )
-			&& $gateway->is_configured();
+		if ( null === $gateway
+			|| ! igbz()->settings()->bool( 'payments.' . $id . '.enabled', false )
+			|| ! $gateway->is_configured() ) {
+			return false;
+		}
+		return ! $this->is_bank_gateway( $id ) || $this->bank_gateway_allowed();
+	}
+
+	private function is_bank_gateway( string $id ): bool {
+		return in_array( $id, [ 'zarinpal', 'idpay', 'nextpay', 'payir', 'httppsp', 'sadad', 'asanpardakht', 'parsian', 'irankish', 'mellat', 'saman', 'pasargad', 'sepehr' ], true );
 	}
 
 	/**
@@ -141,8 +154,14 @@ final class PaymentService {
 		if ( ! $gateway ) {
 			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'No payment gateway is available.', 'igbz-suite' ) ];
 		}
+		if ( ! igbz()->settings()->bool( 'payments.' . $gateway->id() . '.enabled', false ) ) {
+			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'The selected payment gateway is disabled.', 'igbz-suite' ) ];
+		}
 		if ( ! $gateway->is_configured() ) {
 			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'The selected payment gateway is not configured.', 'igbz-suite' ) ];
+		}
+		if ( $this->is_bank_gateway( $gateway->id() ) && ! $this->bank_gateway_allowed() ) {
+			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'This bank gateway is locked until the verified-domain and legal requirements are complete.', 'igbz-suite' ) ];
 		}
 		if ( $amount <= 0 ) {
 			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'Invalid payment amount.', 'igbz-suite' ) ];

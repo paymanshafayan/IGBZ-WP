@@ -10,9 +10,17 @@
  * single bad record never fatal-flags the whole bootstrap.
  */
 add_action( 'wp_loaded', function () {
-	if ( get_option( 'igbz_seeded_v1' ) ) { return; }
-	if ( ! class_exists( 'WooCommerce' ) ) { return; }
-	if ( ! get_role( 'customer' ) ) { return; } // WooCommerce not ready yet.
+	// v2 is deliberately completion-based: an earlier partial run must be retried.
+	$seeded = get_option( 'igbz_seeded_v3' );
+	if ( is_array( $seeded ) && ! empty( $seeded['complete'] ) ) { return; }
+	if ( ! class_exists( 'WooCommerce' ) ) {
+		error_log( 'igbz seed: WooCommerce is not loaded yet' );
+		return;
+	}
+	if ( ! get_role( 'customer' ) ) {
+		error_log( 'igbz seed: WooCommerce customer role is not ready yet' );
+		return;
+	} // WooCommerce not ready yet.
 
 	// Elementor Kit guard removed 1406/05/31 — Elementor no longer bundled.
 
@@ -87,7 +95,40 @@ add_action( 'wp_loaded', function () {
 		}
 	}
 
-	// ----- 3. 25 simple products -----
+	// ----- 3. Local category images -----
+	$asset_files = [
+		'مراقبت پوست' => 'skincare.jpg',
+		'مراقبت مو'   => 'haircare.jpg',
+		'آرایش صورت'  => 'face-makeup.jpg',
+		'آرایش چشم'   => 'eye-makeup.jpg',
+		'آرایش لب'    => 'lip-makeup.jpg',
+		'عطر و ادکلن' => 'fragrance.jpg',
+		'بهداشت بدن'  => 'bodycare.jpg',
+		'ابزار آرایش' => 'beauty-tools.jpg',
+	];
+	$asset_ids = (array) get_option( 'igbz_sample_asset_ids', [] );
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	foreach ( array_unique( array_values( $asset_files ) ) as $asset_file ) {
+		$path = trailingslashit( WP_CONTENT_DIR ) . 'uploads/igbz-sample-assets/' . $asset_file;
+		if ( ! file_exists( $path ) ) { continue; }
+		$attachment_id = isset( $asset_ids[ $asset_file ] ) ? (int) $asset_ids[ $asset_file ] : 0;
+		if ( ! $attachment_id || ! get_post( $attachment_id ) ) {
+			$type = wp_check_filetype( $asset_file, null );
+			$attachment_id = wp_insert_attachment( [
+				'guid'           => content_url( 'uploads/igbz-sample-assets/' . $asset_file ),
+				'post_mime_type' => $type['type'] ?: 'image/jpeg',
+				'post_title'     => sanitize_text_field( pathinfo( $asset_file, PATHINFO_FILENAME ) ),
+				'post_status'    => 'inherit',
+			], $path );
+			if ( $attachment_id && ! is_wp_error( $attachment_id ) ) {
+				wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $path ) );
+				$asset_ids[ $asset_file ] = (int) $attachment_id;
+			}
+		}
+	}
+	update_option( 'igbz_sample_asset_ids', $asset_ids );
+
+	// ----- 4. 25 simple products -----
 	$products = [
 		// name, category, regular price (IRR), sale price|null, short desc
 		[ 'کرم مرطوب‌کننده صورت ۱۰۰میل',          'مراقبت پوست',  3200000,  2800000, 'آبرسان قوی برای پوست خشک و حساس' ],
@@ -121,6 +162,19 @@ add_action( 'wp_loaded', function () {
 	$customer_count = 0;
 	$order_idx = 0;
 	foreach ( $products as [ $name, $cat, $reg, $sale, $desc ] ) {
+		$sku = 'SAMPLE-' . str_pad( (string)( $n + 1 ), 4, '0', STR_PAD_LEFT );
+		$image_file = $asset_files[ $cat ] ?? '';
+		$image_id = isset( $asset_ids[ $image_file ] ) ? (int) $asset_ids[ $image_file ] : 0;
+		$existing_id = wc_get_product_id_by_sku( $sku );
+		if ( $existing_id ) {
+			$existing_product = wc_get_product( $existing_id );
+			if ( $existing_product && $image_id && (int) $existing_product->get_image_id() !== $image_id ) {
+				$existing_product->set_image_id( $image_id );
+				$existing_product->save();
+			}
+			$n++;
+			continue;
+		}
 		$product = new WC_Product_Simple();
 		$product->set_name( $name );
 		$product->set_slug( sanitize_title( $name ) . '-' . ( $n + 1 ) );
@@ -135,9 +189,10 @@ add_action( 'wp_loaded', function () {
 		$product->set_stock_quantity( 50 + wp_rand( 0, 200 ) );
 		$product->set_stock_status( 'instock' );
 		$product->set_weight( (string) ( 0.1 + ( wp_rand( 5, 80 ) / 100 ) ) );
-		$product->set_sku( 'SAMPLE-' . str_pad( (string)( $n + 1 ), 4, '0', STR_PAD_LEFT ) );
+		$product->set_sku( $sku );
 		$product->set_sold_individually( false );
-		if ( $placeholder_id ) { $product->set_image_id( $placeholder_id ); }
+		if ( $image_id ) { $product->set_image_id( $image_id ); }
+		elseif ( $placeholder_id ) { $product->set_image_id( $placeholder_id ); }
 		$pid = $product->save();
 		if ( $pid && ! is_wp_error( $pid ) && isset( $cat_ids[ $cat ] ) ) {
 			wp_set_object_terms( $pid, [ (int) $cat_ids[ $cat ] ], 'product_cat' );
@@ -220,7 +275,16 @@ add_action( 'wp_loaded', function () {
 	} catch ( \Throwable $e ) {
 		$summary['fatal'] = $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine();
 	}
-	// Always mark as seeded — the site is meant for demos, not for re-seeding
-	// every request. If a partial run happened, bump 'v1' -> 'v2' to reseed.
-	update_option( 'igbz_seeded_v1', $summary );
+	$summary['complete'] = empty( $summary['fatal'] ) && ( (int) ( $summary['products'] ?? 0 ) >= count( $products ?? [] ) );
+	error_log( sprintf(
+		'igbz seed: products=%d customers=%d orders=%d complete=%s',
+		(int) ( $summary['products'] ?? 0 ),
+		(int) ( $summary['customers'] ?? 0 ),
+		(int) ( $summary['orders'] ?? 0 ),
+		$summary['complete'] ? 'yes' : 'no'
+	) );
+	// Store completion separately from the old marker so partial v1 runs are retried safely.
+	if ( $summary['complete'] ) {
+		update_option( 'igbz_seeded_v2', $summary );
+	}
 }, 60 );

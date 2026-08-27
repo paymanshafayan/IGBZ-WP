@@ -16,6 +16,7 @@ use IGBZ\Suite\Modules\MultiTenant\Plans\PlanService;
 use IGBZ\Suite\Modules\MultiTenant\Repository\TenantRepository;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletGateway;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletService;
+use IGBZ\Suite\Support\Capabilities;
 use IGBZ\Suite\Support\Cron;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
@@ -54,6 +55,10 @@ final class MultiTenantModule implements ModuleInterface {
 
 		// --- WooCommerce integration -----------------------------------------
 		add_filter( 'woocommerce_payment_gateways', [ $this, 'register_gateways' ] );
+		add_filter( 'woocommerce_product_query_meta_query', [ $this, 'scope_product_query' ], 10, 2 );
+		add_filter( 'woocommerce_order_query_args', [ $this, 'scope_order_query' ] );
+		add_action( 'pre_get_posts', [ $this, 'scope_admin_queries' ], 20 );
+		add_action( 'woocommerce_new_product', [ $this, 'stamp_new_product' ], 10, 2 );
 		add_action( 'woocommerce_order_status_completed', [ $this, 'on_order_completed' ] );
 		add_action( 'woocommerce_order_status_processing', [ $this, 'on_order_completed' ] );
 		add_action( 'woocommerce_order_status_refunded', [ $this, 'on_order_reversed' ] );
@@ -71,6 +76,7 @@ final class MultiTenantModule implements ModuleInterface {
 
 		// --- admin -------------------------------------------------------------
 		if ( is_admin() ) {
+			( new Admin\StoreDashboardPage() )->register();
 			( new Admin\TenantsPage() )->register();
 			( new Admin\WalletPage() )->register();
 			( new Admin\PlansPage() )->register();
@@ -112,6 +118,7 @@ final class MultiTenantModule implements ModuleInterface {
 				$plugin->bind( 'logistics.courier', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\CourierService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'domain', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Domain\DomainService( $c->db(), $c->get( 'http' ), $c->logger() ) );
 		$plugin->bind( 'legal.nid', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Otp\NationalIdVerifier( $c->db(), $c->get( 'http' ) ) );
+		$plugin->bind( 'legal.waiver', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Payments\LegalWaiverService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'logistics.labels', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\LabelPrintingService( $c->db() ) );
 		$plugin->bind( 'i18n', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Translation\I18nService( $c->db() ) );
 		$plugin->bind( 'marketplace.basalam', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Marketplace\BasalamAdapter( $c->get( 'http' ) ) );
@@ -358,6 +365,52 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 			$order_id,
 			__( 'Purchase cashback', 'igbz-suite' )
 		);
+	}
+
+	/**
+	 * Scope WooCommerce catalog queries before SQL is generated. A product with no tenant marker
+	 * is never exposed inside a tenant store; this prevents the shared platform catalogue leaking
+	 * into a merchant's storefront.
+	 *
+	 * @param array<int,array<string,mixed>> $meta_query
+	 * @param mixed $query
+	 * @return array<int,array<string,mixed>>
+	 */
+	public function scope_product_query( array $meta_query, $query = null ): array {
+		$tenant_id = (int) igbz()->tenancy()->id();
+		if ( $tenant_id > 0 ) {
+			$meta_query[] = [ 'key' => '_igbz_tenant_id', 'value' => $tenant_id, 'compare' => '=' ];
+		}
+		return $meta_query;
+	}
+
+	/** Scope WC_Order_Query for store owners, including HPOS-compatible queries. */
+	public function scope_order_query( array $args ): array {
+		$tenant_id = (int) igbz()->tenancy()->id();
+		if ( $tenant_id > 0 && ! current_user_can( Capabilities::MANAGE_TENANTS ) ) {
+			$args['meta_query'] = array_merge( (array) ( $args['meta_query'] ?? [] ), [ [ 'key' => '_igbz_tenant_id', 'value' => $tenant_id, 'compare' => '=' ] ] );
+		}
+		return $args;
+	}
+
+	/** Scope legacy WordPress admin product/order lists before SQL is built. */
+	public function scope_admin_queries( \WP_Query $query ): void {
+		if ( ! is_admin() || ! $query->is_main_query() || current_user_can( Capabilities::MANAGE_TENANTS ) ) { return; }
+		if ( ! current_user_can( Capabilities::MANAGE_OWN_TENANT ) ) { return; }
+		$tenant_id = (int) igbz()->tenancy()->id();
+		$post_type = $query->get( 'post_type' );
+		if ( $tenant_id <= 0 || ! in_array( $post_type, [ 'product', 'shop_order' ], true ) ) { return; }
+		$meta_query = (array) $query->get( 'meta_query' );
+		$meta_query[] = [ 'key' => '_igbz_tenant_id', 'value' => $tenant_id, 'compare' => '=' ];
+		$query->set( 'meta_query', $meta_query );
+	}
+
+	/** Stamp products created by a tenant owner at the data boundary. */
+	public function stamp_new_product( int $product_id, $product = null ): void {
+		$tenant_id = (int) igbz()->tenancy()->id();
+		if ( $tenant_id > 0 && $product_id > 0 ) {
+			update_post_meta( $product_id, '_igbz_tenant_id', $tenant_id );
+		}
 	}
 
 	/** @param \WC_Order $order */

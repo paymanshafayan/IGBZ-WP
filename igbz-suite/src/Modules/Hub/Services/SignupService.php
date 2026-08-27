@@ -161,6 +161,11 @@ final class SignupService {
 		}
 
 		$this->tenants->add_member( $tenant_id, $user_id, 'owner' );
+		if ( igbz()->has( 'domain' ) ) {
+			// Every provisioned store receives the free mother-site subdomain first;
+			// a custom domain can be added and verified later without changing the tenant.
+			igbz()->get( 'domain' )->use_subdomain( $tenant_id, $slug );
+		}
 
 		$user = get_userdata( $user_id );
 		if ( $user && ! in_array( Capabilities::ROLE_TENANT_OWNER, (array) $user->roles, true ) ) {

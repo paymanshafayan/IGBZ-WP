@@ -10,6 +10,7 @@ RUN rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm
 # کد افزونه و mu-pluginها در مسیر منبع — در هر استارت به ولوم همگام می‌شوند
 COPY igbz-suite /usr/src/igbz/plugins/igbz-suite
 COPY railway/mu-plugins /usr/src/igbz/mu-plugins
+COPY railway/assets /usr/src/igbz/assets
 COPY railway/entrypoint.sh /usr/local/bin/igbz-entrypoint.sh
 RUN chmod +x /usr/local/bin/igbz-entrypoint.sh && apt-get update && apt-get install -y --no-install-recommends rsync default-mysql-client && rm -rf /var/lib/apt/lists/*
 

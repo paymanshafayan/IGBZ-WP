@@ -2,6 +2,7 @@
 namespace IGBZ\Suite\Modules\Pado\Admin;
 
 use IGBZ\Suite\Modules\Pado\Services\ApprovalRequestService;
+use IGBZ\Suite\Modules\Pado\Services\ThemeService;
 use IGBZ\Suite\Support\Admin\Menu;
 use IGBZ\Suite\Support\Admin\View;
 use IGBZ\Suite\Support\Capabilities;
@@ -13,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * "مرکز پادو" admin page with four tabs as per the ratified design (S0):
  *   - تنظیمات (API key)
- *   - طراحی قالب (questionnaire stub + start button)
+ *   - طراحی قالب (پرسش‌نامه، فراخوانی سرویس پادو و ثبت درخواست مجوز)
  *   - درخواست‌های مجوز (unified approval queue with reason detail)
  *   - تاریخچه (all historical actions)
  *
@@ -43,6 +44,10 @@ final class PadoPage {
 		add_action( 'admin_post_igbz_pado_save_settings', [ $this, 'handle_save_settings' ] );
 		add_action( 'admin_post_igbz_pado_decide', [ $this, 'handle_decide' ] );
 		add_action( 'admin_post_igbz_pado_start_design', [ $this, 'handle_start_design' ] );
+		add_action( 'admin_post_igbz_pado_upload_theme', [ $this, 'handle_upload_theme' ] );
+		add_action( 'admin_post_igbz_pado_theme_preview', [ $this, 'handle_theme_preview' ] );
+		add_action( 'admin_post_igbz_pado_theme_live', [ $this, 'handle_theme_live' ] );
+		add_action( 'admin_post_igbz_pado_theme_rollback', [ $this, 'handle_theme_rollback' ] );
 	}
 
 	public function add_page(): void {
@@ -74,8 +79,16 @@ final class PadoPage {
 			$notice = 'تنظیمات ذخیره شد.';
 		} elseif ( 'queued' === $msg ) {
 			$notice = 'درخواست طراحی در صف پادو قرار گرفت و به‌زودی به درخواست‌های مجوز می‌رسد.';
+		} elseif ( 'uploaded' === $msg ) {
+			$notice = 'قالب با موفقیت اعتبارسنجی و برای پیش‌نمایش ثبت شد.';
+		} elseif ( 'previewed' === $msg ) {
+			$notice = 'قالب برای پیش‌نمایش نصب شد.';
+		} elseif ( 'activated' === $msg ) {
+			$notice = 'قالب با موفقیت اعمال شد.';
+		} elseif ( 'rolledback' === $msg ) {
+			$notice = 'قالب قبلی با موفقیت بازگردانده شد.';
 		} elseif ( 'approved' === $msg ) {
-			$notice = 'درخواست تأیید و به اجرا سپرده شد.';
+			$notice = 'درخواست تأیید شد و تا اجرای موفق در وضعیت تأییدشده می‌ماند.';
 		} elseif ( 'rejected' === $msg ) {
 			$notice = 'درخواست رد شد.';
 		}
@@ -175,6 +188,14 @@ final class PadoPage {
 			</div>
 		<?php endif; ?>
 
+		<h3>بارگذاری ZIP قالب</h3>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
+			<?php wp_nonce_field( self::NONCE_ACTION ); ?>
+			<input type="hidden" name="action" value="igbz_pado_upload_theme">
+			<p><input type="file" name="theme_zip" accept=".zip,application/zip" required> <?php submit_button( 'اعتبارسنجی و پیش‌نمایش', 'secondary', 'submit', false ); ?></p>
+		</form>
+
+		<h3>درخواست طراحی از پادو</h3>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<?php wp_nonce_field( self::NONCE_ACTION ); ?>
 			<input type="hidden" name="action" value="igbz_pado_start_design">
@@ -227,9 +248,27 @@ final class PadoPage {
 					</td>
 				</tr>
 			</table>
-			<?php submit_button( '🚀 شروع طراحی', 'primary', 'submit', true, disabled( $have_key, false, false ) ); ?>
+			<?php submit_button( '🚀 شروع طراحی', 'primary', 'submit', true, disabled( ! $have_key, false, false ) ); ?>
 		</form>
+		<?php $this->render_theme_list(); ?>
 		<?php
+	}
+
+	private function render_theme_list(): void {
+		$rows = igbz()->get( 'pado.themes' )->list( igbz()->tenancy()->id() );
+		if ( ! $rows ) { return; }
+		echo '<h3>قالب‌های ثبت‌شده</h3><table class="widefat striped"><thead><tr><th>نام</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>';
+		foreach ( $rows as $row ) {
+			echo '<tr><td>' . esc_html( (string) $row['name'] ) . '</td><td>' . esc_html( (string) $row['status'] ) . '</td><td>';
+			foreach ( [ 'preview' => 'پیش‌نمایش', 'live' => 'اعمال زنده' ] as $action => $label ) {
+				$url = wp_nonce_url( admin_url( 'admin-post.php?action=igbz_pado_theme_' . $action . '&theme_id=' . (int) $row['id'] ), self::NONCE_ACTION );
+				echo '<a class="button" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a> ';
+			}
+			echo '</td></tr>';
+		}
+		echo '</tbody></table>';
+		$rollback = wp_nonce_url( admin_url( 'admin-post.php?action=igbz_pado_theme_rollback' ), self::NONCE_ACTION );
+		echo '<p><a class="button" href="' . esc_url( $rollback ) . '">بازگشت یک‌کلیکی به قالب قبلی</a></p>';
 	}
 
 	private function render_tab_approvals(): void {
@@ -242,7 +281,8 @@ final class PadoPage {
 			$status = 'pending';
 		}
 
-		$pending_count = $this->approvals->count( ApprovalRequestService::STATUS_PENDING );
+		$scope = current_user_can( Capabilities::MANAGE_TENANTS ) ? null : igbz()->tenancy()->id();
+		$pending_count = $this->approvals->count( ApprovalRequestService::STATUS_PENDING, $scope );
 		$tabs = [
 			'pending'  => sprintf( 'در انتظار بررسی <span class="count">(%d)</span>', $pending_count ),
 			''         => 'همه',
@@ -262,8 +302,8 @@ final class PadoPage {
 		echo '</ul>';
 		echo '<div style="clear:both;"></div>';
 
-		$rows  = $this->approvals->list( $status, $per_page, $offset );
-		$total = $this->approvals->count( $status );
+		$rows  = $this->approvals->list( $status, $per_page, $offset, $scope );
+		$total = $this->approvals->count( $status, $scope );
 		?>
 		<p>هر عملیات حساس (تغییر قیمت، مرجوعی، انتشار پست اینستاگرام، تغییر انبوه، اعمال قالب و …)
 		پیش از اجرا در این صف به شما ارائه می‌شود. با کلیک روی هر درخواست، دلیل و جزئیات پیشنهاد پادو را می‌بینید.</p>
@@ -357,8 +397,9 @@ final class PadoPage {
 		$page    = max( 1, (int) ( $_GET['paged'] ?? 1 ) ); // phpcs:ignore
 		$per_page = 20;
 		$offset  = ( $page - 1 ) * $per_page;
-		$rows    = $this->approvals->list( '', $per_page, $offset );
-		$total   = $this->approvals->count( '' );
+		$scope   = current_user_can( Capabilities::MANAGE_TENANTS ) ? null : igbz()->tenancy()->id();
+		$rows    = $this->approvals->list( '', $per_page, $offset, $scope );
+		$total   = $this->approvals->count( '', $scope );
 		?>
 		<p>تاریخچهٔ تمام درخواست‌ها و اقدامات پادو در این صفحه قابل مشاهده است.</p>
 		<table class="wp-list-table widefat fixed striped table-view-list">
@@ -400,6 +441,53 @@ final class PadoPage {
 		exit;
 	}
 
+	public function handle_upload_theme(): void {
+		Capabilities::require( Capabilities::MANAGE_PADO );
+		check_admin_referer( self::NONCE_ACTION );
+		$file = isset( $_FILES['theme_zip'] ) && is_array( $_FILES['theme_zip'] ) ? $_FILES['theme_zip'] : [];
+		$result = igbz()->get( 'pado.themes' )->ingest_zip( $file, igbz()->tenancy()->id() );
+		$args = [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'uploaded' : '', 'err' => $result['error'] ];
+		wp_safe_redirect( Menu::url( self::SLUG, $args ) );
+		exit;
+	}
+
+	public function handle_theme_preview(): void {
+		Capabilities::require( Capabilities::MANAGE_PADO );
+		check_admin_referer( self::NONCE_ACTION );
+		$result = igbz()->get( 'pado.themes' )->install_preview( (int) ( $_GET['theme_id'] ?? 0 ) );
+		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'previewed' : '', 'err' => $result['error'] ] ) );
+		exit;
+	}
+
+	public function handle_theme_live(): void {
+		Capabilities::require( Capabilities::MANAGE_PADO );
+		check_admin_referer( self::NONCE_ACTION );
+		$theme_id = (int) ( $_GET['theme_id'] ?? 0 );
+		$this->approvals->submit( [
+			'kind' => 'theme_apply',
+			'title' => 'درخواست اعمال قالب برای فروشگاه',
+			'reason' => 'اعمال قالب زنده فقط پس از تأیید صریح مدیر انجام می‌شود.',
+			'payload' => [ 'theme_id' => $theme_id ],
+			'impact' => ApprovalRequestService::IMPACT_HIGH,
+		] );
+		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_APPROVALS, 'msg' => 'queued' ] ) );
+		exit;
+	}
+
+	public function handle_theme_rollback(): void {
+		Capabilities::require( Capabilities::MANAGE_PADO );
+		check_admin_referer( self::NONCE_ACTION );
+		$this->approvals->submit( [
+			'kind' => 'theme_rollback',
+			'title' => 'درخواست بازگشت قالب فروشگاه',
+			'reason' => 'بازگشت قالب زنده نیز مانند اعمال آن نیازمند تأیید مدیر است.',
+			'payload' => [ 'tenant_id' => igbz()->tenancy()->id() ],
+			'impact' => ApprovalRequestService::IMPACT_HIGH,
+		] );
+		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_APPROVALS, 'msg' => 'queued' ] ) );
+		exit;
+	}
+
 	public function handle_start_design(): void {
 		Capabilities::require( Capabilities::MANAGE_PADO );
 		check_admin_referer( self::NONCE_ACTION );
@@ -413,12 +501,25 @@ final class PadoPage {
 			'redlines'  => sanitize_textarea_field( (string) ( $raw['redlines'] ?? '' ) ),
 		];
 
-		// S0 behaviour: create a pending approval request so the queue is populated;
-		// the actual gateway call to Vira will be wired in S1 when API endpoint is live.
+		$gateway = igbz()->get( 'pado.gateway' );
+		$remote  = $gateway->submit(
+			'theme_design',
+			[
+				'tenant_id' => igbz()->tenancy()->id(),
+				'brief'     => $brief,
+			]
+		);
+		$brief['gateway_job_id'] = $remote['job_id'];
+		$gateway_note = $remote['ok']
+			? "شناسهٔ کار سرویس پادو: {$remote['job_id']}"
+			: "فراخوانی سرویس پادو ناموفق بود: {$remote['error']}";
+
+		// Persist a pending request even when the remote service is temporarily unavailable;
+		// the failure is visible and can be retried rather than silently becoming a fake success.
 		$this->approvals->submit( [
 			'kind'    => 'theme_design',
 			'title'   => sprintf( 'پیشنهاد طراحی قالب برای فروشگاه: %s', $brief['topic'] ?: '(بدون موضوع)' ),
-			'reason'  => "پادو درخواست دارد یک پیشنهاد طراحی یک‌صفحه‌ای (پالت رنگ، فونت — وزیرمتن پیش‌فرض — چیدمان صفحه‌ها، سطح سه‌بعدی/عمق) برای فروشگاه شما آماده کند.\n\nموضوع: {$brief['topic']}\nمخاطب: {$brief['audience']}\nلحن: {$brief['tone']}\nکلمات کلیدی حس مطلوب: {$brief['keywords']}\nمرجع: {$brief['ref_site']}\nخط قرمزها: {$brief['redlines']}\n\nپس از تأیید، درخواست به دروازه ویرا ارسال شده و نتیجه (zip قالب فرزند FSE) ظرف چند دقیقه به همین صف بازمی‌گردد.",
+			'reason'  => "پادو درخواست دارد یک پیشنهاد طراحی یک‌صفحه‌ای (پالت رنگ، فونت — وزیرمتن پیش‌فرض — چیدمان صفحه‌ها، سطح سه‌بعدی/عمق) برای فروشگاه شما آماده کند.\n\nموضوع: {$brief['topic']}\nمخاطب: {$brief['audience']}\nلحن: {$brief['tone']}\nکلمات کلیدی حس مطلوب: {$brief['keywords']}\nمرجع: {$brief['ref_site']}\nخط قرمزها: {$brief['redlines']}\n\n{$gateway_note}\nپس از تأیید، نتیجهٔ سرویس پادو (zip قالب فرزند FSE) باید از همین صف دریافت و پس از اعتبارسنجی وارد مرحلهٔ پیش‌نمایش شود.",
 			'payload' => $brief,
 			'impact'  => ApprovalRequestService::IMPACT_MEDIUM,
 		] );
@@ -435,19 +536,45 @@ final class PadoPage {
 		$tab       = sanitize_key( (string) ( $_POST['tab'] ?? self::TAB_APPROVALS ) );
 		$astatus   = sanitize_key( (string) ( $_POST['astatus'] ?? 'pending' ) );
 
-		// In S0, we simply mark the row approved/rejected; actual executors for
-		// each kind will be wired in subsequent phases. This keeps the UI real
-		// and data-shaped correctly.
+		// Approval is persisted separately from execution. For a completed design job, download,
+		// validate and store the ZIP before allowing the row to become executed. A pending remote
+		// job remains approved and can be retried without pretending that work was completed.
+		$executor = null;
+		$scope = current_user_can( Capabilities::MANAGE_TENANTS ) ? null : igbz()->tenancy()->id();
+		$row = $this->approvals->get( $id, $scope );
+		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], [ 'theme_apply', 'theme_rollback' ], true ) ) {
+			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );
+			$action_result = 'theme_apply' === $row['kind']
+				? igbz()->get( 'pado.themes' )->activate_live( (int) ( $payload['theme_id'] ?? 0 ) )
+				: igbz()->get( 'pado.themes' )->rollback( (int) ( $payload['tenant_id'] ?? igbz()->tenancy()->id() ) );
+			$executor = static function ( array $request ) use ( $action_result ): bool { return (bool) $action_result['ok']; };
+		}
+		if ( 'approved' === $decision && $row && 'theme_design' === (string) $row['kind'] ) {
+			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );
+			$job_id  = is_array( $payload ) ? sanitize_text_field( (string) ( $payload['gateway_job_id'] ?? '' ) ) : '';
+			if ( '' !== $job_id ) {
+				$remote = igbz()->get( 'pado.gateway' )->status( $job_id );
+				$remote_data = $remote['data'];
+				$zip_url = (string) ( $remote_data['zip_url'] ?? $remote_data['result']['zip_url'] ?? '' );
+				if ( '' !== $zip_url ) {
+					$download = igbz()->get( 'pado.gateway' )->download( $zip_url );
+					if ( $download['ok'] ) {
+						$tmp = wp_tempnam( 'igbz-pado-theme.zip' );
+						if ( $tmp && false !== file_put_contents( $tmp, $download['body'] ) ) {
+							$ingested = igbz()->get( 'pado.themes' )->ingest_zip( [ 'tmp_name' => $tmp, 'name' => 'pado-' . $job_id . '.zip', 'error' => UPLOAD_ERR_OK ], igbz()->tenancy()->id(), $id );
+							@unlink( $tmp );
+							$executor = static function ( array $request ) use ( $ingested ): bool { return (bool) $ingested['ok']; };
+						}
+					}
+				}
+			}
+		}
 		$ok = $this->approvals->decide(
 			$id,
 			'approved' === $decision ? ApprovalRequestService::STATUS_APPROVED : ApprovalRequestService::STATUS_REJECTED,
 			get_current_user_id(),
 			$note,
-			// Stub executor: mark executed for approved theme_design requests so the row
-			// reflects the flow end-to-end. Real generation comes in S1.
-			static function( array $req ): bool {
-				return 'theme_design' === ( $req['kind'] ?? '' );
-			}
+			$executor
 		);
 
 		$args = [ 'tab' => $tab, 'astatus' => $astatus ];

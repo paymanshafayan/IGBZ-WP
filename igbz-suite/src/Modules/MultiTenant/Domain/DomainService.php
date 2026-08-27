@@ -102,6 +102,7 @@ final class DomainService {
 				'created_at'   => $now,
 			]
 		);
+		$this->sync_tenant_domain( $tenant_id, $name . '.' . $tld, false );
 
 		return [ 'ok' => true, 'domain_id' => $id, 'error' => '' ];
 	}
@@ -122,7 +123,13 @@ final class DomainService {
 				'updated_at'   => $now,
 			]
 		);
-		return [ 'ok' => true, 'domain_id' => $id, 'error' => '' ];
+		// The tenant resolver reads the canonical tenant_domains mapping; keep it in sync with
+		// the domain-service registry so a newly provisioned store is routable immediately.
+		$mapping_id = igbz()->get( 'tenants' )->add_domain( $tenant_id, $name, true );
+		if ( $mapping_id > 0 ) {
+			igbz()->get( 'tenants' )->verify_domain( $mapping_id );
+		}
+		return [ 'ok' => $id > 0 && $mapping_id > 0, 'domain_id' => $id, 'error' => $id > 0 && $mapping_id > 0 ? '' : __( 'The subdomain could not be mapped.', 'igbz-suite' ) ];
 	}
 
 	/** Transfer an existing domain the admin already owns (auth code optional). */
@@ -157,16 +164,29 @@ final class DomainService {
 				'updated_at'   => $now,
 			]
 		);
+		$this->sync_tenant_domain( $tenant_id, $name, false );
 		return [ 'ok' => true, 'domain_id' => $id, 'error' => '' ];
 	}
 
 	/** Mark DNS verified (gates bank gateway + Google/Bing). */
 	public function verify_dns( int $domain_id ): bool {
-		$this->db->update(
-			'ig_domains',
-			[ 'dns_verified' => 1, 'status' => 'active', 'updated_at' => current_time( 'mysql', true ) ],
-			[ 'id' => $domain_id ]
-		);
+		$row = $this->db->row( 'SELECT tenant_id, name FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE id = %d', $domain_id );
+		if ( ! $row || ! function_exists( 'dns_get_record' ) ) { return false; }
+		$name = strtolower( rtrim( (string) $row['name'], '.' ) );
+		$mapping = $this->db->row( 'SELECT id, verification_token FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d AND domain = %s LIMIT 1', (int) $row['tenant_id'], $name );
+		$expected = strtolower( (string) ( igbz()->settings()->string( 'hub.cname_target', '' ) ?: wp_parse_url( home_url( '/' ), PHP_URL_HOST ) ) );
+		$valid = false;
+		foreach ( (array) @dns_get_record( '_igbz-verify.' . $name, DNS_TXT ) as $record ) {
+			if ( isset( $record['txt'] ) && $mapping && hash_equals( (string) $mapping['verification_token'], trim( (string) $record['txt'] ) ) ) { $valid = true; break; }
+		}
+		if ( ! $valid ) {
+			foreach ( (array) @dns_get_record( $name, DNS_CNAME ) as $record ) {
+				if ( strtolower( rtrim( (string) ( $record['target'] ?? '' ), '.' ) ) === $expected ) { $valid = true; break; }
+			}
+		}
+		if ( ! $valid ) { $this->logger->warning( 'domain', 'DNS verification refused', [ 'domain_id' => $domain_id ] ); return false; }
+		$this->db->update( 'ig_domains', [ 'dns_verified' => 1, 'status' => 'active', 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $domain_id ] );
+		if ( $mapping ) { $this->db->update( 'tenant_domains', [ 'verified_at' => current_time( 'mysql', true ) ], [ 'id' => (int) $mapping['id'] ] ); }
 		return true;
 	}
 
@@ -185,6 +205,21 @@ final class DomainService {
 			'SELECT * FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE tenant_id = %d ORDER BY id DESC',
 			$tenant_id
 		);
+	}
+
+	private function sync_tenant_domain( int $tenant_id, string $domain, bool $verified ): int {
+		$domain = strtolower( trim( preg_replace( '#^https?://#', '', $domain ), '/' ) );
+		$existing = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE domain = %s LIMIT 1',
+			$domain
+		);
+		if ( $existing ) {
+			if ( $verified ) {
+				$this->db->update( 'tenant_domains', [ 'verified_at' => current_time( 'mysql', true ) ], [ 'id' => (int) $existing['id'] ] );
+			}
+			return (int) $existing['id'];
+		}
+		return (int) igbz()->get( 'tenants' )->add_domain( $tenant_id, $domain, false );
 	}
 
 	/** @return array<string,string> */

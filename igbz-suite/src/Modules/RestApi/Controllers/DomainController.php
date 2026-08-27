@@ -32,6 +32,8 @@ final class DomainController extends BaseController {
 		register_rest_route( $ns, '/domains/web-presence', $this->route( 'GET', [ $this, 'web_presence' ], $auth ) );
 		register_rest_route( $ns, '/domains/web-presence/register', $this->route( 'POST', [ $this, 'web_register' ], $auth ) );
 		register_rest_route( $ns, '/i18n/config', $this->route( 'GET', [ $this, 'i18n' ], $auth ) );
+		register_rest_route( $ns, '/legal/waiver', $this->route( 'GET', [ $this, 'legal_waiver' ], $auth ) );
+		register_rest_route( $ns, '/legal/waiver/accept', $this->route( 'POST', [ $this, 'accept_legal_waiver' ], $auth ) );
 		register_rest_route( $ns, '/master-payment', $this->route( 'GET', [ $this, 'master' ], $auth ) );
 		register_rest_route( $ns, '/master-payment/agreement', $this->route( 'POST', [ $this, 'master_agree' ], $auth ) );
 		register_rest_route( $ns, '/master-payment/withdraw', $this->route( 'POST', [ $this, 'master_withdraw' ], $auth ) );
@@ -77,8 +79,33 @@ final class DomainController extends BaseController {
 	}
 
 	public function verify_dns( \WP_REST_Request $request ): \WP_REST_Response {
-		igbz()->get( 'domain' )->verify_dns( (int) $request->get_param( 'id' ) );
-		return $this->ok( [ 'ok' => true ] );
+		$ok = igbz()->get( 'domain' )->verify_dns( (int) $request->get_param( 'id' ) );
+		return $ok ? $this->ok( [ 'ok' => true ] ) : $this->fail( 'dns_not_verified', __( 'The required DNS record was not found.', 'igbz-suite' ), 400 );
+	}
+
+	public function legal_waiver(): \WP_REST_Response {
+		if ( ! igbz()->has( 'legal.waiver' ) ) {
+			return $this->fail( 'not_available', __( 'Legal agreement service is not available.', 'igbz-suite' ), 503 );
+		}
+		$waiver = igbz()->get( 'legal.waiver' );
+		return $this->ok(
+			[
+				'tenant_id' => $this->tenant(),
+				'type'      => \IGBZ\Suite\Modules\MultiTenant\Payments\LegalWaiverService::TYPE_PAYMENT_WITHOUT_NID,
+				'version'   => \IGBZ\Suite\Modules\MultiTenant\Payments\LegalWaiverService::CURRENT_VERSION,
+				'text'      => $waiver->text(),
+				'accepted'  => $waiver->has_accepted( $this->tenant() ),
+				'hash'      => $waiver->current_hash(),
+			]
+		);
+	}
+
+	public function accept_legal_waiver(): \WP_REST_Response {
+		if ( ! igbz()->has( 'legal.waiver' ) ) {
+			return $this->fail( 'not_available', __( 'Legal agreement service is not available.', 'igbz-suite' ), 503 );
+		}
+		$result = igbz()->get( 'legal.waiver' )->accept( $this->tenant(), get_current_user_id() );
+		return $result['ok'] ? $this->ok( [ 'accepted' => true ] ) : $this->fail( 'accept_failed', $result['error'], 400 );
 	}
 
 	public function web_presence(): \WP_REST_Response {

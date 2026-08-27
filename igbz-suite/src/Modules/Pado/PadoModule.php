@@ -5,6 +5,7 @@ use IGBZ\Suite\Modules\Pado\Admin\PadoPage;
 use IGBZ\Suite\Modules\Pado\Services\ApprovalRequestService;
 use IGBZ\Suite\Modules\Pado\Services\ThemeService;
 use IGBZ\Suite\Modules\Pado\Services\ThemeValidator;
+use IGBZ\Suite\Modules\Pado\Services\PadoGateway;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
@@ -20,10 +21,8 @@ defined( 'ABSPATH' ) || exit;
  *     including instagram publish of the four content kinds, goes through it).
  *   - Theme zip validation gate (backend, never in JS — قاعده دائمی).
  *
- * In later phases the module will add the REST gateway client that talks to the
- * unified Vira API endpoint, the actual theme zip ingest/preview/live flow,
- * and per-kind executors for approval decisions (price changes, refunds,
- * instagram publish, bulk delete, etc.).
+ * The gateway and executors are intentionally kept behind the configured Pado service endpoint;
+ * the module persists and validates every request locally before a remote execution is allowed.
  */
 final class PadoModule implements ModuleInterface {
 
@@ -49,7 +48,7 @@ final class PadoModule implements ModuleInterface {
 			[
 				'label'  => 'Pado module',
 				'status' => 'ok',
-				'detail' => 'S0 scaffolding loaded (approval queue + theme validator).',
+				'detail' => 'Approval queue, external Pado gateway and backend theme validator are loaded.',
 			],
 		];
 	}
@@ -72,7 +71,7 @@ final class PadoModule implements ModuleInterface {
 		}
 		$svc = new ApprovalRequestService( $db );
 		$now = current_time( 'mysql', true );
-		// One pending (the "design suggestion" stub)
+		// One pending design suggestion keeps a fresh demo queue observable.
 		$svc->submit( [
 			'kind'    => 'theme_design',
 			'title'   => 'پیشنهاد طراحی قالب — نمونه (فروشگاه آرایشی)',
@@ -105,6 +104,7 @@ final class PadoModule implements ModuleInterface {
 
 	private function bind_services( Plugin $plugin ): void {
 		$plugin->bind( 'pado.approvals', static fn ( Plugin $c ) => new ApprovalRequestService( $c->db() ) );
+		$plugin->bind( 'pado.gateway', static fn ( Plugin $c ) => new PadoGateway( $c->http(), $c->logger() ) );
 		$plugin->bind( 'pado.validator', static fn () => new ThemeValidator() );
 		$plugin->bind( 'pado.themes', static fn ( Plugin $c ) => new ThemeService( $c->db() ) );
 	}

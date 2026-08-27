@@ -34,8 +34,10 @@ final class TenantRepository {
 		$domains = $this->db->table( 'tenant_domains' );
 		$tenants = $this->db->table( 'tenants' );
 		$row     = $this->db->row(
-			"SELECT t.* FROM {$tenants} t INNER JOIN {$domains} d ON d.tenant_id = t.id WHERE d.domain = %s AND d.verified_at IS NOT NULL LIMIT 1",
-			strtolower( $domain )
+			"SELECT t.* FROM {$tenants} t INNER JOIN {$domains} d ON d.tenant_id = t.id WHERE d.domain = %s AND d.verified_at IS NOT NULL AND t.status IN (%s, %s) LIMIT 1",
+			strtolower( $domain ),
+			Tenant::STATUS_ACTIVE,
+			Tenant::STATUS_TRIAL
 		);
 		return $row ? Tenant::from_row( $row ) : null;
 	}
@@ -267,7 +269,7 @@ final class TenantRepository {
 
 	public function primary_domain( int $tenant_id ): string {
 		$row = $this->db->row(
-			'SELECT domain FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d ORDER BY is_primary DESC, id LIMIT 1',
+			'SELECT domain FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d AND verified_at IS NOT NULL ORDER BY is_primary DESC, id LIMIT 1',
 			$tenant_id
 		);
 		return $row ? (string) $row['domain'] : '';
