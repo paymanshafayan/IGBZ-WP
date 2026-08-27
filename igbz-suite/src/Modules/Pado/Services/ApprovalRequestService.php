@@ -62,37 +62,34 @@ final class ApprovalRequestService {
 	/**
 	 * @return array<string,mixed>|null
 	 */
-	public function get( int $id ): ?array {
+	public function get( int $id, ?int $tenant_id = null ): ?array {
 		$table = $this->db->table( 'approval_requests' );
-		$row   = $this->db->row( "SELECT * FROM {$table} WHERE id = %d", $id );
+		$sql = "SELECT * FROM {$table} WHERE id = %d";
+		$args = [ $id ];
+		if ( null !== $tenant_id ) { $sql .= ' AND tenant_id = %d'; $args[] = $tenant_id; }
+		$row = $this->db->row( $sql, ...$args );
 		return $row ?: null;
 	}
 
 	/**
 	 * @return array<int,array<string,mixed>>
 	 */
-	public function list( string $status = '', int $per_page = 25, int $offset = 0 ): array {
+	public function list( string $status = '', int $per_page = 25, int $offset = 0, ?int $tenant_id = null ): array {
 		$table = $this->db->table( 'approval_requests' );
 		$sql   = "SELECT * FROM {$table} WHERE 1=1";
 		$args  = [];
-		if ( '' !== $status ) {
-			$sql   .= ' AND status = %s';
-			$args[] = $status;
-		}
-		$sql   .= ' ORDER BY created_at DESC LIMIT %d OFFSET %d';
-		$args[] = $per_page;
-		$args[] = $offset;
+		if ( '' !== $status ) { $sql .= ' AND status = %s'; $args[] = $status; }
+		if ( null !== $tenant_id ) { $sql .= ' AND tenant_id = %d'; $args[] = $tenant_id; }
+		$sql .= ' ORDER BY created_at DESC LIMIT %d OFFSET %d';
+		$args[] = max( 1, min( 200, $per_page ) ); $args[] = max( 0, $offset );
 		return (array) $this->db->results( $sql, ...$args );
 	}
 
-	public function count( string $status = '' ): int {
+	public function count( string $status = '', ?int $tenant_id = null ): int {
 		$table = $this->db->table( 'approval_requests' );
-		$sql   = "SELECT COUNT(*) FROM {$table} WHERE 1=1";
-		$args  = [];
-		if ( '' !== $status ) {
-			$sql   .= ' AND status = %s';
-			$args[] = $status;
-		}
+		$sql = "SELECT COUNT(*) FROM {$table} WHERE 1=1"; $args = [];
+		if ( '' !== $status ) { $sql .= ' AND status = %s'; $args[] = $status; }
+		if ( null !== $tenant_id ) { $sql .= ' AND tenant_id = %d'; $args[] = $tenant_id; }
 		return (int) $this->db->scalar( $sql, ...$args );
 	}
 

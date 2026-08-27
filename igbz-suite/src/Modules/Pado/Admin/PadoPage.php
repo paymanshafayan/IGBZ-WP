@@ -281,7 +281,8 @@ final class PadoPage {
 			$status = 'pending';
 		}
 
-		$pending_count = $this->approvals->count( ApprovalRequestService::STATUS_PENDING );
+		$scope = current_user_can( Capabilities::MANAGE_TENANTS ) ? null : igbz()->tenancy()->id();
+		$pending_count = $this->approvals->count( ApprovalRequestService::STATUS_PENDING, $scope );
 		$tabs = [
 			'pending'  => sprintf( 'در انتظار بررسی <span class="count">(%d)</span>', $pending_count ),
 			''         => 'همه',
@@ -301,8 +302,8 @@ final class PadoPage {
 		echo '</ul>';
 		echo '<div style="clear:both;"></div>';
 
-		$rows  = $this->approvals->list( $status, $per_page, $offset );
-		$total = $this->approvals->count( $status );
+		$rows  = $this->approvals->list( $status, $per_page, $offset, $scope );
+		$total = $this->approvals->count( $status, $scope );
 		?>
 		<p>هر عملیات حساس (تغییر قیمت، مرجوعی، انتشار پست اینستاگرام، تغییر انبوه، اعمال قالب و …)
 		پیش از اجرا در این صف به شما ارائه می‌شود. با کلیک روی هر درخواست، دلیل و جزئیات پیشنهاد پادو را می‌بینید.</p>
@@ -396,8 +397,9 @@ final class PadoPage {
 		$page    = max( 1, (int) ( $_GET['paged'] ?? 1 ) ); // phpcs:ignore
 		$per_page = 20;
 		$offset  = ( $page - 1 ) * $per_page;
-		$rows    = $this->approvals->list( '', $per_page, $offset );
-		$total   = $this->approvals->count( '' );
+		$scope   = current_user_can( Capabilities::MANAGE_TENANTS ) ? null : igbz()->tenancy()->id();
+		$rows    = $this->approvals->list( '', $per_page, $offset, $scope );
+		$total   = $this->approvals->count( '', $scope );
 		?>
 		<p>تاریخچهٔ تمام درخواست‌ها و اقدامات پادو در این صفحه قابل مشاهده است.</p>
 		<table class="wp-list-table widefat fixed striped table-view-list">
@@ -538,7 +540,8 @@ final class PadoPage {
 		// validate and store the ZIP before allowing the row to become executed. A pending remote
 		// job remains approved and can be retried without pretending that work was completed.
 		$executor = null;
-		$row = $this->approvals->get( $id );
+		$scope = current_user_can( Capabilities::MANAGE_TENANTS ) ? null : igbz()->tenancy()->id();
+		$row = $this->approvals->get( $id, $scope );
 		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], [ 'theme_apply', 'theme_rollback' ], true ) ) {
 			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );
 			$action_result = 'theme_apply' === $row['kind']
