@@ -36,8 +36,11 @@
 
 | جدول | محتوا |
 |---|---|
-| `ig_domains` | `tenant_id`، `name`، `type` (`subdomain`/`registered`/`transferred`)، `status` (`pending`/`active`/`failed`)، `provider_ref`، `dns_verified`، `expires_at`، `created_at` |
+| `tenant_domains` | نگاشت دامنهٔ قابل‌مسیریابی به مستأجر: `tenant_id`، `domain`، `is_primary`، `verified_at`، `verification_token`، `created_at` |
+| `ig_domains` | دفتر سفارش/ثبت دامنه: `tenant_id`، `name`، `type` (`subdomain`/`registered`/`transferred`)، `status` (`pending`/`active`/`failed`)، `provider_ref`، `dns_verified`، `expires_at`، `created_at` |
 | `ig_domain_orders` | سفارش‌های خرید/تمدید: `tenant_id`، `domain_id`، `action` (`register`/`renew`/`transfer`)، `amount`، `status`، `provider_ref` |
+
+`tenant_domains` منبع حقیقت مسیریابی است و `ig_domains` رکورد ارائه‌دهنده و چرخهٔ ثبت را نگه می‌دارد؛ هنگام ساخت زیر‌دامنه یا ثبت/انتقال، این دو نگاشت همگام می‌شوند.
 
 ## ۴. اندپوینت‌ها
 
