@@ -157,7 +157,7 @@ enabled: `multitenant`. Option: `igbz_enabled_modules`.
 **REST**: 199 routes across `igbz/v1` (incl. 14 `/intake/*`, 29 `/vip/*`, `/fx/*`, `/courier/*`,
 `/domains/*`, `/master-payment/*`, `/ai/*`) and `igbz-hub/v1`.
 
-**Schema**: 72 tables in `src/Support/Schema.php` (DB version 17; the ladder: v8 `ig_intake`,
+**Schema**: 72 tables in `src/Support/Schema.php` (DB version 19; the ladder: v8 `ig_intake`,
 v10 nine `vip_*` tables, v11 LMS wiring, v12 `ig_content.ig_shortcode` + funnel reward relabel,
 v13 dropped the never-used `jobs` queue, v14 six `fx_*` tables, v15 phases 6–14 tables, v16 the
 master-payment/courier/domain/label/legal completion pass, v17 `vip_post_saves` plus the ratified

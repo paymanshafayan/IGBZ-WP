@@ -7,7 +7,7 @@ The IGBZ product ported from **nopCommerce** to **WordPress + WooCommerce**.
 | Path | What it is |
 | --- | --- |
 | [`PROJECT-STATE.md`](PROJECT-STATE.md) | **Start here.** Current state of the project (in Persian): what is built, in which commit and why, the rules that must be followed, and the decisions still waiting on the client. |
-| [`igbz-suite/`](igbz-suite/) | The plugin. One plugin, five toggleable modules. See its [README](igbz-suite/README.md) for installation, configuration and the API reference. |
+| [`igbz-suite/`](igbz-suite/) | The plugin. One plugin, six toggleable modules. See its [README](igbz-suite/README.md) for installation, configuration and the API reference. |
 | [`DESIGN-VIP.md`](DESIGN-VIP.md) | Design document for the VIP channel (in Persian): tables, endpoints, flows, and the security decision. |
 | [`REVIEW-IGBZ-NopCommerce.md`](REVIEW-IGBZ-NopCommerce.md) | Read-only review of the original nopCommerce repository (in Persian), which this port is based on. |
 | [`_devenv/`](_devenv/) | Offline development environment and the [agent brief](_devenv/AGENT-BRIEF.md) — subsystem internals and hard-won traps. Tooling, not part of the shipped plugin. |
