@@ -468,6 +468,12 @@ final class TenantsPage {
 		}
 
 		$this->repo()->add_member( $new_id, $owner, 'owner' );
+		if ( igbz()->has( 'domain' ) ) {
+			$created = $this->repo()->find( $new_id );
+			if ( $created ) {
+				igbz()->get( 'domain' )->use_subdomain( $new_id, $created->slug );
+			}
+		}
 
 		$plan_id = (int) $data['plan_id'];
 		if ( $plan_id ) {
