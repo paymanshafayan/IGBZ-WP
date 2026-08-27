@@ -5,6 +5,7 @@ use IGBZ\Suite\Modules\Pado\Admin\PadoPage;
 use IGBZ\Suite\Modules\Pado\Services\ApprovalRequestService;
 use IGBZ\Suite\Modules\Pado\Services\ThemeService;
 use IGBZ\Suite\Modules\Pado\Services\ThemeValidator;
+use IGBZ\Suite\Modules\Pado\Services\PadoGateway;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
@@ -103,6 +104,7 @@ final class PadoModule implements ModuleInterface {
 
 	private function bind_services( Plugin $plugin ): void {
 		$plugin->bind( 'pado.approvals', static fn ( Plugin $c ) => new ApprovalRequestService( $c->db() ) );
+		$plugin->bind( 'pado.gateway', static fn ( Plugin $c ) => new PadoGateway( $c->http(), $c->logger() ) );
 		$plugin->bind( 'pado.validator', static fn () => new ThemeValidator() );
 		$plugin->bind( 'pado.themes', static fn ( Plugin $c ) => new ThemeService( $c->db() ) );
 	}

@@ -413,12 +413,25 @@ final class PadoPage {
 			'redlines'  => sanitize_textarea_field( (string) ( $raw['redlines'] ?? '' ) ),
 		];
 
-		// S0 behaviour: create a pending approval request so the queue is populated;
-		// the actual gateway call to Vira will be wired in S1 when API endpoint is live.
+		$gateway = igbz()->get( 'pado.gateway' );
+		$remote  = $gateway->submit(
+			'theme_design',
+			[
+				'tenant_id' => igbz()->tenancy()->id(),
+				'brief'     => $brief,
+			]
+		);
+		$brief['gateway_job_id'] = $remote['job_id'];
+		$gateway_note = $remote['ok']
+			? "شناسهٔ کار سرویس پادو: {$remote['job_id']}"
+			: "فراخوانی سرویس پادو ناموفق بود: {$remote['error']}";
+
+		// Persist a pending request even when the remote service is temporarily unavailable;
+		// the failure is visible and can be retried rather than silently becoming a fake success.
 		$this->approvals->submit( [
 			'kind'    => 'theme_design',
 			'title'   => sprintf( 'پیشنهاد طراحی قالب برای فروشگاه: %s', $brief['topic'] ?: '(بدون موضوع)' ),
-			'reason'  => "پادو درخواست دارد یک پیشنهاد طراحی یک‌صفحه‌ای (پالت رنگ، فونت — وزیرمتن پیش‌فرض — چیدمان صفحه‌ها، سطح سه‌بعدی/عمق) برای فروشگاه شما آماده کند.\n\nموضوع: {$brief['topic']}\nمخاطب: {$brief['audience']}\nلحن: {$brief['tone']}\nکلمات کلیدی حس مطلوب: {$brief['keywords']}\nمرجع: {$brief['ref_site']}\nخط قرمزها: {$brief['redlines']}\n\nپس از تأیید، درخواست به دروازه ویرا ارسال شده و نتیجه (zip قالب فرزند FSE) ظرف چند دقیقه به همین صف بازمی‌گردد.",
+			'reason'  => "پادو درخواست دارد یک پیشنهاد طراحی یک‌صفحه‌ای (پالت رنگ، فونت — وزیرمتن پیش‌فرض — چیدمان صفحه‌ها، سطح سه‌بعدی/عمق) برای فروشگاه شما آماده کند.\n\nموضوع: {$brief['topic']}\nمخاطب: {$brief['audience']}\nلحن: {$brief['tone']}\nکلمات کلیدی حس مطلوب: {$brief['keywords']}\nمرجع: {$brief['ref_site']}\nخط قرمزها: {$brief['redlines']}\n\n{$gateway_note}\nپس از تأیید، نتیجهٔ سرویس پادو (zip قالب فرزند FSE) باید از همین صف دریافت و پس از اعتبارسنجی وارد مرحلهٔ پیش‌نمایش شود.",
 			'payload' => $brief,
 			'impact'  => ApprovalRequestService::IMPACT_MEDIUM,
 		] );
