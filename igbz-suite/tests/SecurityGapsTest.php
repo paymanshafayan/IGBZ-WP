@@ -140,10 +140,14 @@ final class SecurityGapsTest extends TestCase {
 		$this->assert_false( (bool) $verdict['allowed'], 'payment refused with no waiver and no nid check' );
 		$this->assert_true( (bool) $verdict['needs_waiver'], 'the refusal points at the waiver as the remedy' );
 
-		// Turning on national-id matching satisfies the requirement on its own.
+		// The switch is not enough by itself; the Shahkar credentials must also exist.
 		igbz()->settings()->set( 'legal.national_id_check', true );
 		$verdict = $service->payment_allowed( 1 );
-		$this->assert_true( (bool) $verdict['allowed'], 'nid matching alone permits payment' );
+		$this->assert_false( (bool) $verdict['allowed'], 'nid switch without Shahkar credentials remains blocked' );
+		igbz()->settings()->set( 'legal.shahkar_api_key', 'test-key' );
+		igbz()->settings()->set( 'legal.shahkar_base_url', 'https://shahkar.test' );
+		$verdict = $service->payment_allowed( 1 );
+		$this->assert_true( (bool) $verdict['allowed'], 'configured nid matching permits payment' );
 	}
 
 	/**
