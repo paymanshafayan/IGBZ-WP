@@ -102,6 +102,7 @@ final class DomainService {
 				'created_at'   => $now,
 			]
 		);
+		$this->sync_tenant_domain( $tenant_id, $name . '.' . $tld, false );
 
 		return [ 'ok' => true, 'domain_id' => $id, 'error' => '' ];
 	}
@@ -163,16 +164,29 @@ final class DomainService {
 				'updated_at'   => $now,
 			]
 		);
+		$this->sync_tenant_domain( $tenant_id, $name, false );
 		return [ 'ok' => true, 'domain_id' => $id, 'error' => '' ];
 	}
 
 	/** Mark DNS verified (gates bank gateway + Google/Bing). */
 	public function verify_dns( int $domain_id ): bool {
+		$row = $this->db->row( 'SELECT tenant_id, name FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE id = %d', $domain_id );
+		if ( ! $row ) {
+			return false;
+		}
 		$this->db->update(
 			'ig_domains',
 			[ 'dns_verified' => 1, 'status' => 'active', 'updated_at' => current_time( 'mysql', true ) ],
 			[ 'id' => $domain_id ]
 		);
+		$mapping = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d AND domain = %s LIMIT 1',
+			(int) $row['tenant_id'],
+			strtolower( (string) $row['name'] )
+		);
+		if ( $mapping ) {
+			$this->db->update( 'tenant_domains', [ 'verified_at' => current_time( 'mysql', true ) ], [ 'id' => (int) $mapping['id'] ] );
+		}
 		return true;
 	}
 
@@ -191,6 +205,21 @@ final class DomainService {
 			'SELECT * FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE tenant_id = %d ORDER BY id DESC',
 			$tenant_id
 		);
+	}
+
+	private function sync_tenant_domain( int $tenant_id, string $domain, bool $verified ): int {
+		$domain = strtolower( trim( preg_replace( '#^https?://#', '', $domain ), '/' ) );
+		$existing = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE domain = %s LIMIT 1',
+			$domain
+		);
+		if ( $existing ) {
+			if ( $verified ) {
+				$this->db->update( 'tenant_domains', [ 'verified_at' => current_time( 'mysql', true ) ], [ 'id' => (int) $existing['id'] ] );
+			}
+			return (int) $existing['id'];
+		}
+		return (int) igbz()->get( 'tenants' )->add_domain( $tenant_id, $domain, false );
 	}
 
 	/** @return array<string,string> */
