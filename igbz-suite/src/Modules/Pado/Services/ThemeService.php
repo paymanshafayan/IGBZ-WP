@@ -75,6 +75,12 @@ final class ThemeService {
 		return $row ?: null;
 	}
 
+	private function belongs_to_current_tenant( int $tenant_id ): bool {
+		if ( current_user_can( 'manage_options' ) ) { return true; }
+		$current = function_exists( 'igbz' ) ? (int) igbz()->tenancy()->id() : 0;
+		return 0 === $current || $current === $tenant_id;
+	}
+
 	/** @return array<int,array<string,mixed>> */
 	public function list( int $tenant_id = 0, int $limit = 50 ): array {
 		$sql = 'SELECT * FROM ' . $this->db->table( 'themes' ) . ' WHERE tenant_id = %d ORDER BY id DESC LIMIT %d';
@@ -87,6 +93,9 @@ final class ThemeService {
 	 * @return array{ok:bool,id:int,validation:array<string,mixed>,error:string}
 	 */
 	public function ingest_zip( array $file, int $tenant_id, int $approval_request_id = 0 ): array {
+		if ( ! $this->belongs_to_current_tenant( $tenant_id ) ) {
+			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'دسترسی به این فروشگاه مجاز نیست.' ];
+		}
 		if ( empty( $file['tmp_name'] ) || UPLOAD_ERR_OK !== (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
 			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'فایل ZIP دریافت نشد.' ];
 		}
@@ -158,6 +167,7 @@ final class ThemeService {
 
 	public function install_preview( int $id ): array {
 		$row = $this->get( $id );
+		if ( $row && ! $this->belongs_to_current_tenant( (int) $row['tenant_id'] ) ) { return [ 'ok' => false, 'error' => 'دسترسی به این قالب مجاز نیست.' ]; }
 		if ( ! $row || ! is_readable( (string) $row['zip_path'] ) ) { return [ 'ok' => false, 'error' => 'فایل قالب یافت نشد.' ]; }
 		$zip = new \ZipArchive();
 		if ( true !== $zip->open( (string) $row['zip_path'], \ZipArchive::CHECKCONS ) ) { return [ 'ok' => false, 'error' => 'آرشیو قالب معتبر نیست.' ]; }
@@ -178,6 +188,7 @@ final class ThemeService {
 
 	public function activate_live( int $id ): array {
 		$row = $this->get( $id );
+		if ( $row && ! $this->belongs_to_current_tenant( (int) $row['tenant_id'] ) ) { return [ 'ok' => false, 'error' => 'دسترسی به این قالب مجاز نیست.' ]; }
 		if ( ! $row ) { return [ 'ok' => false, 'error' => 'قالب یافت نشد.' ]; }
 		$installed = wp_get_themes();
 		$slug = sanitize_title( (string) $row['slug'] );
