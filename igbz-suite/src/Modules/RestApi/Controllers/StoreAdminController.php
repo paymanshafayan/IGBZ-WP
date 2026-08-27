@@ -20,6 +20,10 @@ final class StoreAdminController extends BaseController {
 		$ns    = self::NAMESPACE;
 		$owner = [ $this, 'can_manage_tenant' ];
 
+		register_rest_route( $ns, '/admin/products', $this->route( 'GET', [ $this, 'products' ], $owner ) );
+		register_rest_route( $ns, '/admin/products', $this->route( 'POST', [ $this, 'save_product' ], $owner ) );
+		register_rest_route( $ns, '/admin/products/(?P<id>\d+)', $this->route( 'POST', [ $this, 'save_product' ], $owner ) );
+		register_rest_route( $ns, '/admin/products/(?P<id>\d+)', $this->route( 'DELETE', [ $this, 'delete_product' ], $owner ) );
 		register_rest_route( $ns, '/admin/categories/tree', $this->route( 'GET', [ $this, 'category_tree' ], $owner ) );
 		register_rest_route( $ns, '/admin/categories', $this->route( 'POST', [ $this, 'save_category' ], $owner ) );
 		register_rest_route(
@@ -59,6 +63,48 @@ final class StoreAdminController extends BaseController {
 		);
 
 		register_rest_route( $ns, '/admin/summary', $this->route( 'GET', [ $this, 'summary' ], $owner ) );
+	}
+
+	// ------------------------------------------------------------- products
+
+	public function products( \WP_REST_Request $request ): \WP_REST_Response {
+		if ( ! function_exists( 'wc_get_products' ) ) { return $this->fail( 'igbz_no_woocommerce', __( 'WooCommerce is not active.', 'igbz-suite' ), 503 ); }
+		[ $page, $per_page, $offset ] = $this->page_args( $request );
+		$args = [ 'limit' => $per_page, 'offset' => $offset, 'status' => [ 'publish', 'draft', 'pending' ], 'orderby' => 'date', 'order' => 'DESC' ];
+		$tenant_id = $this->scoped_tenant_id( $request );
+		if ( $tenant_id > 0 && ! Capabilities::current_user_can( Capabilities::MANAGE_TENANTS ) ) {
+			$args['meta_key'] = '_igbz_tenant_id'; $args['meta_value'] = (string) $tenant_id;
+		}
+		$result = wc_get_products( $args );
+		$items = array_map( static function ( \WC_Product $product ): array {
+			return [ 'id' => $product->get_id(), 'name' => $product->get_name(), 'sku' => $product->get_sku(), 'status' => $product->get_status(), 'price' => (float) $product->get_price(), 'regular_price' => (float) $product->get_regular_price(), 'stock_status' => $product->get_stock_status(), 'image_url' => $product->get_image_id() ? wp_get_attachment_image_url( $product->get_image_id(), 'woocommerce_thumbnail' ) : '' ];
+		}, is_array( $result ) ? $result : [] );
+		return $this->paged( $items, count( $items ), $page, $per_page );
+	}
+
+	public function save_product( \WP_REST_Request $request ): \WP_REST_Response {
+		if ( ! class_exists( '\\WC_Product_Simple' ) ) { return $this->fail( 'igbz_no_woocommerce', __( 'WooCommerce is not active.', 'igbz-suite' ), 503 ); }
+		$id = (int) $request->get_param( 'id' );
+		$product = $id ? $this->guard_product( $id, $request ) : new \WC_Product_Simple();
+		if ( $product instanceof \WP_REST_Response ) { return $product; }
+		$tenant_id = $this->scoped_tenant_id( $request );
+		if ( $id <= 0 && $tenant_id <= 0 ) { return $this->fail( 'igbz_no_tenant', __( 'A tenant context is required to create a product.', 'igbz-suite' ), 400 ); }
+		if ( null !== $request->get_param( 'name' ) ) { $product->set_name( sanitize_text_field( (string) $request->get_param( 'name' ) ) ); }
+		if ( null !== $request->get_param( 'description' ) ) { $product->set_description( wp_kses_post( (string) $request->get_param( 'description' ) ) ); }
+		if ( null !== $request->get_param( 'regular_price' ) ) { $product->set_regular_price( wc_format_decimal( $request->get_param( 'regular_price' ) ) ); }
+		if ( null !== $request->get_param( 'sale_price' ) ) { $product->set_sale_price( wc_format_decimal( $request->get_param( 'sale_price' ) ) ); }
+		if ( null !== $request->get_param( 'status' ) ) { $product->set_status( in_array( $request->get_param( 'status' ), [ 'publish', 'draft', 'pending' ], true ) ? (string) $request->get_param( 'status' ) : 'draft' ); }
+		if ( null !== $request->get_param( 'stock_status' ) ) { $product->set_stock_status( in_array( $request->get_param( 'stock_status' ), [ 'instock', 'outofstock', 'onbackorder' ], true ) ? (string) $request->get_param( 'stock_status' ) : 'instock' ); }
+		$product_id = $product->save();
+		if ( $id <= 0 ) { update_post_meta( $product_id, '_igbz_tenant_id', $tenant_id ); }
+		return $this->ok( [ 'id' => $product_id, 'name' => $product->get_name() ], $id ? 200 : 201 );
+	}
+
+	public function delete_product( \WP_REST_Request $request ): \WP_REST_Response {
+		$product = $this->guard_product( (int) $request->get_param( 'id' ), $request );
+		if ( $product instanceof \WP_REST_Response ) { return $product; }
+		$product->delete( true );
+		return $this->ok( [ 'deleted' => true ] );
 	}
 
 	// ---------------------------------------------------------- categories
