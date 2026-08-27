@@ -85,6 +85,8 @@ final class PadoPage {
 			$notice = 'قالب برای پیش‌نمایش نصب شد.';
 		} elseif ( 'activated' === $msg ) {
 			$notice = 'قالب با موفقیت اعمال شد.';
+		} elseif ( 'rolledback' === $msg ) {
+			$notice = 'قالب قبلی با موفقیت بازگردانده شد.';
 		} elseif ( 'approved' === $msg ) {
 			$notice = 'درخواست تأیید شد و تا اجرای موفق در وضعیت تأییدشده می‌ماند.';
 		} elseif ( 'rejected' === $msg ) {
@@ -265,6 +267,8 @@ final class PadoPage {
 			echo '</td></tr>';
 		}
 		echo '</tbody></table>';
+		$rollback = wp_nonce_url( admin_url( 'admin-post.php?action=igbz_pado_theme_rollback' ), self::NONCE_ACTION );
+		echo '<p><a class="button" href="' . esc_url( $rollback ) . '">بازگشت یک‌کلیکی به قالب قبلی</a></p>';
 	}
 
 	private function render_tab_approvals(): void {
@@ -458,6 +462,14 @@ final class PadoPage {
 		check_admin_referer( self::NONCE_ACTION );
 		$result = igbz()->get( 'pado.themes' )->activate_live( (int) ( $_GET['theme_id'] ?? 0 ) );
 		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'activated' : '', 'err' => $result['error'] ] ) );
+		exit;
+	}
+
+	public function handle_theme_rollback(): void {
+		Capabilities::require( Capabilities::MANAGE_PADO );
+		check_admin_referer( self::NONCE_ACTION );
+		$result = igbz()->get( 'pado.themes' )->rollback( igbz()->tenancy()->id() );
+		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'rolledback' : '', 'err' => $result['error'] ] ) );
 		exit;
 	}
 

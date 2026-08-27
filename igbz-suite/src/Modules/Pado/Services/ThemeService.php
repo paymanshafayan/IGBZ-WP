@@ -182,15 +182,17 @@ final class ThemeService {
 		$installed = wp_get_themes();
 		$slug = sanitize_title( (string) $row['slug'] );
 		if ( ! isset( $installed[ $slug ] ) ) { $preview = $this->install_preview( $id ); if ( ! $preview['ok'] ) { return $preview; } }
-		$previous = get_option( 'igbz_previous_theme_slug', get_stylesheet() );
-		update_option( 'igbz_previous_theme_slug', $previous, false );
+		$tenant_id = (int) ( $row['tenant_id'] ?? 0 );
+		$previous_key = 'igbz_previous_theme_slug_' . $tenant_id;
+		$previous = get_option( $previous_key, get_stylesheet() );
+		update_option( $previous_key, $previous, false );
 		switch_theme( $slug );
 		$this->db->update( 'themes', [ 'status' => self::STATUS_LIVE, 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $id ] );
 		return [ 'ok' => true, 'error' => '' ];
 	}
 
-	public function rollback(): array {
-		$previous = sanitize_title( (string) get_option( 'igbz_previous_theme_slug', '' ) );
+	public function rollback( int $tenant_id = 0 ): array {
+		$previous = sanitize_title( (string) get_option( 'igbz_previous_theme_slug_' . $tenant_id, '' ) );
 		if ( '' === $previous || ! isset( wp_get_themes()[ $previous ] ) ) { return [ 'ok' => false, 'error' => 'قالب قبلی برای بازگشت یافت نشد.' ]; }
 		switch_theme( $previous );
 		$this->db->query( 'UPDATE ' . $this->db->table( 'themes' ) . ' SET status = %s WHERE status = %s', self::STATUS_ARCHIVED, self::STATUS_LIVE );
