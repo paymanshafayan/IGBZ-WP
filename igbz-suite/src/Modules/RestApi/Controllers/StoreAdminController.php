@@ -24,6 +24,7 @@ final class StoreAdminController extends BaseController {
 		register_rest_route( $ns, '/admin/products', $this->route( 'POST', [ $this, 'save_product' ], $owner ) );
 		register_rest_route( $ns, '/admin/products/(?P<id>\d+)', $this->route( 'POST', [ $this, 'save_product' ], $owner ) );
 		register_rest_route( $ns, '/admin/products/(?P<id>\d+)', $this->route( 'DELETE', [ $this, 'delete_product' ], $owner ) );
+		register_rest_route( $ns, '/admin/products/(?P<id>\d+)/image', $this->route( 'POST', [ $this, 'upload_product_image' ], $owner ) );
 		register_rest_route( $ns, '/admin/categories/tree', $this->route( 'GET', [ $this, 'category_tree' ], $owner ) );
 		register_rest_route( $ns, '/admin/categories', $this->route( 'POST', [ $this, 'save_category' ], $owner ) );
 		register_rest_route(
@@ -105,6 +106,20 @@ final class StoreAdminController extends BaseController {
 		if ( $product instanceof \WP_REST_Response ) { return $product; }
 		$product->delete( true );
 		return $this->ok( [ 'deleted' => true ] );
+	}
+
+	public function upload_product_image( \WP_REST_Request $request ): \WP_REST_Response {
+		$product = $this->guard_product( (int) $request->get_param( 'id' ), $request );
+		if ( $product instanceof \WP_REST_Response ) { return $product; }
+		if ( empty( $request->get_file_params()['image'] ) ) { return $this->fail( 'igbz_no_file', __( 'No image was uploaded.', 'igbz-suite' ) ); }
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+		$attachment_id = media_handle_upload( 'image', $product->get_id() );
+		if ( is_wp_error( $attachment_id ) ) { return $this->fail( 'igbz_upload_failed', $attachment_id->get_error_message() ); }
+		$product->set_image_id( (int) $attachment_id );
+		$product->save();
+		return $this->ok( [ 'id' => (int) $attachment_id, 'url' => (string) wp_get_attachment_image_url( $attachment_id, 'full' ) ] );
 	}
 
 	// ---------------------------------------------------------- categories
