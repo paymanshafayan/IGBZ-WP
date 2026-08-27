@@ -47,6 +47,7 @@ final class PadoPage {
 		add_action( 'admin_post_igbz_pado_upload_theme', [ $this, 'handle_upload_theme' ] );
 		add_action( 'admin_post_igbz_pado_theme_preview', [ $this, 'handle_theme_preview' ] );
 		add_action( 'admin_post_igbz_pado_theme_live', [ $this, 'handle_theme_live' ] );
+		add_action( 'admin_post_igbz_pado_theme_rollback', [ $this, 'handle_theme_rollback' ] );
 	}
 
 	public function add_page(): void {
