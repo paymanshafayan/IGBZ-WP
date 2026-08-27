@@ -71,16 +71,18 @@ final class StoreAdminController extends BaseController {
 	public function products( \WP_REST_Request $request ): \WP_REST_Response {
 		if ( ! function_exists( 'wc_get_products' ) ) { return $this->fail( 'igbz_no_woocommerce', __( 'WooCommerce is not active.', 'igbz-suite' ), 503 ); }
 		[ $page, $per_page, $offset ] = $this->page_args( $request );
-		$args = [ 'limit' => $per_page, 'offset' => $offset, 'status' => [ 'publish', 'draft', 'pending' ], 'orderby' => 'date', 'order' => 'DESC' ];
+		$args = [ 'limit' => $per_page, 'offset' => $offset, 'paginate' => true, 'status' => [ 'publish', 'draft', 'pending' ], 'orderby' => 'date', 'order' => 'DESC' ];
 		$tenant_id = $this->scoped_tenant_id( $request );
 		if ( $tenant_id > 0 && ! Capabilities::current_user_can( Capabilities::MANAGE_TENANTS ) ) {
 			$args['meta_key'] = '_igbz_tenant_id'; $args['meta_value'] = (string) $tenant_id;
 		}
 		$result = wc_get_products( $args );
+		$products = is_object( $result ) ? (array) ( $result->products ?? [] ) : [];
+		$total = is_object( $result ) && isset( $result->total ) ? (int) $result->total : count( $products );
 		$items = array_map( static function ( \WC_Product $product ): array {
 			return [ 'id' => $product->get_id(), 'name' => $product->get_name(), 'sku' => $product->get_sku(), 'status' => $product->get_status(), 'price' => (float) $product->get_price(), 'regular_price' => (float) $product->get_regular_price(), 'stock_status' => $product->get_stock_status(), 'image_url' => $product->get_image_id() ? wp_get_attachment_image_url( $product->get_image_id(), 'woocommerce_thumbnail' ) : '' ];
-		}, is_array( $result ) ? $result : [] );
-		return $this->paged( $items, count( $items ), $page, $per_page );
+		}, $products );
+		return $this->paged( $items, $total, $page, $per_page );
 	}
 
 	public function save_product( \WP_REST_Request $request ): \WP_REST_Response {
