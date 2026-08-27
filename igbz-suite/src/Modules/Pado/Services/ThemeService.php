@@ -97,6 +97,19 @@ final class ThemeService {
 		if ( true !== $zip->open( (string) $file['tmp_name'], \ZipArchive::CHECKCONS ) ) {
 			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'آرشیو ZIP معتبر نیست.' ];
 		}
+		if ( $zip->numFiles > ThemeValidator::DEFAULT_MAX_FILES ) {
+			$zip->close();
+			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'تعداد فایل‌های ZIP از سقف مجاز بیشتر است.' ];
+		}
+		$uncompressed = 0;
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+			$stat = $zip->statIndex( $i );
+			$uncompressed += (int) ( $stat['size'] ?? 0 );
+		}
+		if ( $uncompressed > ThemeValidator::DEFAULT_MAX_BYTES ) {
+			$zip->close();
+			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'حجم بازشدهٔ ZIP از سقف مجاز بیشتر است.' ];
+		}
 		$tmp = trailingslashit( get_temp_dir() ) . 'igbz-theme-' . wp_generate_uuid4();
 		wp_mkdir_p( $tmp );
 		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
