@@ -75,6 +75,68 @@ final class ThemeService {
 		return $row ?: null;
 	}
 
+	/**
+	 * Store and validate a zip without executing it. The archive is rejected before extraction if
+	 * any member escapes the temporary directory; validation then scans the extracted bytes.
+	 * @return array{ok:bool,id:int,validation:array<string,mixed>,error:string}
+	 */
+	public function ingest_zip( array $file, int $tenant_id, int $approval_request_id = 0 ): array {
+		if ( empty( $file['tmp_name'] ) || UPLOAD_ERR_OK !== (int) ( $file['error'] ?? UPLOAD_ERR_NO_FILE ) ) {
+			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'فایل ZIP دریافت نشد.' ];
+		}
+		if ( 'zip' !== strtolower( (string) pathinfo( (string) ( $file['name'] ?? '' ), PATHINFO_EXTENSION ) ) ) {
+			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'فقط فایل ZIP پذیرفته می‌شود.' ];
+		}
+		$zip = new \ZipArchive();
+		if ( true !== $zip->open( (string) $file['tmp_name'], \ZipArchive::CHECKCONS ) ) {
+			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'آرشیو ZIP معتبر نیست.' ];
+		}
+		$tmp = trailingslashit( get_temp_dir() ) . 'igbz-theme-' . wp_generate_uuid4();
+		wp_mkdir_p( $tmp );
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+			$name = (string) ( $zip->getNameIndex( $i ) ?: '' );
+			if ( '' === $name || false !== strpos( str_replace( '\\\\', '/', $name ), '..' ) || str_starts_with( $name, '/' ) ) {
+				$zip->close();
+				$this->remove_tree( $tmp );
+				return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'مسیر ناامن داخل ZIP پیدا شد.' ];
+			}
+		}
+		$zip->extractTo( $tmp );
+		$zip->close();
+		$validation_dir = $tmp;
+		$children = array_values( array_filter( scandir( $tmp ) ?: [], static fn ( string $name ): bool => '.' !== $name && '..' !== $name ) );
+		if ( ! file_exists( $tmp . '/style.css' ) && 1 === count( $children ) && is_dir( $tmp . '/' . $children[0] ) ) {
+			$validation_dir = $tmp . '/' . $children[0];
+		}
+		$validator = new ThemeValidator();
+		$validation = $validator->validate( $validation_dir );
+		if ( ! $validation['ok'] ) {
+			$this->remove_tree( $tmp );
+			return [ 'ok' => false, 'id' => 0, 'validation' => $validation, 'error' => implode( ' ', $validation['errors'] ) ];
+		}
+		$slug = sanitize_title( pathinfo( (string) $file['name'], PATHINFO_FILENAME ) ) . '-' . gmdate( 'YmdHis' );
+		$stored = $this->upload_dir . $slug . '.zip';
+		if ( ! move_uploaded_file( (string) $file['tmp_name'], $stored ) && ! copy( (string) $file['tmp_name'], $stored ) ) {
+			$this->remove_tree( $tmp );
+			return [ 'ok' => false, 'id' => 0, 'validation' => $validation, 'error' => 'ذخیرهٔ فایل ZIP ناموفق بود.' ];
+		}
+		$this->remove_tree( $tmp );
+		$id = $this->record( [
+			'tenant_id' => $tenant_id, 'slug' => $slug, 'name' => sanitize_text_field( (string) $file['name'] ),
+			'source' => self::SOURCE_UPLOAD, 'zip_path' => $stored, 'size_bytes' => filesize( $stored ) ?: 0,
+			'status' => self::STATUS_PREVIEW, 'validation' => $validation, 'approval_request_id' => $approval_request_id,
+			'generated_by' => 'admin-upload',
+		] );
+		return [ 'ok' => $id > 0, 'id' => $id, 'validation' => $validation, 'error' => $id > 0 ? '' : 'ثبت قالب ناموفق بود.' ];
+	}
+
+	private function remove_tree( string $dir ): void {
+		if ( ! is_dir( $dir ) ) { return; }
+		$it = new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $dir, \FilesystemIterator::SKIP_DOTS ), \RecursiveIteratorIterator::CHILD_FIRST );
+		foreach ( $it as $item ) { $item->isDir() ? @rmdir( $item->getPathname() ) : @unlink( $item->getPathname() ); }
+		@rmdir( $dir );
+	}
+
 	public function set_status( int $id, string $status ): bool {
 		if ( ! in_array( $status, [ self::STATUS_DRAFT, self::STATUS_PREVIEW, self::STATUS_LIVE, self::STATUS_REJECTED, self::STATUS_ARCHIVED ], true ) ) {
 			return false;

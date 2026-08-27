@@ -2,6 +2,7 @@
 namespace IGBZ\Suite\Modules\Pado\Admin;
 
 use IGBZ\Suite\Modules\Pado\Services\ApprovalRequestService;
+use IGBZ\Suite\Modules\Pado\Services\ThemeService;
 use IGBZ\Suite\Support\Admin\Menu;
 use IGBZ\Suite\Support\Admin\View;
 use IGBZ\Suite\Support\Capabilities;
@@ -43,6 +44,7 @@ final class PadoPage {
 		add_action( 'admin_post_igbz_pado_save_settings', [ $this, 'handle_save_settings' ] );
 		add_action( 'admin_post_igbz_pado_decide', [ $this, 'handle_decide' ] );
 		add_action( 'admin_post_igbz_pado_start_design', [ $this, 'handle_start_design' ] );
+		add_action( 'admin_post_igbz_pado_upload_theme', [ $this, 'handle_upload_theme' ] );
 	}
 
 	public function add_page(): void {
@@ -74,6 +76,8 @@ final class PadoPage {
 			$notice = 'تنظیمات ذخیره شد.';
 		} elseif ( 'queued' === $msg ) {
 			$notice = 'درخواست طراحی در صف پادو قرار گرفت و به‌زودی به درخواست‌های مجوز می‌رسد.';
+		} elseif ( 'uploaded' === $msg ) {
+			$notice = 'قالب با موفقیت اعتبارسنجی و برای پیش‌نمایش ثبت شد.';
 		} elseif ( 'approved' === $msg ) {
 			$notice = 'درخواست تأیید و به اجرا سپرده شد.';
 		} elseif ( 'rejected' === $msg ) {
@@ -175,6 +179,14 @@ final class PadoPage {
 			</div>
 		<?php endif; ?>
 
+		<h3>بارگذاری ZIP قالب</h3>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
+			<?php wp_nonce_field( self::NONCE_ACTION ); ?>
+			<input type="hidden" name="action" value="igbz_pado_upload_theme">
+			<p><input type="file" name="theme_zip" accept=".zip,application/zip" required> <?php submit_button( 'اعتبارسنجی و پیش‌نمایش', 'secondary', 'submit', false ); ?></p>
+		</form>
+
+		<h3>درخواست طراحی از پادو</h3>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<?php wp_nonce_field( self::NONCE_ACTION ); ?>
 			<input type="hidden" name="action" value="igbz_pado_start_design">
@@ -397,6 +409,16 @@ final class PadoPage {
 		$this->settings->set( 'pado.endpoint', esc_url_raw( (string) ( $raw['endpoint'] ?? '' ) ) );
 		$this->settings->set( 'pado.model_label', sanitize_text_field( (string) ( $raw['model_label'] ?? '' ) ) );
 		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_SETTINGS, 'msg' => 'saved' ] ) );
+		exit;
+	}
+
+	public function handle_upload_theme(): void {
+		Capabilities::require( Capabilities::MANAGE_PADO );
+		check_admin_referer( self::NONCE_ACTION );
+		$file = isset( $_FILES['theme_zip'] ) && is_array( $_FILES['theme_zip'] ) ? $_FILES['theme_zip'] : [];
+		$result = igbz()->get( 'pado.themes' )->ingest_zip( $file, igbz()->tenancy()->id() );
+		$args = [ 'tab' => self::TAB_DESIGN, 'msg' => $result['ok'] ? 'uploaded' : '', 'err' => $result['error'] ];
+		wp_safe_redirect( Menu::url( self::SLUG, $args ) );
 		exit;
 	}
 
