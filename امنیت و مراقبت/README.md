@@ -34,6 +34,7 @@
 | `API3-2023-Broken-Object-Property-Level-Authorization.md` | افشا و دستکاری ویژگی‌های شیء | `DESIGN-LEGAL-AUTH.md §۷.۶` و `§۷.۷`؛ `REQUIREMENTS-TRACEABILITY.md` نیاز SEC-002 |
 | `API4-2023-Unrestricted-Resource-Consumption.md` | مصرف بی‌حد منابع و **هزینهٔ پیامک** | قاعدهٔ ۵ در `PROJECT-STATE.md §۵.۵`؛ نیازهای SEC-004 و SEC-005؛ اصلاح phone+IP در OTP |
 | `API6-2023-Sensitive-Business-Flows.md` | سوءاستفادهٔ خودکار از جریان کاری سالم | قاعدهٔ ۵.۱ در `§۵.۵`؛ `DESIGN-LEGAL-AUTH.md §۷.۶`؛ نیازهای SEC-004 و SEC-009 |
+| `Agentic-Top-10-2026.md` | ابزار، هویت، ارتباط، زنجیرهٔ تأمین و حافظهٔ عامل | مرز اعتماد پادوی بیرونی در ADR-0002؛ نیازهای PAD-001 تا PAD-006 |
 
 ### `منابع/WordPress/`
 
