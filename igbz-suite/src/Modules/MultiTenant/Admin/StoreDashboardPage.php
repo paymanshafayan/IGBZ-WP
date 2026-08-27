@@ -18,7 +18,21 @@ final class StoreDashboardPage {
 	}
 
 	public function add_page(): void {
-		Menu::add( self::SLUG, __( 'Store dashboard', 'igbz-suite' ), [ $this, 'render' ], Capabilities::MANAGE_OWN_TENANT );
+		if ( current_user_can( Capabilities::MANAGE_SUITE ) ) {
+			Menu::add( self::SLUG, __( 'Store dashboard', 'igbz-suite' ), [ $this, 'render' ], Capabilities::MANAGE_OWN_TENANT );
+			return;
+		}
+		// Tenant owners do not receive the platform-level IGBZ capability, so their
+		// dashboard must be a standalone top-level menu rather than a hidden submenu.
+		add_menu_page(
+			__( 'Store dashboard', 'igbz-suite' ),
+			__( 'Store dashboard', 'igbz-suite' ),
+			Capabilities::MANAGE_OWN_TENANT,
+			self::SLUG,
+			[ $this, 'render' ],
+			'dashicons-store',
+			3
+		);
 	}
 
 	public function redirect_owner_dashboard(): void {
