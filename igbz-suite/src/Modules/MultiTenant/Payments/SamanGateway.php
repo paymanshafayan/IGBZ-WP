@@ -52,7 +52,7 @@ final class SamanGateway extends AbstractIpgGateway {
 			return PaymentRequestResult::failure( 'encrypt_failed', __( 'Saman encryption failed — check the RSA public key.', 'igbz-suite' ) );
 		}
 
-		$response = $this->http->post( self::TOKEN_URL, [ 'body' => 'Token=' . rawurlencode( $token ), 'headers' => [ 'Content-Type' => 'application/x-www-form-urlencoded' ], 'channel' => 'payments', 'timeout' => 30 ] );
+		$response = $this->http->post( self::TOKEN_URL, [ 'body' => 'Token=' . rawurlencode( $token ), 'headers' => [ 'Content-Type' => 'application/x-www-form-urlencoded' ], 'channel' => 'payments', 'timeout' => PspHttp::timeout() ] );
 		$body     = $response->json();
 		$tok      = (string) ( $body['token'] ?? $body['Token'] ?? '' );
 
@@ -78,7 +78,7 @@ final class SamanGateway extends AbstractIpgGateway {
 
 		$response = $this->http->post(
 			self::VERIFY_URL,
-			[ 'json' => [ 'Token' => $tok, 'SignData' => $sign ], 'headers' => [ 'Accept' => 'application/json' ], 'channel' => 'payments', 'timeout' => 30 ]
+			[ 'json' => [ 'Token' => $tok, 'SignData' => $sign ], 'headers' => [ 'Accept' => 'application/json' ], 'channel' => 'payments', 'timeout' => PspHttp::timeout() ]
 		);
 		$body = $response->json();
 

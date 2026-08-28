@@ -60,6 +60,7 @@ $cases = [
 	'QueueLoadTest',
 	'WalletLedgerTest',
 	'WebhookInboxTest',
+	'GatewayHardeningTest',
 ];
 
 foreach ( $cases as $case ) {

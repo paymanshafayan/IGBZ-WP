@@ -58,7 +58,7 @@ final class BalePayGateway implements GatewayInterface {
 				],
 				'headers' => [ 'Accept' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 		$body = $response->json();

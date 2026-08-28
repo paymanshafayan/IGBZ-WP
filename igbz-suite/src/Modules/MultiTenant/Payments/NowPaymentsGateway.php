@@ -63,7 +63,7 @@ final class NowPaymentsGateway implements GatewayInterface {
 				],
 				'headers' => [ 'x-api-key' => igbz()->settings()->string( 'nowpayments.api_key' ), 'Accept' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 30,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 		$body = $response->json();

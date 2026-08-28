@@ -50,7 +50,7 @@ final class IranKishGateway extends AbstractIpgGateway {
 				],
 				'headers' => $this->headers(),
 				'channel' => 'payments',
-				'timeout' => 30,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 		$body = $response->json();
@@ -71,7 +71,7 @@ final class IranKishGateway extends AbstractIpgGateway {
 
 		$response = $this->http->post(
 			self::API . '/token/verify',
-			[ 'json' => [ 'terminalId' => (int) $this->cfg( 'terminal_id' ), 'token' => $token ], 'headers' => $this->headers(), 'channel' => 'payments', 'timeout' => 30 ]
+			[ 'json' => [ 'terminalId' => (int) $this->cfg( 'terminal_id' ), 'token' => $token ], 'headers' => $this->headers(), 'channel' => 'payments', 'timeout' => PspHttp::timeout() ]
 		);
 		$body = $response->json();
 

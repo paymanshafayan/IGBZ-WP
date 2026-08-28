@@ -69,7 +69,7 @@ final class NextPayGateway implements GatewayInterface {
 				),
 				'headers' => [ 'Accept' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 
@@ -102,7 +102,7 @@ final class NextPayGateway implements GatewayInterface {
 				],
 				'headers' => [ 'Accept' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 

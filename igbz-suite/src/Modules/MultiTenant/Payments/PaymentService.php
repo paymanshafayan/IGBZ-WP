@@ -167,28 +167,54 @@ final class PaymentService {
 			return [ 'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'Invalid payment amount.', 'igbz-suite' ) ];
 		}
 
-		$now        = current_time( 'mysql', true );
-		$payment_id = $this->db->insert(
-			'payments',
-			[
-				'tenant_id'  => (int) ( $context['tenant_id'] ?? igbz()->tenancy()->id() ),
-				'user_id'    => (int) ( $context['user_id'] ?? get_current_user_id() ),
-				'order_id'   => (int) ( $context['order_id'] ?? 0 ),
-				'gateway'    => $gateway->id(),
-				'purpose'    => $purpose,
-				'amount'     => $amount,
-				'currency'   => igbz()->settings()->string( 'general.default_currency', 'IRT' ),
-				'status'     => self::STATUS_CREATED,
-				'meta'       => wp_json_encode( $context ),
-				'created_at' => $now,
-				'updated_at' => $now,
-			]
+		$tenant_id = (int) ( $context['tenant_id'] ?? igbz()->tenancy()->id() );
+		$order_id  = (int) ( $context['order_id'] ?? 0 );
+		$now       = current_time( 'mysql', true );
+
+		// Phase 30: creation idempotency. If an identical request is still sitting in `created`
+		// (the previous attempt died before it could talk to the PSP), we reuse that row instead
+		// of stacking duplicates. Anything already sent to the PSP is never reused — a stale
+		// authority re-sent is how double charges are born.
+		$existing   = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'payments' ) .
+			' WHERE tenant_id = %d AND order_id = %d AND purpose = %s AND gateway = %s AND amount = %f AND status = %s ORDER BY id DESC',
+			$tenant_id,
+			$order_id,
+			$purpose,
+			$gateway->id(),
+			$amount,
+			self::STATUS_CREATED
 		);
+		$payment_id = (int) ( $existing['id'] ?? 0 );
+		if ( $payment_id > 0 ) {
+			$this->db->update( 'payments', [ 'meta' => wp_json_encode( $context ), 'updated_at' => $now ], [ 'id' => $payment_id ] );
+		} else {
+			$payment_id = $this->db->insert(
+				'payments',
+				[
+					'tenant_id'  => $tenant_id,
+					'user_id'    => (int) ( $context['user_id'] ?? get_current_user_id() ),
+					'order_id'   => $order_id,
+					'gateway'    => $gateway->id(),
+					'purpose'    => $purpose,
+					'amount'     => $amount,
+					'currency'   => igbz()->settings()->string( 'general.default_currency', 'IRT' ),
+					'status'     => self::STATUS_CREATED,
+					'meta'       => wp_json_encode( $context ),
+					'created_at' => $now,
+					'updated_at' => $now,
+				]
+			);
+		}
 
 		$callback = add_query_arg(
 			[ 'igbz_payment_callback' => $gateway->id(), 'payment_id' => $payment_id ],
 			home_url( '/' )
 		);
+
+		// Phase 30: every request carries an idempotency key. PSPs that deduplicate honour it;
+		// PSPs that ignore it do no harm. The key is the payment id — stable across replays.
+		$context['idempotency_key'] = (string) ( $context['idempotency_key'] ?? 'pay-' . $payment_id );
 
 		$result = $gateway->request( $amount, $callback, $context );
 
@@ -272,6 +298,85 @@ final class PaymentService {
 		do_action( 'igbz_payment_verified', $payment_id, $result );
 
 		return $result;
+	}
+
+	/**
+	 * Phase 30 — does this gateway expose a real, documented refund endpoint?
+	 */
+	public function supports_refund( string $gateway_id ): bool {
+		$gateway = $this->gateway( $gateway_id );
+		return $gateway instanceof RefundableGatewayInterface;
+	}
+
+	/**
+	 * Phase 30 — contract-level refund through the adapter.
+	 *
+	 * Guards: only a paid payment refunds; the running total of refunds is read from the
+	 * payment's meta and can never exceed the paid amount; the idempotency key
+	 * (`refund:{payment}:{seq}`) makes a replayed refund a no-op at the PSP. Full
+	 * reconciliation/dispute handling is phase 31.
+	 *
+	 * @return array{ok:bool,reason?:string,reference?:string,refunded?:float}
+	 */
+	public function refund_payment( int $payment_id, float $amount, string $reason = '' ): array {
+		$payment = $this->payment( $payment_id );
+		if ( ! $payment ) {
+			return [ 'ok' => false, 'reason' => 'not_found' ];
+		}
+		if ( self::STATUS_PAID !== $payment['status'] ) {
+			return [ 'ok' => false, 'reason' => 'not_paid' ];
+		}
+		$gateway = $this->gateway( (string) $payment['gateway'] );
+		if ( ! $gateway instanceof RefundableGatewayInterface ) {
+			return [ 'ok' => false, 'reason' => 'unsupported_gateway' ];
+		}
+		if ( $amount <= 0 ) {
+			return [ 'ok' => false, 'reason' => 'invalid_amount' ];
+		}
+
+		$meta    = json_decode( (string) $payment['meta'], true );
+		$meta    = is_array( $meta ) ? $meta : [];
+		$refunds = is_array( $meta['refunds'] ?? null ) ? $meta['refunds'] : [];
+		$already = array_sum( array_map( static fn ( $r ) => (float) ( $r['amount'] ?? 0 ), $refunds ) );
+		if ( $already + $amount > (float) $payment['amount'] + 0.0001 ) {
+			return [ 'ok' => false, 'reason' => 'over_refund' ];
+		}
+
+		$seq    = count( $refunds ) + 1;
+		$result = $gateway->refund(
+			(string) $payment['reference_id'],
+			$amount,
+			[
+				'idempotency_key' => 'refund:' . $payment_id . ':' . $seq,
+				'reason'          => mb_substr( $reason, 0, 255 ),
+			]
+		);
+		if ( ! $result->success ) {
+			$this->logger->error( 'payments', 'Refund refused by gateway', [ 'payment_id' => $payment_id, 'code' => $result->error_code ] );
+			return [ 'ok' => false, 'reason' => $result->error_code ];
+		}
+
+		$refunds[] = [ 'amount' => $amount, 'reference' => $result->reference_id, 'at' => current_time( 'mysql', true ), 'reason' => mb_substr( $reason, 0, 255 ) ];
+		$meta['refunds'] = $refunds;
+		$this->db->update(
+			'payments',
+			[
+				'meta'       => wp_json_encode( $meta ),
+				'updated_at' => current_time( 'mysql', true ),
+			],
+			[ 'id' => $payment_id ]
+		);
+
+		/**
+		 * Fires after a refund is confirmed by the PSP.
+		 *
+		 * @param int    $payment_id
+		 * @param float  $amount
+		 * @param string $reference_id
+		 */
+		do_action( 'igbz_payment_refunded', $payment_id, $amount, $result->reference_id );
+
+		return [ 'ok' => true, 'reference' => $result->reference_id, 'refunded' => $already + $amount ];
 	}
 
 	/**

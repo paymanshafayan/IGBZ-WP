@@ -46,7 +46,7 @@ final class SepehrGateway extends AbstractIpgGateway {
 				],
 				'headers' => [ 'Accept' => 'application/json', 'Content-Type' => 'application/json', 'Authorization' => 'Bearer ' . $this->cfg( 'api_key' ) ],
 				'channel' => 'payments',
-				'timeout' => 30,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 		$body = $response->json();
@@ -67,7 +67,7 @@ final class SepehrGateway extends AbstractIpgGateway {
 
 		$response = $this->http->post(
 			self::VERIFY_URL,
-			[ 'json' => [ 'TerminalID' => (int) $this->cfg( 'terminal_id' ), 'Token' => $token ], 'headers' => [ 'Accept' => 'application/json', 'Authorization' => 'Bearer ' . $this->cfg( 'api_key' ) ], 'channel' => 'payments', 'timeout' => 30 ]
+			[ 'json' => [ 'TerminalID' => (int) $this->cfg( 'terminal_id' ), 'Token' => $token ], 'headers' => [ 'Accept' => 'application/json', 'Authorization' => 'Bearer ' . $this->cfg( 'api_key' ) ], 'channel' => 'payments', 'timeout' => PspHttp::timeout() ]
 		);
 		$body = $response->json();
 

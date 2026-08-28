@@ -82,7 +82,7 @@ final class PayirGateway implements GatewayInterface {
 				),
 				'headers' => [ 'Accept' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 
@@ -116,7 +116,7 @@ final class PayirGateway implements GatewayInterface {
 				'json'    => [ 'api' => $this->api_key(), 'token' => $token ],
 				'headers' => [ 'Accept' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 

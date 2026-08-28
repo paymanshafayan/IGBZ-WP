@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
  * paths for the response fields. It registers as `payments.httppsp` and is
  * configured on the Payments settings tab (endpoint/fields documented there).
  */
-final class HttpPspGateway implements GatewayInterface {
+final class HttpPspGateway implements GatewayInterface, RefundableGatewayInterface {
 
 	public function __construct( private Http $http ) {}
 
@@ -43,6 +43,10 @@ final class HttpPspGateway implements GatewayInterface {
 
 		$rial = Money::to_rial( $amount );
 
+		// Phase 30: when the caller supplies an idempotency key it rides along both in the body
+		// and as a header, so PSPs that deduplicate creation honour it; ones that ignore it do no harm.
+		$idempotency_key = (string) ( $context['idempotency_key'] ?? '' );
+
 		$payload = array_filter(
 			[
 				'api_key'     => $this->api_key(),
@@ -53,11 +57,17 @@ final class HttpPspGateway implements GatewayInterface {
 				'mobile'      => (string) ( $context['mobile'] ?? '' ),
 				'order_id'    => (string) ( $context['order_id'] ?? '' ),
 				'description' => mb_substr( (string) ( $context['description'] ?? '' ), 0, 255 ),
+				'idempotency_key' => $idempotency_key,
 			],
 			static fn ( $v ) => '' !== $v && null !== $v
 		);
 
-		$response = $this->http->post( $this->send_url(), [ 'json' => $payload, 'headers' => $this->headers(), 'channel' => 'payments', 'timeout' => 25 ] );
+		$headers = $this->headers();
+		if ( '' !== $idempotency_key ) {
+			$headers['Idempotency-Key'] = $idempotency_key;
+		}
+
+		$response = $this->http->post( $this->send_url(), [ 'json' => $payload, 'headers' => $headers, 'channel' => 'payments', 'timeout' => PspHttp::timeout() ] );
 		$body     = $response->json();
 
 		$token = $this->field( $body, 'token' );
@@ -69,10 +79,16 @@ final class HttpPspGateway implements GatewayInterface {
 			return PaymentRequestResult::ok( $token, rtrim( $this->redirect_base(), '/' ) . '/' . rawurlencode( $token ) );
 		}
 
-		return PaymentRequestResult::failure(
-			(string) ( $body['error_code'] ?? $body['status'] ?? 'request_failed' ),
-			(string) ( $body['error_message'] ?? $body['message'] ?? __( 'The PSP rejected the payment request.', 'igbz-suite' ) )
+		[ $code, $message ] = GatewayErrors::classify(
+			$response->ok(),
+			$response->error_message(),
+			$body,
+			(string) ( $body['error_code'] ?? $body['status'] ?? '' ),
+			(string) ( $body['error_message'] ?? $body['message'] ?? '' ),
+			'request_failed',
+			__( 'The PSP rejected the payment request.', 'igbz-suite' )
 		);
+		return PaymentRequestResult::failure( $code, $message );
 	}
 
 	public function verify( float $amount, array $callback_params ): PaymentVerifyResult {
@@ -92,7 +108,7 @@ final class HttpPspGateway implements GatewayInterface {
 
 		$response = $this->http->post(
 			$this->verify_url(),
-			[ 'json' => [ 'api_key' => $this->api_key(), 'token' => $token, 'amount' => Money::to_rial( $amount ) ], 'headers' => $this->headers(), 'channel' => 'payments', 'timeout' => 25 ]
+			[ 'json' => [ 'api_key' => $this->api_key(), 'token' => $token, 'amount' => Money::to_rial( $amount ) ], 'headers' => $this->headers(), 'channel' => 'payments', 'timeout' => PspHttp::timeout() ]
 		);
 		$body = $response->json();
 
@@ -107,7 +123,70 @@ final class HttpPspGateway implements GatewayInterface {
 			return PaymentVerifyResult::ok( (string) $this->field( $body, 'ref_id' ) ?: $token, (string) $this->field( $body, 'card_pan' ), 0.0 );
 		}
 
-		return PaymentVerifyResult::failure( (string) ( $body['error_code'] ?? 'verify_failed' ), (string) ( $body['error_message'] ?? __( 'The PSP could not verify this payment.', 'igbz-suite' ) ) );
+		[ $code, $message ] = GatewayErrors::classify(
+			$response->ok(),
+			$response->error_message(),
+			$body,
+			(string) ( $body['error_code'] ?? '' ),
+			(string) ( $body['error_message'] ?? '' ),
+			'verify_failed',
+			__( 'The PSP could not verify this payment.', 'igbz-suite' )
+		);
+		return PaymentVerifyResult::failure( $code, $message );
+	}
+
+	/**
+	 * Phase 30: config-driven refund — only active when the merchant configures a refund URL,
+	 * i.e. their PSP actually exposes one. The idempotency key is mandatory: a replayed refund
+	 * with the same key must never move money twice.
+	 */
+	public function refund( string $reference_id, float $amount, array $context = [] ): PaymentRefundResult {
+		$url = $this->refund_url();
+		if ( '' === $url || '' === $reference_id || $amount <= 0 ) {
+			return PaymentRefundResult::failure(
+				GatewayErrors::NOT_CONFIGURED,
+				__( 'This PSP has no configured refund endpoint.', 'igbz-suite' )
+			);
+		}
+
+		$idempotency_key = (string) ( $context['idempotency_key'] ?? '' );
+		$headers         = $this->headers();
+		if ( '' !== $idempotency_key ) {
+			$headers['Idempotency-Key'] = $idempotency_key;
+		}
+
+		$payload = array_filter(
+			[
+				'api_key'         => $this->api_key(),
+				'reference_id'    => $reference_id,
+				'token'           => $reference_id,
+				'amount'          => Money::to_rial( $amount ),
+				'idempotency_key' => $idempotency_key,
+			],
+			static fn ( $v ) => '' !== $v && null !== $v
+		);
+
+		$response = $this->http->post( $url, [ 'json' => $payload, 'headers' => $headers, 'channel' => 'payments', 'timeout' => PspHttp::timeout() ] );
+		$body     = $response->json();
+
+		$ref = (string) $this->field( $body, 'refund_ref' );
+		if ( '' === $ref ) {
+			$ref = (string) $this->field( $body, 'ref_id' );
+		}
+		if ( $response->ok() && '' !== $ref ) {
+			return PaymentRefundResult::ok( $ref );
+		}
+
+		[ $code, $message ] = GatewayErrors::classify(
+			$response->ok(),
+			$response->error_message(),
+			$body,
+			(string) ( $body['error_code'] ?? '' ),
+			(string) ( $body['error_message'] ?? '' ),
+			'refund_failed',
+			__( 'The PSP refused the refund.', 'igbz-suite' )
+		);
+		return PaymentRefundResult::failure( $code, $message );
 	}
 
 	private function api_key(): string {
@@ -124,6 +203,10 @@ final class HttpPspGateway implements GatewayInterface {
 
 	private function redirect_base(): string {
 		return igbz()->settings()->string( 'payments.httppsp.redirect_base' );
+	}
+
+	private function refund_url(): string {
+		return igbz()->settings()->string( 'payments.httppsp.refund_url' );
 	}
 
 	/** @return array<string,string> */

@@ -61,7 +61,7 @@ final class PasargadGateway extends AbstractIpgGateway {
 				],
 				'headers' => [ 'Accept' => 'application/json', 'Content-Type' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 30,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 		$body = $response->json();
@@ -86,7 +86,7 @@ final class PasargadGateway extends AbstractIpgGateway {
 				'json'    => [ 'merchantCode' => $this->cfg( 'merchant_code' ), 'terminalCode' => (int) $this->cfg( 'terminal_code' ), 'invoiceNumber' => $order_id, 'invoiceDate' => $invoice, 'sign' => $sign ],
 				'headers' => [ 'Accept' => 'application/json', 'Content-Type' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 30,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 		$body = $response->json();

@@ -86,7 +86,7 @@ final class ZarinpalGateway implements GatewayInterface {
 				'json'    => $payload,
 				'headers' => [ 'Accept' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 
@@ -98,10 +98,18 @@ final class ZarinpalGateway implements GatewayInterface {
 			return PaymentRequestResult::ok( $authority, $this->start() . $authority );
 		}
 
-		return PaymentRequestResult::failure(
-			(string) ( $this->first_error_code( $body ) ?: 'request_failed' ),
-			$this->first_error_message( $body ) ?: __( 'Zarinpal rejected the payment request.', 'igbz-suite' )
+		// Phase 30: a transport timeout must read as transient (`network_timeout`), not as a
+		// permanent PSP rejection — the shared classifier keeps the provider's own code otherwise.
+		[ $code, $message ] = GatewayErrors::classify(
+			$response->ok(),
+			$response->error_message(),
+			$body,
+			(string) $this->first_error_code( $body ),
+			$this->first_error_message( $body ),
+			'request_failed',
+			__( 'Zarinpal rejected the payment request.', 'igbz-suite' )
 		);
+		return PaymentRequestResult::failure( $code, $message );
 	}
 
 	public function verify( float $amount, array $callback_params ): PaymentVerifyResult {
@@ -125,7 +133,7 @@ final class ZarinpalGateway implements GatewayInterface {
 				],
 				'headers' => [ 'Accept' => 'application/json' ],
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 
@@ -144,10 +152,16 @@ final class ZarinpalGateway implements GatewayInterface {
 			return PaymentVerifyResult::duplicate( (string) ( $data['ref_id'] ?? '' ) );
 		}
 
-		return PaymentVerifyResult::failure(
+		[ $err_code, $err_message ] = GatewayErrors::classify(
+			$response->ok(),
+			$response->error_message(),
+			$body,
 			(string) ( $this->first_error_code( $body ) ?: $code ),
-			$this->first_error_message( $body ) ?: __( 'Zarinpal could not verify this payment.', 'igbz-suite' )
+			$this->first_error_message( $body ),
+			'verify_failed',
+			__( 'Zarinpal could not verify this payment.', 'igbz-suite' )
 		);
+		return PaymentVerifyResult::failure( $err_code, $err_message );
 	}
 
 	/** @param array<string,mixed> $body */

@@ -43,9 +43,13 @@ abstract class AbstractIpgGateway implements GatewayInterface {
 	 * not exist), so every response reads as a failure and PHP emits "Undefined array key".
 	 * Four gateways shipped with exactly that bug; see AGENT-BRIEF §5.
 	 *
+	 * Phase 30: the default timeout is the single shared PSP value (PspHttp::timeout()), never a
+	 * per-adapter number. And request() calls must never be auto-retried on timeout — see PspHttp.
+	 *
 	 * @return array{ok:bool,body:array,raw:string,error:string}
 	 */
-	protected function post_json( string $url, array $payload, int $timeout = 30 ): array {
+	protected function post_json( string $url, array $payload, int $timeout = 0 ): array {
+		$timeout = $timeout > 0 ? $timeout : PspHttp::timeout();
 		$response = $this->http->post(
 			$url,
 			[
@@ -66,7 +70,8 @@ abstract class AbstractIpgGateway implements GatewayInterface {
 	 *
 	 * @return array{ok:bool,body:array,raw:string,error:string}
 	 */
-	protected function post_raw( string $url, string $body, string $content_type = 'application/soap+xml; charset=utf-8', int $timeout = 30 ): array {
+	protected function post_raw( string $url, string $body, string $content_type = 'application/soap+xml; charset=utf-8', int $timeout = 0 ): array {
+		$timeout = $timeout > 0 ? $timeout : PspHttp::timeout();
 		$response = $this->http->post(
 			$url,
 			[
