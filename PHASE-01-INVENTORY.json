@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 222,
-    "source_php_sha256": "a197fd29c361c5f5997b9434501d63c19534bab1baa654bdc4769b8eeb988e8e",
+    "source_php_count": 223,
+    "source_php_sha256": "4df3fbb929a908d6acfa887707372d1c810d65f5f9b9993ea44b7ba37898bb02",
     "source_php_files": [
       "igbz-suite/src/Modules/Fx/Admin/FxPage.php",
       "igbz-suite/src/Modules/Fx/Contracts/FxPayoutAdapterInterface.php",
@@ -272,7 +272,8 @@
       "igbz-suite/src/Support/Settings.php",
       "igbz-suite/src/Support/TenantOffboarding.php",
       "igbz-suite/src/Support/TenantScope.php",
-      "igbz-suite/src/Support/UrlGuard.php"
+      "igbz-suite/src/Support/UrlGuard.php",
+      "igbz-suite/src/Support/WooCommerceCompat.php"
     ],
     "module_php_counts": {
       "Fx": 17,
@@ -282,8 +283,8 @@
       "Pado": 6,
       "RestApi": 22
     },
-    "support_php_count": 25,
-    "all_plugin_php_count": 267
+    "support_php_count": 26,
+    "all_plugin_php_count": 269
   },
   "database": {
     "version": 23,
@@ -797,7 +798,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 43,
+    "php_file_count": 44,
     "php_files": [
       "igbz-suite/tests/AccountCredentialsTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
@@ -813,6 +814,7 @@
       "igbz-suite/tests/FunnelDeliveryTest.php",
       "igbz-suite/tests/FxTest.php",
       "igbz-suite/tests/GatewayTest.php",
+      "igbz-suite/tests/HposOrderFlowTest.php",
       "igbz-suite/tests/IpgAdaptersTest.php",
       "igbz-suite/tests/JwtTest.php",
       "igbz-suite/tests/LmsTest.php",
@@ -843,7 +845,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 39,
+    "main_case_count": 40,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -883,7 +885,8 @@
       "DomainRoutingTest",
       "ThemeRoutingTest",
       "MigratorTest",
-      "BatchTest"
+      "BatchTest",
+      "HposOrderFlowTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

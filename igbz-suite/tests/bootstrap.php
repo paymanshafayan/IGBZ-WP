@@ -726,6 +726,10 @@ function wp_generate_uuid4(): string {
 class wpdb {
 	public string $prefix = 'wp_';
 
+	public string $posts = 'wp_posts';
+
+	public string $postmeta = 'wp_postmeta';
+
 	/** Every query passed to query(), so tests can assert on generated SQL. */
 	public array $queries = [];
 

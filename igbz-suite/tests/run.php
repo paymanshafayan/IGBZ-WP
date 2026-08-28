@@ -52,6 +52,7 @@ $cases = [
 	'ThemeRoutingTest',
 	'MigratorTest',
 	'BatchTest',
+	'HposOrderFlowTest',
 ];
 
 foreach ( $cases as $case ) {

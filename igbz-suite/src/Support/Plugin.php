@@ -48,6 +48,8 @@ final class Plugin {
 
 		$this->register_core_services();
 
+		WooCommerceCompat::register();
+
 		add_action( 'plugins_loaded', [ $this, 'on_plugins_loaded' ], 5 );
 		add_action( 'init', [ $this, 'load_textdomain' ], 1 );
 	}

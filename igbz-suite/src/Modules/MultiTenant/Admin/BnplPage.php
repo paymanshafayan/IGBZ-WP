@@ -5,6 +5,7 @@ use IGBZ\Suite\Modules\MultiTenant\Bnpl\BnplService;
 use IGBZ\Suite\Support\Admin\Menu;
 use IGBZ\Suite\Support\Admin\View;
 use IGBZ\Suite\Support\Capabilities;
+use IGBZ\Suite\Support\WooCommerceCompat;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -134,7 +135,7 @@ final class BnplPage {
 				),
 				'user'     => esc_html( $user ? $user->display_name : '#' . $row['user_id'] ),
 				'order'    => $row['order_id']
-					? sprintf( '<a href="%1$s">#%2$d</a>', esc_url( admin_url( 'post.php?post=' . (int) $row['order_id'] . '&action=edit' ) ), (int) $row['order_id'] )
+					? sprintf( '<a href="%1$s">#%2$d</a>', esc_url( WooCommerceCompat::order_edit_url( (int) $row['order_id'] ) ), (int) $row['order_id'] )
 					: '—',
 				'provider' => esc_html( (string) $row['provider'] ),
 				'total'    => esc_html( View::money( (float) $row['total_payable'] ) ),
