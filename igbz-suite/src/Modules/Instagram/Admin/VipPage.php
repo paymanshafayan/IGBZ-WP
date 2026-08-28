@@ -708,7 +708,7 @@ final class VipPage {
 	private function render_plans(): void {
 		$db   = igbz()->db();
 		$rows = $db->results(
-			'SELECT * FROM ' . $db->table( 'vip_plans' ) . ' WHERE tenant_id = %d OR tenant_id = 0 ORDER BY sort_order ASC, price ASC',
+			'SELECT * FROM ' . $db->table( 'vip_plans' ) . ' WHERE tenant_id = %d OR tenant_id = 0 ORDER BY sort_order ASC, price ASC LIMIT 100', // Phase 20: bounded plan catalog.
 			$this->tenant_id()
 		);
 
@@ -851,7 +851,7 @@ final class VipPage {
 		}
 
 		$db      = igbz()->db();
-		$comment = $db->row( 'SELECT post_id FROM ' . $db->table( 'vip_post_comments' ) . ' WHERE id = %d', $comment_id );
+		$comment = $db->row( 'SELECT post_id FROM ' . $db->table( 'vip_post_comments' ) . ' WHERE id = %d AND tenant_id = %d', $comment_id, igbz()->tenancy()->id() );
 		if ( ! $comment ) {
 			View::notice( __( 'Comment not found.', 'igbz-suite' ), 'error' );
 			return;
@@ -1002,8 +1002,9 @@ final class VipPage {
 			case 'pin':
 				$db      = igbz()->db();
 				$pinned  = (int) $db->scalar(
-					'SELECT is_pinned FROM ' . $db->table( 'vip_post_comments' ) . ' WHERE id = %d',
-					$id
+					'SELECT is_pinned FROM ' . $db->table( 'vip_post_comments' ) . ' WHERE id = %d AND tenant_id = %d',
+					$id,
+					igbz()->tenancy()->id()
 				);
 				$this->social()->pin_comment( $id, 1 !== $pinned );
 				View::notice( __( 'Comment updated.', 'igbz-suite' ) );

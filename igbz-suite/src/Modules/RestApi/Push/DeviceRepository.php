@@ -45,6 +45,13 @@ final class DeviceRepository {
 			$save['fcm_token'] = $token;
 		}
 
+		// Phase 12: the biometric signature contract. The app enrols a device key once (while
+		// the biometric prompt is unlocked); it is stored encrypted and never echoed back.
+		$key = (string) ( $data['signing_key'] ?? '' );
+		if ( '' !== $key ) {
+			$save['signing_key'] = \IGBZ\Suite\Support\Crypto::encrypt( substr( $key, 0, 191 ) );
+		}
+
 		if ( $row ) {
 			$this->db->update( 'devices', $save, [ 'id' => (int) $row['id'] ] );
 
@@ -62,10 +69,16 @@ final class DeviceRepository {
 		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'devices' ) . ' WHERE device_id = %s', $device_id );
 	}
 
-	/** @return array<int,array<string,mixed>> */
+	/**
+	 * @return array<int,array<string,mixed>>
+	 *
+	 * Phase 20: capped at the 100 most recently seen devices — a real person has a handful,
+	 * and this is the only honest way to keep a forgotten-device leak from growing a user's
+	 * result set without limit.
+	 */
 	public function for_user( int $user_id ): array {
 		return $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'devices' ) . ' WHERE user_id = %d ORDER BY last_seen_at DESC',
+			'SELECT * FROM ' . $this->db->table( 'devices' ) . ' WHERE user_id = %d ORDER BY last_seen_at DESC LIMIT 100',
 			$user_id
 		);
 	}
@@ -147,11 +160,15 @@ final class DeviceRepository {
 		return (int) ( $params ? $this->db->scalar( $sql, ...$params ) : $this->db->scalar( $sql ) );
 	}
 
-	/** Devices that have not checked in for a long time are dead weight in every broadcast. */
+	/**
+	 * Devices that have not checked in for a long time are dead weight in every broadcast.
+	 * Phase 20: trimmed in bounded batches so a stale backlog cannot lock the devices table.
+	 */
 	public function prune_stale( int $days = 180 ): int {
-		return $this->db->query(
-			'DELETE FROM ' . $this->db->table( 'devices' ) . ' WHERE last_seen_at < %s',
-			gmdate( 'Y-m-d H:i:s', time() - ( max( 1, $days ) * DAY_IN_SECONDS ) )
+		return $this->db->delete_batches(
+			'devices',
+			'last_seen_at < %s',
+			[ gmdate( 'Y-m-d H:i:s', time() - ( max( 1, $days ) * DAY_IN_SECONDS ) ) ]
 		);
 	}
 }

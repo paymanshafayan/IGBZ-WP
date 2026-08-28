@@ -77,8 +77,10 @@ final class Cron {
 		$settings = igbz()->settings();
 		igbz()->logger()->prune( $settings->int( 'log.retention_days', 30 ) );
 
+		// Phase 20: bounded batches — a grown-out table must not lock the site during
+		// housekeeping; whatever is left carries over to tomorrow's run.
 		$db = igbz()->db();
-		$db->query( 'DELETE FROM ' . $db->table( 'otp_codes' ) . ' WHERE expires_at < %s', gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
-		$db->query( 'DELETE FROM ' . $db->table( 'api_tokens' ) . ' WHERE expires_at < %s AND ( refresh_expires_at IS NULL OR refresh_expires_at < %s )', gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ), gmdate( 'Y-m-d H:i:s' ) );
+		$db->delete_batches( 'otp_codes', 'expires_at < %s', [ gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) ] );
+		$db->delete_batches( 'api_tokens', 'expires_at < %s AND ( refresh_expires_at IS NULL OR refresh_expires_at < %s )', [ gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ), gmdate( 'Y-m-d H:i:s' ) ] );
 	}
 }

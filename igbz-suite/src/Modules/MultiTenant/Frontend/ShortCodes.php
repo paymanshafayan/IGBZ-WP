@@ -5,6 +5,7 @@ use IGBZ\Suite\Modules\MultiTenant\Bnpl\BnplService;
 use IGBZ\Suite\Modules\MultiTenant\Lms\LmsService;
 use IGBZ\Suite\Modules\MultiTenant\Otp\OtpService;
 use IGBZ\Suite\Modules\MultiTenant\Plans\PlanService;
+use IGBZ\Suite\Support\TenantScope;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -251,7 +252,7 @@ final class ShortCodes {
 	 * @return array{quiz_id:int,score:int,passed:bool,remaining:int,error:string}|null
 	 */
 	private function maybe_grade_quiz( LmsService $lms, int $course_id, int $user_id, string $back ): ?array {
-		$key = 'igbz_quiz_result_' . $user_id;
+		$key = TenantScope::cache_key( 'igbz_quiz_result_' . $user_id );
 
 		if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! isset( $_POST['igbz_quiz_id'] ) ) {
 			$stored = get_transient( $key );

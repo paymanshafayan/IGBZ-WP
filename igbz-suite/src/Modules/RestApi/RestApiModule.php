@@ -88,6 +88,10 @@ final class RestApiModule implements ModuleInterface {
 		$plugin->bind( 'api.tokens', static fn ( Plugin $c ) => new TokenService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'api.auth', static fn ( Plugin $c ) => new Authenticator( $c->get( 'api.tokens' ), $c->logger() ) );
 		$plugin->bind( 'api.devices', static fn ( Plugin $c ) => new DeviceRepository( $c->db() ) );
+		$plugin->bind(
+			'api.biometric',
+			static fn ( Plugin $c ) => new \IGBZ\Suite\Support\BiometricGate( $c->get( 'api.devices' ), $c->logger() )
+		);
 		$plugin->bind( 'api.google_auth', static fn ( Plugin $c ) => new GoogleAuth( $c->http(), $c->logger() ) );
 		$plugin->bind(
 			'api.push',

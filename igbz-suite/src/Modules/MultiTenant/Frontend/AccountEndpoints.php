@@ -6,6 +6,7 @@ use IGBZ\Suite\Modules\MultiTenant\Bnpl\BnplService;
 use IGBZ\Suite\Modules\MultiTenant\Lms\LmsService;
 use IGBZ\Suite\Modules\MultiTenant\Payments\PaymentService;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletService;
+use IGBZ\Suite\Support\TenantScope;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -505,13 +506,13 @@ final class AccountEndpoints {
 	}
 
 	private function redirect_back( string $type, string $message, string $endpoint ): void {
-		set_transient( 'igbz_flash_' . get_current_user_id(), [ 'type' => $type, 'message' => $message ], 60 );
+		set_transient( TenantScope::cache_key( 'igbz_flash_' . get_current_user_id() ), [ 'type' => $type, 'message' => $message ], 60 );
 		wp_safe_redirect( wc_get_account_endpoint_url( $endpoint ) );
 		exit;
 	}
 
 	private function flash(): void {
-		$key   = 'igbz_flash_' . get_current_user_id();
+		$key   = TenantScope::cache_key( 'igbz_flash_' . get_current_user_id() );
 		$flash = get_transient( $key );
 		if ( ! is_array( $flash ) ) {
 			return;

@@ -63,18 +63,21 @@ final class LabelPrintingService {
 	}
 
 	/** @return array<int,array<string,mixed>> */
-	public function group_shipments( int $group_id ): array {
+	public function group_shipments( int $group_id, int $tenant_id ): array {
 		return $this->db->results(
 			'SELECT s.* FROM ' . $this->db->table( 'ig_shipments' ) . ' s
 			 INNER JOIN ' . $this->db->table( 'ig_label_group_items' ) . ' i ON i.shipment_id = s.id
-			 WHERE i.group_id = %d ORDER BY s.id',
-			$group_id
+			 INNER JOIN ' . $this->db->table( 'ig_label_groups' ) . ' g ON g.id = i.group_id
+			 WHERE i.group_id = %d AND g.tenant_id = %d AND s.tenant_id = %d ORDER BY s.id',
+			$group_id,
+			$tenant_id,
+			$tenant_id
 		);
 	}
 
 	/** Print-ready HTML (A4, 2x4 grid) with barcodes. */
-	public function render_labels( int $group_id ): string {
-		$shipments = $this->group_shipments( $group_id );
+	public function render_labels( int $group_id, int $tenant_id ): string {
+		$shipments = $this->group_shipments( $group_id, $tenant_id );
 		if ( ! $shipments ) {
 			return '<p>' . esc_html__( 'No shipments in this group.', 'igbz-suite' ) . '</p>';
 		}

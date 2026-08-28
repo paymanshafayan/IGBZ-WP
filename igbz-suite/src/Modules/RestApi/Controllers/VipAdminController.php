@@ -242,8 +242,9 @@ final class VipAdminController extends BaseController {
 	public function reply_comment( \WP_REST_Request $request ): \WP_REST_Response {
 		$db      = igbz()->db();
 		$comment = $db->row(
-			'SELECT post_id FROM ' . $db->table( 'vip_post_comments' ) . ' WHERE id = %d',
-			(int) $request['id']
+			'SELECT post_id FROM ' . $db->table( 'vip_post_comments' ) . ' WHERE id = %d AND tenant_id = %d',
+			(int) $request['id'],
+			$this->scoped_tenant_id( $request )
 		);
 		if ( ! $comment ) {
 			return $this->fail( 'igbz_vip_not_found', __( 'Comment not found.', 'igbz-suite' ), 404 );
@@ -568,8 +569,9 @@ final class VipAdminController extends BaseController {
 	private function post_stub( int $post_id ): array {
 		$db  = igbz()->db();
 		$row = $db->row(
-			'SELECT id, shortcode, caption, kind FROM ' . $db->table( 'vip_posts' ) . ' WHERE id = %d',
-			$post_id
+			'SELECT id, shortcode, caption, kind FROM ' . $db->table( 'vip_posts' ) . ' WHERE id = %d AND tenant_id = %d',
+			$post_id,
+			$this->scoped_tenant_id()
 		);
 
 		if ( ! $row ) {

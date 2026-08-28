@@ -105,7 +105,8 @@ final class LogisticsService {
 	 * @return array{ok:bool,tracking_code:string,message:string}
 	 */
 	public function register_with_carrier( int $shipment_id, ShippingAdapterInterface $adapter ): array {
-		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $shipment_id );
+		$tenant   = igbz()->tenancy()->id();
+		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d', $shipment_id, $tenant );
 		if ( ! $shipment ) {
 			return [ 'ok' => false, 'tracking_code' => '', 'message' => __( 'Shipment not found.', 'igbz-suite' ) ];
 		}
@@ -115,7 +116,7 @@ final class LogisticsService {
 			$this->db->update(
 				'ig_shipments',
 				[ 'status' => self::STATUS_FAILED, 'meta' => wp_json_encode( [ 'error' => $result['message'] ] ), 'updated_at' => current_time( 'mysql', true ) ],
-				[ 'id' => $shipment_id ]
+				[ 'id' => $shipment_id, 'tenant_id' => $tenant ]
 			);
 			return $result;
 		}
@@ -127,7 +128,7 @@ final class LogisticsService {
 				'tracking_code' => $result['tracking_code'],
 				'updated_at'    => current_time( 'mysql', true ),
 			],
-			[ 'id' => $shipment_id ]
+			[ 'id' => $shipment_id, 'tenant_id' => $tenant ]
 		);
 		$this->logger->info( 'logistics', 'Shipment registered', [ 'shipment_id' => $shipment_id, 'tracking' => $result['tracking_code'] ] );
 
@@ -136,7 +137,8 @@ final class LogisticsService {
 
 	/** Mark delivered once the carrier (or the courier's PIN confirm) says so. */
 	public function mark_delivered( int $shipment_id, string $pin = '' ): bool {
-		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $shipment_id );
+		$tenant   = igbz()->tenancy()->id();
+		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d', $shipment_id, $tenant );
 		if ( ! $shipment ) {
 			return false;
 		}
@@ -147,7 +149,7 @@ final class LogisticsService {
 		$this->db->update(
 			'ig_shipments',
 			[ 'status' => self::STATUS_DELIVERED, 'updated_at' => current_time( 'mysql', true ) ],
-			[ 'id' => $shipment_id ]
+			[ 'id' => $shipment_id, 'tenant_id' => $tenant ]
 		);
 
 		return true;
@@ -169,7 +171,7 @@ final class LogisticsService {
 	}
 
 	public function get( int $id ): ?array {
-		$row = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $id );
+		$row = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d', $id, igbz()->tenancy()->id() );
 		return $row ?: null;
 	}
 }

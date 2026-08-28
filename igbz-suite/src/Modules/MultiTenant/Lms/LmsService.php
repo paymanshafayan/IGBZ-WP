@@ -20,8 +20,12 @@ final class LmsService {
 	// -------------------------------------------------------------- courses
 
 	/** @return array<string,mixed>|null */
-	public function course( int $id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'courses' ) . ' WHERE id = %d', $id );
+	public function course( int $id, ?int $tenant_id = null ): ?array {
+		return $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'courses' ) . ' WHERE id = %d AND tenant_id = %d',
+			$id,
+			$this->tenant( $tenant_id )
+		);
 	}
 
 	/** @return array<string,mixed>|null */
@@ -34,8 +38,29 @@ final class LmsService {
 	}
 
 	/** @return array<string,mixed>|null */
-	public function course_by_product( int $product_id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'courses' ) . ' WHERE product_id = %d', $product_id );
+	public function course_by_product( int $product_id, ?int $tenant_id = null ): ?array {
+		return $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'courses' ) . ' WHERE product_id = %d AND tenant_id = %d',
+			$product_id,
+			$this->tenant( $tenant_id )
+		);
+	}
+
+	/**
+	 * Tenant scope for object reads (phase 07): null means "the tenant of the current
+	 * request". OWASP API1 - an id alone must never cross a tenant boundary.
+	 */
+	private function tenant( ?int $tenant_id ): int {
+		return $tenant_id ?? igbz()->tenancy()->id();
+	}
+
+	/** @return array<string,mixed>|null Enrollment row guarded by the tenant boundary. */
+	private function enrollment_row( int $id, ?int $tenant_id = null ): ?array {
+		return $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'enrollments' ) . ' WHERE id = %d AND tenant_id = %d',
+			$id,
+			$this->tenant( $tenant_id )
+		);
 	}
 
 	/**
@@ -118,7 +143,11 @@ final class LmsService {
 
 	/** @return array<string,mixed>|null */
 	public function lesson( int $id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'lessons' ) . ' WHERE id = %d', $id );
+		return $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'lessons' ) . ' WHERE id = %d AND tenant_id = %d',
+			$id,
+			$this->tenant( null )
+		);
 	}
 
 	/** @param array<string,mixed> $data */
@@ -149,11 +178,12 @@ final class LmsService {
 	// ------------------------------------------------------------ enrollment
 
 	/** @return array<string,mixed>|null */
-	public function enrollment( int $course_id, int $user_id ): ?array {
+	public function enrollment( int $course_id, int $user_id, ?int $tenant_id = null ): ?array {
 		return $this->db->row(
-			'SELECT * FROM ' . $this->db->table( 'enrollments' ) . ' WHERE course_id = %d AND user_id = %d',
+			'SELECT * FROM ' . $this->db->table( 'enrollments' ) . ' WHERE course_id = %d AND user_id = %d AND tenant_id = %d',
 			$course_id,
-			$user_id
+			$user_id,
+			$this->tenant( $tenant_id )
 		);
 	}
 
@@ -282,7 +312,7 @@ final class LmsService {
 	// -------------------------------------------------------------- progress
 
 	public function record_progress( int $enrollment_id, int $lesson_id, int $seconds_watched, bool $completed = false ): void {
-		$enrollment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'enrollments' ) . ' WHERE id = %d', $enrollment_id );
+		$enrollment = $this->enrollment_row( $enrollment_id );
 		if ( ! $enrollment ) {
 			return;
 		}
@@ -312,7 +342,7 @@ final class LmsService {
 	}
 
 	public function refresh_progress( int $enrollment_id ): int {
-		$enrollment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'enrollments' ) . ' WHERE id = %d', $enrollment_id );
+		$enrollment = $this->enrollment_row( $enrollment_id );
 		if ( ! $enrollment ) {
 			return 0;
 		}
@@ -371,7 +401,7 @@ final class LmsService {
 	 * @return string The certificate code, or '' when none is due.
 	 */
 	public function maybe_issue_certificate( int $enrollment_id ): string {
-		$enrollment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'enrollments' ) . ' WHERE id = %d', $enrollment_id );
+		$enrollment = $this->enrollment_row( $enrollment_id );
 		if ( ! $enrollment ) {
 			return '';
 		}
@@ -505,7 +535,11 @@ final class LmsService {
 
 	/** @return array<string,mixed>|null */
 	public function quiz( int $id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'quizzes' ) . ' WHERE id = %d', $id );
+		return $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'quizzes' ) . ' WHERE id = %d AND tenant_id = %d',
+			$id,
+			$this->tenant( null )
+		);
 	}
 
 	/** @return array<int,array<string,mixed>> */

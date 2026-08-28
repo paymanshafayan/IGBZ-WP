@@ -35,7 +35,7 @@ final class BnplPage {
 
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$contract_id = isset( $_GET['contract'] ) ? (int) $_GET['contract'] : 0;
-		$tenant_id   = isset( $_GET['tenant_id'] ) ? (int) $_GET['tenant_id'] : 0;
+		$tenant_id   = \IGBZ\Suite\Support\TenantScope::page_tenant_id( isset( $_GET['tenant_id'] ) ? (int) $_GET['tenant_id'] : null );
 		$status      = isset( $_GET['status'] ) ? sanitize_key( (string) $_GET['status'] ) : '';
 		$paged       = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
 		// phpcs:enable
@@ -343,7 +343,7 @@ final class BnplPage {
 		check_admin_referer( 'igbz_bnpl_credit' );
 
 		$user_id   = isset( $_POST['user_id'] ) ? (int) $_POST['user_id'] : 0;
-		$tenant_id = isset( $_POST['tenant_id'] ) ? (int) $_POST['tenant_id'] : 0;
+		$tenant_id = \IGBZ\Suite\Support\TenantScope::page_tenant_id( isset( $_POST['tenant_id'] ) ? (int) $_POST['tenant_id'] : null );
 		$limit     = isset( $_POST['credit_limit'] ) ? (float) $_POST['credit_limit'] : 0.0;
 
 		if ( ! $user_id ) {

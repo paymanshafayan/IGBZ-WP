@@ -48,6 +48,14 @@ final class MultiTenantModule implements ModuleInterface {
 	public function register( Plugin $plugin ): void {
 		$this->bind_services( $plugin );
 
+		// Phase 13: deleting a tenant sweeps every tenant-scoped table with it, audited.
+		add_action(
+			'igbz_tenant_deleted',
+			static function ( int $tenant_id ): void {
+				igbz()->get( 'tenant.offboarding' )->purge( $tenant_id );
+			}
+		);
+
 		// --- storefront / account plumbing -----------------------------------
 		add_action( 'init', [ $this, 'capture_referral' ], 5 );
 		add_action( 'init', [ $this, 'maybe_render_feed' ], 6 );
@@ -107,12 +115,14 @@ final class MultiTenantModule implements ModuleInterface {
 
 		( new Frontend\AccountEndpoints() )->register();
 		( new Frontend\ShortCodes() )->register();
+		( new Frontend\TenantThemeRouter( $plugin->db() ) )->register();
 
 		( new Lms\CertificatePage( $plugin->get( 'lms' ), $plugin->settings() ) )->register();
 	}
 
 	private function bind_services( Plugin $plugin ): void {
 		$plugin->bind( 'tenants', static fn ( Plugin $c ) => new TenantRepository( $c->db() ) );
+		$plugin->bind( 'tenant.offboarding', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\TenantOffboarding( $c->db(), $c->logger() ) );
 		$plugin->bind( 'wallet', static fn ( Plugin $c ) => new WalletService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'plans', static fn ( Plugin $c ) => new PlanService( $c->db(), $c->get( 'wallet' ), $c->logger() ) );
 				$plugin->bind( 'logistics.courier', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\CourierService( $c->db(), $c->logger() ) );

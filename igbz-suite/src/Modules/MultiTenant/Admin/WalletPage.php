@@ -32,7 +32,8 @@ final class WalletPage {
 			$this->handle_post();
 		}
 
-		$tenant_id = isset( $_GET['tenant_id'] ) ? (int) $_GET['tenant_id'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// Phase 14: the tenant comes from the resolved identity; only platform admins may aim elsewhere.
+		$tenant_id = \IGBZ\Suite\Support\TenantScope::page_tenant_id( isset( $_GET['tenant_id'] ) ? (int) $_GET['tenant_id'] : null ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$user_id   = isset( $_GET['user_id'] ) ? (int) $_GET['user_id'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$paged     = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
@@ -227,7 +228,7 @@ final class WalletPage {
 		check_admin_referer( 'igbz_wallet_adjust' );
 
 		$user_id   = isset( $_POST['user_id'] ) ? (int) $_POST['user_id'] : 0;
-		$tenant_id = isset( $_POST['tenant_id'] ) ? (int) $_POST['tenant_id'] : 0;
+		$tenant_id = \IGBZ\Suite\Support\TenantScope::page_tenant_id( isset( $_POST['tenant_id'] ) ? (int) $_POST['tenant_id'] : null );
 		$amount    = isset( $_POST['amount'] ) ? (float) $_POST['amount'] : 0.0;
 		$note      = isset( $_POST['note'] ) ? sanitize_text_field( wp_unslash( $_POST['note'] ) ) : '';
 		$reference = isset( $_POST['reference_code'] ) ? sanitize_text_field( wp_unslash( $_POST['reference_code'] ) ) : '';

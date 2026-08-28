@@ -50,7 +50,7 @@ final class GiveawayService {
 	 * @return array{ok:bool,message:string,winner_subscriber:string}
 	 */
 	public function draw( int $giveaway_id ): array {
-		$giveaway = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_giveaways' ) . ' WHERE id = %d', $giveaway_id );
+		$giveaway = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_giveaways' ) . ' WHERE id = %d AND tenant_id = %d', $giveaway_id, igbz()->tenancy()->id() );
 		if ( ! $giveaway ) {
 			return [ 'ok' => false, 'message' => __( 'Giveaway not found.', 'igbz-suite' ), 'winner_subscriber' => '' ];
 		}

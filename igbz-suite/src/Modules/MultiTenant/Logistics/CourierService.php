@@ -208,12 +208,13 @@ final class CourierService {
 
 	/** Customer-app COD: the customer scanned the barcode and paid in-app. */
 	public function cod_app_paid( int $shipment_id, string $charge_ref ): array {
-		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $shipment_id );
+		$tenant   = igbz()->tenancy()->id();
+		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d', $shipment_id, $tenant );
 		if ( ! $shipment ) {
 			return [ 'ok' => false, 'error' => 'not_found' ];
 		}
 		$this->save_cod( $shipment, 'app', 'paid', (float) $shipment['cost_irt'], 'cod-app:' . $shipment_id, '', $charge_ref );
-		$this->db->update( 'ig_shipments', [ 'status' => 'delivered', 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $shipment_id ] );
+		$this->db->update( 'ig_shipments', [ 'status' => 'delivered', 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $shipment_id, 'tenant_id' => $tenant ] );
 
 		return [ 'ok' => true, 'error' => '' ];
 	}
@@ -242,7 +243,16 @@ final class CourierService {
 	}
 
 	/** Chat between courier and customer. */
-	public function send_chat( int $shipment_id, string $sender, string $body, int $tenant_id ): int {
+	public function send_chat( int $shipment_id, string $sender, string $body, int $tenant_id, int $courier_id = 0 ): int {
+		// Ownership gate: a chat message can only land on a shipment bound to this courier.
+		$owned = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
+			$shipment_id,
+			$courier_id
+		);
+		if ( ! $owned ) {
+			return 0;
+		}
 		return (int) $this->db->insert(
 			'ig_courier_chat',
 			[
@@ -256,7 +266,15 @@ final class CourierService {
 	}
 
 	/** @return array<int,array<string,mixed>> */
-	public function chat( int $shipment_id ): array {
+	public function chat( int $shipment_id, int $courier_id ): array {
+		$owned = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
+			$shipment_id,
+			$courier_id
+		);
+		if ( ! $owned ) {
+			return [];
+		}
 		return $this->db->results(
 			'SELECT sender, body, created_at FROM ' . $this->db->table( 'ig_courier_chat' ) . ' WHERE shipment_id = %d ORDER BY id ASC',
 			$shipment_id

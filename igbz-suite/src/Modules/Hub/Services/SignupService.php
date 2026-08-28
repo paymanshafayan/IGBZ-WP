@@ -124,6 +124,15 @@ final class SignupService {
 
 		$slug_check = $this->check_slug( $slug );
 		if ( ! $slug_check['available'] ) {
+			// Phase 16 idempotency: a re-submitted signup for a store that the very same
+			// owner already provisioned returns that store instead of failing — retrying a
+			// successful request must be safe.
+			$taken_by      = $this->tenants->find_by_slug( $slug );
+			$existing_user = get_user_by( 'email', $email );
+			if ( $taken_by instanceof Tenant && $existing_user && (int) $taken_by->owner_user_id === (int) $existing_user->ID ) {
+				$this->logger->info( 'hub', 'Signup re-run returned the existing store', [ 'tenant_id' => $taken_by->id, 'user_id' => (int) $existing_user->ID ] );
+				return $this->result_for_existing( $taken_by, (int) $existing_user->ID );
+			}
 			return $fail( $slug_check['message'] );
 		}
 
@@ -160,26 +169,45 @@ final class SignupService {
 			return $fail( __( 'The store could not be created. Please try again.', 'igbz-suite' ) );
 		}
 
-		$this->tenants->add_member( $tenant_id, $user_id, 'owner' );
-		if ( igbz()->has( 'domain' ) ) {
-			// Every provisioned store receives the free mother-site subdomain first;
-			// a custom domain can be added and verified later without changing the tenant.
-			igbz()->get( 'domain' )->use_subdomain( $tenant_id, $slug );
+		// Phase 16 partial rollback: everything between tenant creation and the payment
+		// attempt either completes as a whole or is undone. A half-provisioned store —
+		// owner without a membership, or a tenant without its subscription — is worse than
+		// a clean failure the customer can retry. Deleting the brand-new tenant also runs
+		// the offboarding sweep, so nothing created in between survives.
+		$subscription_id = 0;
+		try {
+			$this->tenants->add_member( $tenant_id, $user_id, 'owner' );
+			if ( igbz()->has( 'domain' ) ) {
+				// Every provisioned store receives the free mother-site subdomain first;
+				// a custom domain can be added and verified later without changing the tenant.
+				$domain_result = igbz()->get( 'domain' )->use_subdomain( $tenant_id, $slug );
+				if ( is_array( $domain_result ) && empty( $domain_result['ok'] ) ) {
+					// The store stays reachable on the path base; a missing subdomain is a
+					// degraded URL, not a provisioning failure.
+					$this->logger->warning( 'hub', 'Signup subdomain step failed; path URL still works', [ 'tenant_id' => $tenant_id, 'error' => (string) ( $domain_result['error'] ?? '' ) ] );
+				}
+			}
+
+			$user = get_userdata( $user_id );
+			if ( $user && ! in_array( Capabilities::ROLE_TENANT_OWNER, (array) $user->roles, true ) ) {
+				$user->add_role( Capabilities::ROLE_TENANT_OWNER );
+			}
+
+			if ( $plan ) {
+				$subscription_id = $this->plans->subscribe( $tenant_id, $plan_id, true );
+			}
+		} catch ( \Throwable $e ) {
+			$this->logger->error( 'hub', 'Provisioning failed; rolling back the new tenant', [ 'tenant_id' => $tenant_id, 'error' => $e->getMessage() ] );
+			$this->tenants->remove_member( $tenant_id, $user_id );
+			$this->tenants->delete( $tenant_id );
+			return $fail( __( 'The store could not be set up. Nothing was charged — please try again.', 'igbz-suite' ) );
 		}
 
-		$user = get_userdata( $user_id );
-		if ( $user && ! in_array( Capabilities::ROLE_TENANT_OWNER, (array) $user->roles, true ) ) {
-			$user->add_role( Capabilities::ROLE_TENANT_OWNER );
-		}
-
-		$subscription_id  = 0;
 		$payment_id       = 0;
 		$redirect_url     = '';
 		$requires_payment = false;
 
 		if ( $plan ) {
-			$subscription_id = $this->plans->subscribe( $tenant_id, $plan_id, true );
-
 			$price = $this->cycle_price( $plan, (string) ( $data['billing_cycle'] ?? '' ) );
 			if ( $price > 0 && (int) $plan['trial_days'] <= 0 ) {
 				$requires_payment = true;
@@ -226,6 +254,29 @@ final class SignupService {
 			'payment_id'       => $payment_id,
 			'redirect_url'     => $redirect_url,
 			'subscription_id'  => $subscription_id,
+		];
+	}
+
+	/**
+	 * Phase 16: shape the return value for a store that already exists, so a re-run of the
+	 * same signup request looks exactly like a success and never duplicates anything.
+	 *
+	 * @return array{
+	 *   ok:bool, error:string, tenant_id:int, user_id:int, store_url:string,
+	 *   requires_payment:bool, payment_id:int, redirect_url:string, subscription_id:int
+	 * }
+	 */
+	private function result_for_existing( Tenant $tenant, int $user_id ): array {
+		return [
+			'ok'               => true,
+			'error'            => '',
+			'tenant_id'        => $tenant->id,
+			'user_id'          => $user_id,
+			'store_url'        => ( new DirectoryService( igbz()->db(), $this->tenants ) )->store_url( $tenant ),
+			'requires_payment' => false,
+			'payment_id'       => 0,
+			'redirect_url'     => '',
+			'subscription_id'  => 0,
 		];
 	}
 

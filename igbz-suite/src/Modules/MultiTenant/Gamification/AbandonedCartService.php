@@ -24,9 +24,11 @@ final class AbandonedCartService {
 	public function watch( int $user_id, string $session_key, float $total ): void {
 		$existing = $this->db->row(
 			'SELECT id FROM ' . $this->db->table( 'ig_abandoned_carts' ) . '
-			 WHERE session_key = %s AND status = %s LIMIT 1',
+			 WHERE session_key = %s AND status = %s AND tenant_id = %d AND user_id = %d LIMIT 1',
 			$session_key,
-			self::STATUS_OPEN
+			self::STATUS_OPEN,
+			igbz()->tenancy()->id(),
+			$user_id
 		);
 		if ( $existing ) {
 			$this->db->update(

@@ -172,12 +172,32 @@ final class AuthController extends BaseController {
 		return true;
 	}
 
+	/**
+	 * Phase 12: refresh tokens are unguessable, but the endpoint itself still deserves a cap —
+	 * keyed by client address plus a hash of the presented token so one loud client cannot
+	 * spend another's budget.
+	 */
+	private function within_refresh_throttle( string $refresh_token ): bool {
+		$ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$key  = 'igbz_api_refresh_' . md5( $ip . '|' . substr( hash( 'sha256', $refresh_token ), 0, 32 ) );
+		$hits = (int) get_transient( $key );
+		if ( $hits >= 20 ) {
+			return false;
+		}
+		set_transient( $key, $hits + 1, 5 * MINUTE_IN_SECONDS );
+		return true;
+	}
+
 	// ------------------------------------------------------------- refresh
 
 	public function refresh( \WP_REST_Request $request ): \WP_REST_Response {
 		$refresh_token = (string) $request->get_param( 'refresh_token' );
 		if ( '' === $refresh_token ) {
 			return $this->fail( 'missing_refresh_token', __( 'A refresh token is required.', 'igbz-suite' ) );
+		}
+
+		if ( ! $this->within_refresh_throttle( $refresh_token ) ) {
+			return $this->fail( 'too_many_refresh_attempts', __( 'Too many refresh attempts. Please wait.', 'igbz-suite' ), 429 );
 		}
 
 		$result = $this->tokens->refresh( $refresh_token, $this->device_id( $request ) );

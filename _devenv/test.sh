@@ -32,6 +32,16 @@ if [ "$RUN_TESTS" = "1" ]; then
 	echo
 fi
 
+if [ "$RUN_TESTS" = "1" ]; then
+	echo "==> drift guard (PHASE-01-INVENTORY.json vs code)"
+	if command -v python3 >/dev/null 2>&1; then
+		python3 "$REPO/_devenv/phase01_inventory.py" --check || status=1
+	else
+		echo "  skipped: python3 not available"
+	fi
+	echo
+fi
+
 if [ "$RUN_LINT" = "1" ]; then
 	echo "==> php syntax check"
 	# Written to a temp file rather than the repo, so `git status` stays clean.

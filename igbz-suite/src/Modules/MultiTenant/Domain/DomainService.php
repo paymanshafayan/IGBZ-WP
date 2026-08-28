@@ -169,8 +169,8 @@ final class DomainService {
 	}
 
 	/** Mark DNS verified (gates bank gateway + Google/Bing). */
-	public function verify_dns( int $domain_id ): bool {
-		$row = $this->db->row( 'SELECT tenant_id, name FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE id = %d', $domain_id );
+	public function verify_dns( int $domain_id, int $tenant_id ): bool {
+		$row = $this->db->row( 'SELECT tenant_id, name FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE id = %d AND tenant_id = %d', $domain_id, $tenant_id );
 		if ( ! $row || ! function_exists( 'dns_get_record' ) ) { return false; }
 		$name = strtolower( rtrim( (string) $row['name'], '.' ) );
 		$mapping = $this->db->row( 'SELECT id, verification_token FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE tenant_id = %d AND domain = %s LIMIT 1', (int) $row['tenant_id'], $name );
@@ -185,7 +185,7 @@ final class DomainService {
 			}
 		}
 		if ( ! $valid ) { $this->logger->warning( 'domain', 'DNS verification refused', [ 'domain_id' => $domain_id ] ); return false; }
-		$this->db->update( 'ig_domains', [ 'dns_verified' => 1, 'status' => 'active', 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $domain_id ] );
+		$this->db->update( 'ig_domains', [ 'dns_verified' => 1, 'status' => 'active', 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $domain_id, 'tenant_id' => $tenant_id ] );
 		if ( $mapping ) { $this->db->update( 'tenant_domains', [ 'verified_at' => current_time( 'mysql', true ) ], [ 'id' => (int) $mapping['id'] ] ); }
 		return true;
 	}
@@ -209,9 +209,12 @@ final class DomainService {
 
 	private function sync_tenant_domain( int $tenant_id, string $domain, bool $verified ): int {
 		$domain = strtolower( trim( preg_replace( '#^https?://#', '', $domain ), '/' ) );
+		// Tenant-scoped: the same domain name may sit in another tenant's (stale) mapping, and
+		// flipping that row's verified_at would verify the wrong tenant.
 		$existing = $this->db->row(
-			'SELECT id FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE domain = %s LIMIT 1',
-			$domain
+			'SELECT id FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE domain = %s AND tenant_id = %d LIMIT 1',
+			$domain,
+			$tenant_id
 		);
 		if ( $existing ) {
 			if ( $verified ) {

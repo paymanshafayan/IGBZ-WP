@@ -72,6 +72,13 @@ final class AiStudioService {
 			require_once ABSPATH . 'wp-admin/includes/image.php';
 		}
 
+		// Phase 10: provider-supplied URLs still go through the SSRF gate before WordPress
+		// fetches them on our behalf.
+		if ( ! \IGBZ\Suite\Support\UrlGuard::is_safe( (string) $result['url'] ) ) {
+			$this->logger->log( \IGBZ\Suite\Support\Logger::WARNING, 'security', 'AI studio sideload blocked by URL guard' );
+			return [ 'ok' => false, 'attachment_id' => 0, 'url' => '', 'error' => 'Blocked by the SSRF guard.' ];
+		}
+
 		$attachment_id = media_sideload_image( $result['url'], 0, 'AI studio ' . $kind, 'id' );
 		if ( is_wp_error( $attachment_id ) ) {
 			$this->logger->error( 'ai_studio', 'Sideload failed', [ 'kind' => $kind, 'error' => $attachment_id->get_error_message() ] );

@@ -54,54 +54,110 @@ final class Activator {
 		self::install_tables();
 		self::add_roles();
 		self::seed_defaults();
-		self::migrate( $current );
+
+		// Preserve the historical behaviour: a site with no recorded version gets stamped,
+		// not migrated through the whole ladder.
+		if ( $current <= 0 ) {
+			update_option( self::VERSION_OPTION, IGBZ_DB_VERSION, true );
+			return;
+		}
+
+		// Phase 19: upgrades run through the Migrator — one runner at a time, a checkpoint
+		// after every step, and a readable progress record. A failed or interrupted upgrade
+		// simply resumes from its checkpoint on the next request instead of replaying blind.
+		$result = self::migrator()->run( $current, IGBZ_DB_VERSION );
+		if ( ! $result['ok'] ) {
+			// 'locked' means another request is upgrading right now; a step failure keeps the
+			// version option where it was. Either way the next request retries safely.
+			return;
+		}
+
 		self::schedule_events();
-		update_option( self::VERSION_OPTION, IGBZ_DB_VERSION, true );
 	}
 
 	/**
-	 * Data migrations that dbDelta cannot express.
+	 * Phase 19: the ordered data-migration steps, driven by the Migrator. Every step must
+	 * stay idempotent — dbDelta adds the columns, but existing rows still need values, and
+	 * the checkpoint/resume machinery re-runs steps after an interruption.
 	 *
-	 * dbDelta adds the new columns, but existing rows still need values, so each step is written
-	 * to be idempotent and safe to re-run.
+	 * @return array<int,callable> target version => step
 	 */
-	private static function migrate( int $from ): void {
-		if ( $from > 0 && $from < 6 ) {
-			self::migrate_to_v6();
+	private static function migration_steps(): array {
+		return [
+			6  => [ self::class, 'migrate_to_v6' ],
+			7  => [ self::class, 'migrate_to_v7' ],
+			9  => [ self::class, 'migrate_to_v9' ],
+			10 => [ self::class, 'migrate_to_v10' ],
+			11 => [ self::class, 'migrate_to_v11' ],
+			12 => [ self::class, 'migrate_to_v12' ],
+			13 => [ self::class, 'migrate_to_v13' ],
+			14 => [ self::class, 'migrate_to_v14' ],
+			15 => [ self::class, 'migrate_to_v15' ],
+			16 => [ self::class, 'migrate_to_v16' ],
+			17 => [ self::class, 'migrate_to_v17' ],
+			19 => [ self::class, 'migrate_to_v19' ],
+			20 => [ self::class, 'migrate_to_v20' ],
+			21 => [ self::class, 'migrate_to_v21' ],
+			22 => [ self::class, 'migrate_to_v22' ],
+			23 => [ self::class, 'migrate_to_v23' ],
+		];
+	}
+
+	private static function migrator(): Migrator {
+		$migrator = new Migrator();
+		foreach ( self::migration_steps() as $version => $step ) {
+			$migrator->add( $version, $step );
 		}
-		if ( $from > 0 && $from < 7 ) {
-			self::migrate_to_v7();
-		}
-		if ( $from > 0 && $from < 9 ) {
-			self::migrate_to_v9();
-		}
-		if ( $from > 0 && $from < 10 ) {
-			self::migrate_to_v10();
-		}
-		if ( $from > 0 && $from < 11 ) {
-			self::migrate_to_v11();
-		}
-		if ( $from > 0 && $from < 12 ) {
-			self::migrate_to_v12();
-		}
-		if ( $from > 0 && $from < 13 ) {
-			self::migrate_to_v13();
-		}
-		if ( $from > 0 && $from < 14 ) {
-			self::migrate_to_v14();
-		}
-		if ( $from > 0 && $from < 15 ) {
-			self::migrate_to_v15();
-		}
-		if ( $from > 0 && $from < 16 ) {
-			self::migrate_to_v16();
-		}
-		if ( $from > 0 && $from < 17 ) {
-			self::migrate_to_v17();
-		}
-		if ( $from > 0 && $from < 19 ) {
-			self::migrate_to_v19();
-		}
+		return $migrator;
+	}
+
+	/**
+	 * v22 (phase 12): biometric signature contract — devices gain `signing_key`, the
+	 * encrypted device key the server uses to verify signed bulk requests. dbDelta adds the
+	 * column; existing rows simply carry the empty default. No data back-fill.
+	 */
+	private static function migrate_to_v22(): void {
+		// Pure dbDelta work; see Schema::devices().
+	}
+
+	/**
+	 * v23 (phase 20): composite indexes for the housekeeping and routing access paths.
+	 *
+	 * Derived from the query patterns in the code rather than a live EXPLAIN (the sandbox has
+	 * no real MySQL): api_tokens gains expires_at / refresh_expires_at / revoked_at for the
+	 * daily prune and session scans, devices gains last_seen_at for stale-device trimming.
+	 * Validating them with EXPLAIN on production-sized data stays a recorded production task.
+	 * Pure dbDelta work; see Schema::api_tokens() and Schema::devices().
+	 */
+	private static function migrate_to_v23(): void {
+		// Pure dbDelta work; see Schema::api_tokens() and Schema::devices().
+	}
+
+	/**
+	 * v21 (phase 06): bring installs activated before the security defaults existed in line.
+	 *
+	 * seed_defaults() only fills keys that are absent, so a site created before
+	 * `security.*` landed never sees them and the Advanced tab renders the protections as
+	 * off while the code quietly runs them on. Filling the gaps here makes the form and the
+	 * behaviour agree. No schema change.
+	 */
+	private static function migrate_to_v21(): void {
+		self::seed_defaults();
+	}
+
+	/**
+	 * v20 (phase 05): registered secrets stored in plaintext are encrypted at rest.
+	 *
+	 * The v19 registry covered 17 keys, but the admin forms render 36 password fields and 22 of
+	 * them were never members, so every value an operator pasted in was persisted as a plain
+	 * option and echoed back into the form HTML. Phase 05 added those keys (plus one generated
+	 * token found along the way) to Settings::SECRETS; this step brings the rows already on
+	 * disk in line. No schema change. Idempotent by construction: encrypt_legacy_secrets()
+	 * skips values that already carry the versioned payload prefix, and the read path never
+	 * broke because Crypto::decrypt() passes unversioned payloads through.
+	 */
+	private static function migrate_to_v20(): void {
+		( new Settings() )->encrypt_legacy_secrets();
 	}
 
 	/**
@@ -649,6 +705,11 @@ final class Activator {
 			'general.auto_approve_tenants'  => false,
 			'log.level'                     => Logger::INFO,
 			'log.retention_days'            => 30,
+			'security.disable_xmlrpc'       => true,
+			'security.disable_app_passwords' => true,
+			'security.block_user_enumeration' => true,
+			'security.disable_oembed'       => true,
+			'security.senior_admin_id'      => 0,
 			'http.timeout'                  => 20,
 			'purge_on_uninstall'            => false,
 			'wallet.enabled'                => true,
@@ -963,6 +1024,7 @@ final class Activator {
 			'api.jwt_ttl'                   => 3600,
 			'api.refresh_ttl'               => 2592000,
 			'api.rate_limit_per_minute'     => 120,
+			'api.tenant_rate_limit_per_minute' => 600,
 			'api.push_enabled'              => false,
 			'api.push_channel_id'           => 'igbz_default',
 			'api.push_order_updates'        => true,

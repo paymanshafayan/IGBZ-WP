@@ -162,7 +162,7 @@ final class PlanService {
 	 * Idempotent per (subscription, period) via the ledger reference code.
 	 */
 	public function renew( int $subscription_id ): bool {
-		$sub = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'subscriptions' ) . ' WHERE id = %d', $subscription_id );
+		$sub = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'subscriptions' ) . ' WHERE id = %d AND tenant_id = %d', $subscription_id, igbz()->tenancy()->id() );
 		if ( ! $sub ) {
 			return false;
 		}

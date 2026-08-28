@@ -119,7 +119,7 @@ final class FunnelService {
 
 	/** @return array<string,mixed>|null */
 	public function get( int $id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_funnels' ) . ' WHERE id = %d', $id );
+		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_funnels' ) . ' WHERE id = %d AND tenant_id = %d', $id, igbz()->tenancy()->id() );
 	}
 
 	/**
@@ -139,7 +139,8 @@ final class FunnelService {
 			$where[] = 'is_active = 1';
 		}
 
-		$sql = 'SELECT * FROM ' . $this->db->table( 'ig_funnels' ) . ' WHERE ' . implode( ' AND ', $where ) . ' ORDER BY id DESC';
+		// Phase 20: a tenant's funnel list is bounded; the cap documents it.
+		$sql = 'SELECT * FROM ' . $this->db->table( 'ig_funnels' ) . ' WHERE ' . implode( ' AND ', $where ) . ' ORDER BY id DESC LIMIT 500';
 
 		return $params ? $this->db->results( $sql, ...$params ) : $this->db->results( $sql );
 	}

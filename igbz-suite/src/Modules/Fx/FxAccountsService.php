@@ -22,7 +22,7 @@ final class FxAccountsService {
 				$tenant_id
 			);
 		}
-		return $this->db->results( 'SELECT * FROM ' . $this->db->table( 'fx_accounts' ) . ' ORDER BY id' );
+		return $this->db->results( 'SELECT * FROM ' . $this->db->table( 'fx_accounts' ) . ' ORDER BY id LIMIT 500' ); // Phase 20: bounded list.
 	}
 
 	/** @return array<int,array<string,mixed>> */
@@ -34,7 +34,7 @@ final class FxAccountsService {
 	}
 
 	public function get( int $id ): ?array {
-		$row = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'fx_accounts' ) . ' WHERE id = %d', $id );
+		$row = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'fx_accounts' ) . ' WHERE id = %d AND tenant_id = %d', $id, igbz()->tenancy()->id() );
 		return $row ?: null;
 	}
 
@@ -55,6 +55,6 @@ final class FxAccountsService {
 
 	public function update( int $id, array $data ): void {
 		$data['updated_at'] = current_time( 'mysql', true );
-		$this->db->update( 'fx_accounts', $data, [ 'id' => $id ] );
+		$this->db->update( 'fx_accounts', $data, [ 'id' => $id, 'tenant_id' => igbz()->tenancy()->id() ] );
 	}
 }

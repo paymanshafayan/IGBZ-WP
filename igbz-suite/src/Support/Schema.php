@@ -715,7 +715,10 @@ final class Schema {
 			PRIMARY KEY  (id),
 			UNIQUE KEY jti (jti),
 			KEY user_id (user_id),
-			KEY refresh_hash (refresh_hash)
+			KEY refresh_hash (refresh_hash),
+			KEY expires_at (expires_at),
+			KEY refresh_expires_at (refresh_expires_at),
+			KEY revoked_at (revoked_at)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}devices (
@@ -723,6 +726,7 @@ final class Schema {
 			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			device_id VARCHAR(128) NOT NULL,
+			signing_key VARCHAR(255) NOT NULL DEFAULT '',
 			platform VARCHAR(16) NOT NULL DEFAULT '',
 			fcm_token VARCHAR(255) NOT NULL DEFAULT '',
 			app_version VARCHAR(32) NOT NULL DEFAULT '',
@@ -732,7 +736,8 @@ final class Schema {
 			PRIMARY KEY  (id),
 			UNIQUE KEY device (device_id),
 			KEY user_id (user_id),
-			KEY fcm_token (fcm_token(191))
+			KEY fcm_token (fcm_token(191)),
+			KEY last_seen_at (last_seen_at)
 		) {$charset};";
 
 		// The VIP channel: a private Instagram-shaped feed inside our own app.

@@ -39,8 +39,18 @@ final class ThemeService {
 	}
 
 	/**
+	 * Phase 15: zips live under a per-tenant folder so two stores uploading the same slug
+	 * can never overwrite each other. Callers must write to storage_dir_for( tenant )/slug.zip.
+	 */
+	public function storage_dir_for( int $tenant_id ): string {
+		$dir = $this->upload_dir . 't' . max( 0, $tenant_id ) . '/';
+		wp_mkdir_p( $dir );
+		return $dir;
+	}
+
+	/**
 	 * Persist a theme record in igbz_themes. Does NOT move/install files — caller
-	 * writes the zip to storage_dir()/<slug>.zip first, then calls this.
+	 * writes the zip to storage_dir_for( tenant_id )/<slug>.zip first, then calls this.
 	 *
 	 * @param array<string,mixed> $data
 	 */
@@ -102,33 +112,25 @@ final class ThemeService {
 		if ( 'zip' !== strtolower( (string) pathinfo( (string) ( $file['name'] ?? '' ), PATHINFO_EXTENSION ) ) ) {
 			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'فقط فایل ZIP پذیرفته می‌شود.' ];
 		}
+		if ( ! \IGBZ\Suite\Support\ArchiveGuard::looks_like_zip( (string) $file['tmp_name'] ) ) {
+			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'امضای فایل ZIP معتبر نیست.' ];
+		}
 		$zip = new \ZipArchive();
 		if ( true !== $zip->open( (string) $file['tmp_name'], \ZipArchive::CHECKCONS ) ) {
 			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'آرشیو ZIP معتبر نیست.' ];
 		}
-		if ( $zip->numFiles > ThemeValidator::DEFAULT_MAX_FILES ) {
+		// Phase 11: entry count, uncompressed size and name safety live in one gate.
+		$guard = \IGBZ\Suite\Support\ArchiveGuard::check(
+			$zip,
+			ThemeValidator::DEFAULT_MAX_FILES,
+			ThemeValidator::DEFAULT_MAX_BYTES
+		);
+		if ( ! $guard['ok'] ) {
 			$zip->close();
-			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'تعداد فایل‌های ZIP از سقف مجاز بیشتر است.' ];
-		}
-		$uncompressed = 0;
-		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
-			$stat = $zip->statIndex( $i );
-			$uncompressed += (int) ( $stat['size'] ?? 0 );
-		}
-		if ( $uncompressed > ThemeValidator::DEFAULT_MAX_BYTES ) {
-			$zip->close();
-			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'حجم بازشدهٔ ZIP از سقف مجاز بیشتر است.' ];
+			return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'آرشیو ZIP از نگهبان عبور نکرد.' ];
 		}
 		$tmp = trailingslashit( get_temp_dir() ) . 'igbz-theme-' . wp_generate_uuid4();
 		wp_mkdir_p( $tmp );
-		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
-			$name = (string) ( $zip->getNameIndex( $i ) ?: '' );
-			if ( '' === $name || false !== strpos( str_replace( '\\\\', '/', $name ), '..' ) || str_starts_with( $name, '/' ) ) {
-				$zip->close();
-				$this->remove_tree( $tmp );
-				return [ 'ok' => false, 'id' => 0, 'validation' => [], 'error' => 'مسیر ناامن داخل ZIP پیدا شد.' ];
-			}
-		}
 		$zip->extractTo( $tmp );
 		$zip->close();
 		$validation_dir = $tmp;
@@ -171,6 +173,12 @@ final class ThemeService {
 		if ( ! $row || ! is_readable( (string) $row['zip_path'] ) ) { return [ 'ok' => false, 'error' => 'فایل قالب یافت نشد.' ]; }
 		$zip = new \ZipArchive();
 		if ( true !== $zip->open( (string) $row['zip_path'], \ZipArchive::CHECKCONS ) ) { return [ 'ok' => false, 'error' => 'آرشیو قالب معتبر نیست.' ]; }
+		// Defense in depth: the zip was judged once at ingest; judge it again at extraction.
+		$guard = \IGBZ\Suite\Support\ArchiveGuard::check( $zip );
+		if ( ! $guard['ok'] ) {
+			$zip->close();
+			return [ 'ok' => false, 'error' => 'آرشیو قالب از نگهبان عبور نکرد.' ];
+		}
 		$tmp = trailingslashit( get_temp_dir() ) . 'igbz-preview-' . wp_generate_uuid4();
 		wp_mkdir_p( $tmp );
 		$zip->extractTo( $tmp ); $zip->close();
@@ -194,19 +202,41 @@ final class ThemeService {
 		$slug = sanitize_title( (string) $row['slug'] );
 		if ( ! isset( $installed[ $slug ] ) ) { $preview = $this->install_preview( $id ); if ( ! $preview['ok'] ) { return $preview; } }
 		$tenant_id = (int) ( $row['tenant_id'] ?? 0 );
-		$previous_key = 'igbz_previous_theme_slug_' . $tenant_id;
-		$previous = get_option( $previous_key, get_stylesheet() );
-		update_option( $previous_key, $previous, false );
-		switch_theme( $slug );
+		if ( $tenant_id <= 0 ) { return [ 'ok' => false, 'error' => 'قالب به هیچ فروشگاهی تعلق ندارد.' ]; }
+
+		// Phase 18: activation is per-tenant state, never a global switch_theme() — one store
+		// going live with its theme must not repaint every other store or the mother site.
+		// The tenant's theme column is the source of truth; TenantThemeRouter applies it at
+		// request time. The previous slug (tenant's own, or the site stylesheet as first
+		// fallback) is remembered for rollback.
+		$current = (string) ( $this->db->scalar( 'SELECT theme FROM ' . $this->db->table( 'tenants' ) . ' WHERE id = %d', $tenant_id ) ?? '' );
+		$previous = '' !== $current ? $current : get_stylesheet();
+		update_option( 'igbz_previous_theme_slug_' . $tenant_id, $previous, false );
+
+		$this->db->update( 'tenants', [ 'theme' => $slug, 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $tenant_id ] );
+		$this->db->query(
+			'UPDATE ' . $this->db->table( 'themes' ) . ' SET status = %s WHERE status = %s AND tenant_id = %d AND id != %d',
+			self::STATUS_ARCHIVED,
+			self::STATUS_LIVE,
+			$tenant_id,
+			$id
+		);
 		$this->db->update( 'themes', [ 'status' => self::STATUS_LIVE, 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $id ] );
 		return [ 'ok' => true, 'error' => '' ];
 	}
 
 	public function rollback( int $tenant_id = 0 ): array {
+		$tenant_id = (int) $tenant_id;
+		if ( $tenant_id <= 0 ) { return [ 'ok' => false, 'error' => 'بازگشت قالب بدون فروشگاه ممکن نیست.' ]; }
+
 		$previous = sanitize_title( (string) get_option( 'igbz_previous_theme_slug_' . $tenant_id, '' ) );
 		if ( '' === $previous || ! isset( wp_get_themes()[ $previous ] ) ) { return [ 'ok' => false, 'error' => 'قالب قبلی برای بازگشت یافت نشد.' ]; }
-		switch_theme( $previous );
-		$this->db->query( 'UPDATE ' . $this->db->table( 'themes' ) . ' SET status = %s WHERE status = %s', self::STATUS_ARCHIVED, self::STATUS_LIVE );
+
+		// Phase 18: rollback restores this tenant's own theme and archives only this
+		// tenant's live theme — the global UPDATE used to archive other stores' live themes.
+		$this->db->update( 'tenants', [ 'theme' => $previous, 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $tenant_id ] );
+		$this->db->query( 'UPDATE ' . $this->db->table( 'themes' ) . ' SET status = %s WHERE status = %s AND tenant_id = %d', self::STATUS_ARCHIVED, self::STATUS_LIVE, $tenant_id );
+		delete_option( 'igbz_previous_theme_slug_' . $tenant_id );
 		return [ 'ok' => true, 'error' => '' ];
 	}
 

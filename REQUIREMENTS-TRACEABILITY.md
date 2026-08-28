@@ -288,23 +288,24 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 | SEC-003 | حداقل اختیار نقش و مسیرهای هسته | DESIGN-GAPS-FIX؛ LEGAL §۷.۷ | `Capabilities`, `CoreSurfaceGuard`, `SecurityGapsTest` | پیاده‌شدهٔ جزئی؛ آزمون زندهٔ همهٔ درها/نقش‌ها باقی است |
 | SEC-004 | محدودیت مصرف و جریان حساس | OWASP API4/API6 | OTP phone+IP؛ rate limitهای پراکنده | پیاده‌شدهٔ جزئی؛ شمارندهٔ اتمیک، quota هزینه و جریان‌های دیگر باقی‌اند |
 | SEC-005 | پاسخ نرخ استاندارد | IETF/RFC 6585/9110 | `retry_after` در بخشی از سرویس‌ها | شکاف؛ نگاشت یکنواخت ۴۲۹ و `Retry-After` تأیید نشده |
-| SEC-006 | SSRF و دانلود محدود | OWASP SSRF؛ PADO §۱۹ | `Support/Http`, `PadoGateway` | شکاف بحرانی در ZIP/redirect/Bearer/اندازه |
+| SEC-006 | SSRF و دانلود محدود | OWASP SSRF؛ PADO §۱۹ | `Support/Http`, `UrlGuard`, `PadoGateway` | ✅ فاز ۱۰: دروازهٔ متمرکز `UrlGuard` (اسکیم/میزبان/بازه‌های خصوصی و متادیتا)، خاموشی redirect، سقف اندازهٔ پاسخ، سیاست ارسال حامل فقط به میزبان پیکربندی‌شده؛ تست `UrlGuardTest` |
 | SEC-007 | فایل و artefact غیرقابل‌اجرا | PADO §۱۹ | `ThemeValidator`, `ThemeService` | شکاف: PHP پذیرفته می‌شود؛ blacklist sandbox نیست |
 | SEC-008 | JWT، refresh، device و replay | LEGAL §۷.۶؛ API | `Jwt`, `RefreshTokenService`, device routes | پیاده‌شده؛ آزمون نقش، ابطال و race کامل نیست |
-| SEC-009 | خروج حساس با حضور انسان/بیومتریک | OWASP API6؛ LEGAL §۷.۶ | طراحی و device data | شکاف؛ قرارداد کامل سرور و آزمون زنده ندارد |
-| SEC-010 | audit بدون secret/PII و retention | طراحی امنیت/ویرا | `Logger`, جدول logs و رخدادهای پراکنده | شکاف؛ سیاست یکپارچه و پوشش تمام عملیات حساس ندارد |
+| SEC-009 | خروج حساس با حضور انسان/بیومتریک | OWASP API6؛ LEGAL §۷.۶ | `Support/BiometricGate`, `DeviceRepository` | ✅ فاز ۱۲: قرارداد سمت سرور (پنجرهٔ زمانی/نانس یک‌بارمصرف/زمان ثابت) + کلید رمزگذاری‌شدهٔ دستگاه (دیتابیس v22) و آزمون؛ آزمون زندهٔ اپ مدیریت پس از ساخت اپ باقی است |
+| SEC-010 | audit بدون secret/PII و retention | طراحی امنیت/ویرا | `Logger`, `TenantOffboarding` | ✅ فاز ۱۳: ماسک راز+دادهٔ شخصی در لحظهٔ ورود (تودرتو هم)، ماندگاری خودکار رویداد/توکن، جاروی خروج مستأجر با ثبت امنیتی؛ `OffboardingTest` |
 
 ### ۶.۳ چندمستأجری و داده
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| TEN-001 | resolver مستأجر از هویت معتبر | ADR-0001؛ Hub | `TenantResolver`, `BaseController` | پذیرفته‌شده: زیرسایت مرز پایه است؛ تبدیل resolver فعلی باقی است |
-| TEN-002 | مالکیت در repository و query | ADR-0001؛ OWASP Multi-Tenant | repositoryهای متعدد | شکاف؛ عضویت/سایت و control plane باید الگوی اجباری واحد بگیرند |
-| TEN-003 | provision کامل و idempotent | ADR-0001؛ Hub | signup، tenant/member/domain creation | شکاف؛ provision زیرسایت و rollback کامل هنوز کد ندارد |
-| TEN-004 | cache/file/job/rate tenant-scoped | ADR-0001؛ OWASP Multi-Tenant؛ §۵.۵ | الگوهای پراکنده | شکاف؛ ماتریس site/network برای cache/فایل/صف وجود ندارد |
-| TEN-005 | قالب مستقل هر مستأجر | ADR-0001؛ DESIGN-PADO §۱۹ | `switch_theme()` سراسری | تصمیم پذیرفته شد: فعال‌سازی per-site؛ کد فعلی شکاف بحرانی است |
-| DAT-001 | schema و migration نسخه‌دار | Schema/Activator | DB v19، ۷۲ جدول | پیاده‌شده؛ مسیر v18 متد مستقل ندارد و آزمون upgrade حجیم باقی است |
-| DAT-002 | query رشدپذیر محدود و ایندکس‌شده | §۵.۵؛ OWASP API4 | limit در بخش‌ها | شکاف: فهرست/DELETE نامحدود و batchهای ثابت |
+| TEN-001 | resolver مستأجر از هویت معتبر | ADR-0001؛ Hub | `TenantScope::page_tenant_id`, `BaseController::scoped_tenant_id` | ✅ فاز ۱۴: مسیر واحد تعیین مستأجر؛ `tenant_id` ارسالی کلاینت فقط برای `MANAGE_TENANTS` اعتبار دارد، وگرنه مستأجر از هویت حل‌شده می‌آید (بستن BOLA کیف‌پول/افیلیت/BNPL و مشتق‌کردن مستأجر رشتهٔ گفت‌وگو از پست)؛ آزمون منفی `TenantResolutionTest`؛ `DESIGN-LEGAL-AUTH.md §۷.۷.۱۴` |
+| TEN-002 | مالکیت در repository و query | ADR-0001؛ OWASP Multi-Tenant | repositoryهای متعدد | ✅ فاز ۰۷ تا ۰۹: خواندن‌های «شیء با شناسه» در همهٔ ماژول‌های تجاری/جانبی/اینستاگرام/اف‌ایکس/پادو/موبایل‌ای‌پی‌آی شرط `tenant_id` گرفتند؛ استثناهای تعمدی (کرون/قلاب ناهمگام/کنترل‌پلین) در `DESIGN-LEGAL-AUTH.md §۷.۷.۷–§۷.۷.۹`؛ آزمون منفی `TenantScopeTest` |
+| TEN-003 | provision کامل و idempotent | ADR-0001؛ Hub | `SignupService::signup` | ✅ فاز ۱۶: جریان کامل کاربر + مستأجر + عضویت مالک + نقش + زیردامنه + اشتراک + پرداخت؛ اجرای مجدد همان ثبت‌نام فروشگاه موجود را برمی‌گرداند بدون ردیف تکراری؛ خرابی هر گام پس از ساخت مستأجر، مستأجر و عضویت را rollback می‌کند؛ `SignupTest`؛ `DESIGN-LEGAL-AUTH.md §۷.۷.۱۶` |
+| TEN-004 | cache/file/job/rate tenant-scoped | ADR-0001؛ OWASP Multi-Tenant؛ §۵.۵ | `TenantScope::cache_key`، سقف نرخ مستأجر در `Authenticator` | ✅ فاز ۱۵: مسیر واحد پیشوند مستأجر برای کلیدهای کش/ترنزینت روی شش نقطهٔ دادهٔ مستأجر + کلید جریان منی‌چت بر اساس حساب؛ سقف تجمیعی دقیقه‌ای هر مستأجر (`api.tenant_rate_limit_per_minute`) جدا از سقف هر توکن؛ زیرشاخهٔ مستأجر برای فایل قالب پادو؛ آزمون برخورد کلید و هم‌زمانی `TenantIsolationTest`؛ استثناهای سراسری (کاتالوگ مستأجر، توکن گوگل، دایرکتوری هاب) ممیزی و ثبت شد؛ `DESIGN-LEGAL-AUTH.md §۷.۷.۱۵` |
+| TEN-005 | قالب مستقل هر مستأجر | ADR-0001؛ DESIGN-PADO §۱۹ | `ThemeService::activate_live/rollback`، `TenantThemeRouter` | ✅ فاز ۱۸: حذف `switch_theme()` سراسری؛ فعال‌سازی/بازگشت وضعیت ستون `theme` مستأجر؛ رندر زمان درخواست فقط برای فروشگاه خود با فیلترهای `template`/`stylesheet`؛ بایگانی قالب زنده با شرط مستأجر؛ پیش‌نمایش با گیت عضویت/ادمین و فقط روی مستأجر خود؛ `ThemeRoutingTest`؛ `DESIGN-LEGAL-AUTH.md §۷.۷.۱۸` |
+| TEN-006 | مسیریابی دامنهٔ مستأجر امن | ADR-0001؛ OWASP Multi-Tenant | `TenantContext::current`, `TenantRepository::add_domain`, `DomainVerifier` | ✅ فاز ۱۷: شاخه‌های سرویس‌دهی رزولور فقط مستأجر قابل‌مسیریابی (فعال/آزمایشی نامنقضی) حل می‌کنند؛ نگاشت دامنه یک‌به‌یک و ورودی نرمال‌شده/ردشده؛ تأیید واقعی TXT/CNAME/A و الزام `verified_at` از قبل؛ `DomainRoutingTest`؛ `DESIGN-LEGAL-AUTH.md §۷.۷.۱۷` |
+| DAT-001 | schema و migration نسخه‌دار | Schema/Activator | DB v22، ۷۲ جدول؛ `Migrator` | ✅ فاز ۱۹: چارچوب مهاجرت با قفل تک‌اجراکننده، نقطهٔ بررسی پس از هر گام، ادامه‌دادن به‌جای اجرای مجدد، گزارش پیشرفت و نشانگر نسخهٔ پیش از ارتقا برای راه بازگشت؛ ارتقای مستقیم از نسخه‌های قدیمی در `MigratorTest` آزموده شد؛ `DESIGN-LEGAL-AUTH.md §۷.۷.۱۹` |
+| DAT-002 | query رشدپذیر محدود و ایندکس‌شده | §۵.۵؛ OWASP API4 | `Db::delete_batches`، سقف/کی‌ست در فهرست‌ها، ایندکس‌های v23 | ✅ فاز ۲۰: حذف‌های انبوه (هرس توکن/کد/دستگاه/لاگ، پاک‌سازی ادمین و جاروی خروج مستأجر) دسته‌بندی و مرتب بر `id` شدند با سقف تکرار؛ فهرست‌های بی‌کران سقف گرفتند یا به پیمایش کی‌ست تبدیل شدند (حساب‌های اینستاگرام، دستگاه‌های کاربر، پیوندهای مارکت‌پلیس، قیف‌ها، کاتالوگ‌های اف‌ایکس/وی‌آی‌پی)؛ ایندکس‌های مرکب تازه برای مسیرهای هرس و نشست (دیتابیس 23)؛ `BatchTest`؛ اعتبارسنجی `EXPLAIN` روی دادهٔ حجیم تولید وظیفهٔ ثبت‌شدهٔ عملیاتی است؛ `DESIGN-LEGAL-AUTH.md §۷.۷.۲۰` |
 | DAT-003 | HPOS واقعی | WooCommerce | declaration موجود | شکاف: محیط آزمون HPOS خاموش و migration تأیید نشده |
 
 ### ۶.۴ صف و عملیات پس‌زمینه

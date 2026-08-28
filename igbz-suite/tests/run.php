@@ -37,6 +37,21 @@ $cases = [
 	'Phases2Test',
 	'IpgAdaptersTest',
 	'SecurityGapsTest',
+	'DriftGuardTest',
+	'SecretsTest',
+	'DoorsTest',
+	'TenantScopeTest',
+	'UrlGuardTest',
+	'ArchiveGuardTest',
+	'BiometricGateTest',
+	'OffboardingTest',
+	'TenantResolutionTest',
+	'TenantIsolationTest',
+	'SignupTest',
+	'DomainRoutingTest',
+	'ThemeRoutingTest',
+	'MigratorTest',
+	'BatchTest',
 ];
 
 foreach ( $cases as $case ) {

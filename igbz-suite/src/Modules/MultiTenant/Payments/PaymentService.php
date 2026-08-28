@@ -314,7 +314,7 @@ final class PaymentService {
 
 	/** @return array<string,mixed>|null */
 	public function payment( int $id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'payments' ) . ' WHERE id = %d', $id );
+		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'payments' ) . ' WHERE id = %d AND tenant_id = %d', $id, igbz()->tenancy()->id() );
 	}
 
 	/** @return array<string,mixed>|null */
@@ -325,8 +325,9 @@ final class PaymentService {
 	/** @return array<int,array<string,mixed>> */
 	public function payments_for_user( int $user_id, int $limit = 50 ): array {
 		return $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'payments' ) . ' WHERE user_id = %d ORDER BY id DESC LIMIT %d',
+			'SELECT * FROM ' . $this->db->table( 'payments' ) . ' WHERE user_id = %d AND tenant_id = %d ORDER BY id DESC LIMIT %d',
 			$user_id,
+			igbz()->tenancy()->id(),
 			$limit
 		);
 	}

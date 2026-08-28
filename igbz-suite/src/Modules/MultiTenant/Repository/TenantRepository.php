@@ -232,10 +232,33 @@ final class TenantRepository {
 	// -------------------------------------------------------------- domains
 
 	public function add_domain( int $tenant_id, string $domain, bool $primary = false ): int {
-		$domain = strtolower( trim( preg_replace( '#^https?://#', '', $domain ), '/' ) );
-		if ( '' === $domain ) {
+		// Phase 17: keep only the host part of whatever was typed, lowercase it, and accept a
+		// hostname shape only — anything else is input we refuse to store, so a crafted
+		// string can never enter the routing table.
+		$domain = strtolower( trim( (string) preg_replace( '#^https?://#', '', $domain ), '/' ) );
+		$domain = (string) preg_replace( '#/.*$#', '', $domain );
+		if ( '' === $domain || strlen( $domain ) > 190 || ! preg_match( '/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/', $domain ) ) {
 			return 0;
 		}
+
+		// Phase 17: one domain maps to exactly one tenant. A second holder would make the
+		// resolver's LIMIT 1 choice non-deterministic and could serve the wrong store.
+		$holder = $this->db->scalar(
+			'SELECT tenant_id FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE domain = %s LIMIT 1',
+			$domain
+		);
+		if ( $holder && (int) $holder !== $tenant_id ) {
+			return 0;
+		}
+		if ( $holder ) {
+			$existing = $this->db->scalar(
+				'SELECT id FROM ' . $this->db->table( 'tenant_domains' ) . ' WHERE domain = %s AND tenant_id = %d LIMIT 1',
+				$domain,
+				$tenant_id
+			);
+			return (int) $existing;
+		}
+
 		if ( $primary ) {
 			$this->db->query( 'UPDATE ' . $this->db->table( 'tenant_domains' ) . ' SET is_primary = 0 WHERE tenant_id = %d', $tenant_id );
 		}

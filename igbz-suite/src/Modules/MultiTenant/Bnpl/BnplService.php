@@ -382,14 +382,15 @@ final class BnplService {
 
 	/** @return array<string,mixed>|null */
 	public function contract( int $contract_id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_contracts' ) . ' WHERE id = %d', $contract_id );
+		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_contracts' ) . ' WHERE id = %d AND tenant_id = %d', $contract_id, igbz()->tenancy()->id() );
 	}
 
 	/** @return array<int,array<string,mixed>> */
 	public function installments( int $contract_id ): array {
 		return $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE contract_id = %d ORDER BY sequence',
-			$contract_id
+			'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE contract_id = %d AND tenant_id = %d ORDER BY sequence',
+			$contract_id,
+			igbz()->tenancy()->id()
 		);
 	}
 
@@ -418,7 +419,7 @@ final class BnplService {
 	 * Pay one instalment from the wallet. Idempotent through the ledger reference code.
 	 */
 	public function pay_installment_from_wallet( int $installment_id ): bool {
-		$installment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE id = %d', $installment_id );
+		$installment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE id = %d AND tenant_id = %d', $installment_id, igbz()->tenancy()->id() );
 		if ( ! $installment || self::INSTALLMENT_PAID === $installment['status'] ) {
 			return false;
 		}
@@ -444,7 +445,7 @@ final class BnplService {
 	}
 
 	public function mark_installment_paid( int $installment_id, string $payment_ref = '' ): bool {
-		$installment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE id = %d', $installment_id );
+		$installment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE id = %d AND tenant_id = %d', $installment_id, igbz()->tenancy()->id() );
 		if ( ! $installment ) {
 			return false;
 		}

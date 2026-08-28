@@ -67,11 +67,21 @@ final class Logger {
 	 */
 	public static function redact( array $context ): array {
 		$needles = [ 'key', 'token', 'secret', 'password', 'authorization', 'merchant', 'signature' ];
+		// Phase 13: PII is masked at ingestion — if it reaches the table it is already a
+		// breach, so display-time redaction would be too late. Partial masks keep entries
+		// correlatable without carrying the value itself.
+		$pii = [ 'phone' => 'phone', 'mobile' => 'phone', 'email' => 'email', 'address' => 'text', 'national' => 'text', 'card' => 'text', 'postal' => 'text', 'birthdate' => 'text' ];
 		foreach ( $context as $k => $v ) {
 			$lower = strtolower( (string) $k );
 			foreach ( $needles as $needle ) {
 				if ( str_contains( $lower, $needle ) ) {
 					$context[ $k ] = Crypto::MASK;
+					continue 2;
+				}
+			}
+			foreach ( $pii as $needle => $kind ) {
+				if ( str_contains( $lower, $needle ) ) {
+					$context[ $k ] = is_scalar( $v ) ? self::mask_pii( (string) $v, $kind ) : Crypto::MASK;
 					continue 2;
 				}
 			}
@@ -82,12 +92,48 @@ final class Logger {
 		return $context;
 	}
 
-	/** Trim the log table to the configured retention window. */
+	private static function mask_pii( string $value, string $kind ): string {
+		if ( '' === $value ) {
+			return '';
+		}
+		if ( 'phone' === $kind ) {
+			$digits = preg_replace( '/\D+/', '', $value ) ?? '';
+			return strlen( $digits ) > 4 ? '***' . substr( $digits, -4 ) : '***';
+		}
+		if ( 'email' === $kind && str_contains( $value, '@' ) ) {
+			[ $local, $domain ] = explode( '@', $value, 2 );
+			return substr( $local, 0, 1 ) . '***@' . $domain;
+		}
+		return '[PII]';
+	}
+
+	/**
+	 * Trim the log table to the configured retention window.
+	 *
+	 * Phase 20: retention runs in bounded, id-ordered batches — the audit table is the one
+	 * table guaranteed to grow forever, and one unbounded delete on it could lock the site
+	 * exactly when somebody is reading the audit trail.
+	 */
 	public function prune( int $days = 30 ): int {
 		global $wpdb;
-		$table = $wpdb->prefix . 'igbz_logs';
-		return (int) $wpdb->query( // phpcs:ignore
-			$wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS ) ) // phpcs:ignore
-		);
+		$table   = $wpdb->prefix . 'igbz_logs';
+		$cutoff  = gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
+		$batch   = 500;
+		$deleted = 0;
+
+		for ( $i = 0; $i < 200; ++$i ) {
+			$affected = (int) $wpdb->query( // phpcs:ignore
+				$wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s ORDER BY id LIMIT %d", $cutoff, $batch ) // phpcs:ignore
+			);
+			if ( $affected <= 0 ) {
+				break;
+			}
+			$deleted += $affected;
+			if ( $affected < $batch ) {
+				break;
+			}
+		}
+
+		return $deleted;
 	}
 }

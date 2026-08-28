@@ -16,6 +16,13 @@ final class Http {
 	 * @return HttpResponse
 	 */
 	public function request( string $method, string $url, array $args = [] ): HttpResponse {
+		// Phase 10: every outbound request passes the SSRF gate. A blocked URL never
+		// reaches the transport and is written to the security channel.
+		if ( ! UrlGuard::is_safe( $url ) ) {
+			$this->logger->log( Logger::WARNING, 'security', sprintf( '%s blocked by URL guard: %s', strtoupper( $method ), self::scrub_url( $url ) ) );
+			return new HttpResponse( 0, [], '', 'Blocked by the SSRF guard.' );
+		}
+
 		$method  = strtoupper( $method );
 		$headers = (array) ( $args['headers'] ?? [] );
 		$timeout = (int) ( $args['timeout'] ?? 20 );
@@ -41,6 +48,12 @@ final class Http {
 					'body'    => $body,
 					'timeout' => $timeout,
 					'sslverify' => true,
+					// Server-to-server calls must not wander: each redirect hop would skip
+					// the SSRF gate, so redirects are off here (IPG pages stay browser-side).
+					'redirection' => 0,
+					// A runaway response cannot hold the worker hostage; callers may raise the
+					// cap for big artifacts (theme zips) via `max_bytes`.
+					'limit_response_size' => (int) ( $args['max_bytes'] ?? 20 * 1024 * 1024 ),
 				]
 			);
 

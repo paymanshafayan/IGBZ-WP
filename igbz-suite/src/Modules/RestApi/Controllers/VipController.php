@@ -437,12 +437,24 @@ final class VipController extends BaseController {
 
 	/** "Message the admin" straight from a post, without the app knowing a thread id. */
 	public function message_admin( \WP_REST_Request $request ): \WP_REST_Response {
+		$post_id = (int) $request->get_param( 'post_id' );
+		// Phase 14: the tenant a message lands in is derived from the post (or the resolved
+		// tenancy), never from the client — a client-controlled tenant id would let anyone
+		// open an admin thread in a store they have no relationship with.
+		$tenant_id = (int) igbz()->tenancy()->id();
+		if ( $post_id > 0 ) {
+			$post = $this->posts()->post( $post_id );
+			if ( $post ) {
+				$tenant_id = (int) ( $post['tenant_id'] ?? 0 );
+			}
+		}
+
 		try {
 			$id = $this->messages()->send_from_user(
 				get_current_user_id(),
 				(string) $request->get_param( 'body' ),
-				(int) $request->get_param( 'post_id' ),
-				(int) $request->get_param( 'tenant_id' )
+				$post_id,
+				$tenant_id
 			);
 		} catch ( \RuntimeException $e ) {
 			return $this->fail( 'igbz_vip_message_failed', $e->getMessage(), 400 );

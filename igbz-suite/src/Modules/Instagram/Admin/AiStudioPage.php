@@ -6,6 +6,7 @@ use IGBZ\Suite\Modules\Instagram\AiStudio\HttpAiStudioProvider;
 use IGBZ\Suite\Support\Admin\Menu;
 use IGBZ\Suite\Support\Admin\View;
 use IGBZ\Suite\Support\Capabilities;
+use IGBZ\Suite\Support\TenantScope;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -38,9 +39,9 @@ final class AiStudioPage {
 			echo '<div class="notice notice-warning"><p>' . esc_html__( 'The AI studio provider is not configured. Set ai_studio.* on Settings → Instagram → AI studio.', 'igbz-suite' ) . '</p></div>';
 		}
 
-		$result = get_transient( 'igbz_ai_studio_last' );
+		$result = get_transient( TenantScope::cache_key( 'igbz_ai_studio_last' ) );
 		if ( $result ) {
-			delete_transient( 'igbz_ai_studio_last' );
+			delete_transient( TenantScope::cache_key( 'igbz_ai_studio_last' ) );
 			View::notice( $result['error'] ?: sprintf( 'Stored as attachment #%d', (int) $result['attachment_id'] ), $result['ok'] ? 'success' : 'error' );
 		}
 
@@ -92,7 +93,7 @@ final class AiStudioPage {
 			default      => $studio->enhance_product_image( $url, 'studio', $sku ),
 		};
 
-		set_transient( 'igbz_ai_studio_last', [ 'ok' => $result['ok'], 'attachment_id' => $result['attachment_id'], 'error' => $result['error'] ], 60 );
+		set_transient( TenantScope::cache_key( 'igbz_ai_studio_last' ), [ 'ok' => $result['ok'], 'attachment_id' => $result['attachment_id'], 'error' => $result['error'] ], 60 );
 	}
 
 	private function studio(): AiStudioService {

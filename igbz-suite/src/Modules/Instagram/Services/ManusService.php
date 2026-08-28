@@ -204,7 +204,7 @@ final class ManusService implements ContentGeneratorInterface, PublisherInterfac
 
 	/** @return array<string,mixed>|null */
 	public function content( int $id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_content' ) . ' WHERE id = %d', $id );
+		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_content' ) . ' WHERE id = %d AND tenant_id = %d', $id, igbz()->tenancy()->id() );
 	}
 
 	/**

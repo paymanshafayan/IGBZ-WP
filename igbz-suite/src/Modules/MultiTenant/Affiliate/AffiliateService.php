@@ -32,7 +32,7 @@ final class AffiliateService {
 
 	/** @return array<string,mixed>|null */
 	public function find( int $affiliate_id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'affiliates' ) . ' WHERE id = %d', $affiliate_id );
+		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'affiliates' ) . ' WHERE id = %d AND tenant_id = %d', $affiliate_id, igbz()->tenancy()->id() );
 	}
 
 	/** @return array<string,mixed>|null */

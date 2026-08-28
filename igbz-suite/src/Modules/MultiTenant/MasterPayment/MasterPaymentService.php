@@ -30,9 +30,10 @@ final class MasterPaymentService {
 	/** @return array{ok:bool,payment_id:int,error:string} */
 	public function hold( int $tenant_id, int $order_id, float $amount, string $currency = 'IRT', string $gateway_ref = '', string $phase = 'rial' ): array {
 		$existing = $this->db->row(
-			'SELECT id FROM ' . $this->db->table( 'ig_master_payments' ) . ' WHERE order_id = %d AND phase = %s',
+			'SELECT id FROM ' . $this->db->table( 'ig_master_payments' ) . ' WHERE order_id = %d AND phase = %s AND tenant_id = %d',
 			$order_id,
-			$phase
+			$phase,
+			$tenant_id
 		);
 		if ( $existing ) {
 			return [ 'ok' => false, 'payment_id' => (int) $existing['id'], 'error' => 'already_held' ];
@@ -123,6 +124,15 @@ final class MasterPaymentService {
 
 	/** @return array{ok:bool,dispute_id:int,error:string} */
 	public function open_dispute( int $payment_id, string $source, string $reason, int $tenant_id = 0 ): array {
+		// The dispute must land on a payment this tenant actually owns.
+		$owned = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'ig_master_payments' ) . ' WHERE id = %d AND tenant_id = %d',
+			$payment_id,
+			$tenant_id
+		);
+		if ( ! $owned ) {
+			return [ 'ok' => false, 'dispute_id' => 0, 'error' => 'payment_not_found' ];
+		}
 		$now = current_time( 'mysql', true );
 		$id  = (int) $this->db->insert(
 			'ig_master_disputes',
@@ -139,7 +149,7 @@ final class MasterPaymentService {
 		$this->db->update(
 			'ig_master_payments',
 			[ 'status' => self::STATUS_DISPUTED, 'updated_at' => $now ],
-			[ 'id' => $payment_id ]
+			[ 'id' => $payment_id, 'tenant_id' => $tenant_id ]
 		);
 		$this->logger->warning( 'master_payment', 'Dispute opened', [ 'payment_id' => $payment_id, 'source' => $source ] );
 
@@ -147,11 +157,11 @@ final class MasterPaymentService {
 	}
 
 	/** @return array{ok:bool,error:string} */
-	public function refund( int $payment_id ): array {
+	public function refund( int $payment_id, int $tenant_id = 0 ): array {
 		$this->db->update(
 			'ig_master_payments',
 			[ 'status' => self::STATUS_REFUNDED, 'updated_at' => current_time( 'mysql', true ) ],
-			[ 'id' => $payment_id ]
+			[ 'id' => $payment_id, 'tenant_id' => $tenant_id ]
 		);
 		$this->logger->info( 'master_payment', 'Payment refunded', [ 'payment_id' => $payment_id ] );
 

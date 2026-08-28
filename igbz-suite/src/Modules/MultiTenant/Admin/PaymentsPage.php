@@ -324,7 +324,7 @@ final class PaymentsPage {
 		$rows = [];
 		foreach ( $this->marketplace()->channels() as $channel => $label ) {
 			$enabled = $this->marketplace()->is_channel_enabled( $channel );
-			$count   = count( $this->marketplace()->links( 0, $channel ) );
+			$count   = count( $this->marketplace()->links( (int) igbz()->tenancy()->id(), $channel ) );
 			$rows[]  = [
 				'channel' => esc_html( $label ),
 				'enabled' => View::status_pill( $enabled ? 'ok' : 'warn' )
@@ -355,7 +355,7 @@ final class PaymentsPage {
 			esc_html__( 'Feeds are cached; flush after a bulk price change.', 'igbz-suite' )
 		);
 
-		$links   = $this->marketplace()->links();
+		$links   = $this->marketplace()->links( (int) igbz()->tenancy()->id() );
 		$display = [];
 		foreach ( array_slice( $links, 0, 50 ) as $link ) {
 			$display[] = [
@@ -399,10 +399,8 @@ final class PaymentsPage {
 
 		if ( isset( $_GET['purge_otp'] ) ) {
 			$db      = igbz()->db();
-			$deleted = $db->query(
-				'DELETE FROM ' . $db->table( 'otp_codes' ) . ' WHERE expires_at < %s',
-				current_time( 'mysql', true )
-			);
+			// Phase 20: bounded batches even for the operator-triggered purge.
+			$deleted = $db->delete_batches( 'otp_codes', 'expires_at < %s', [ current_time( 'mysql', true ) ] );
 			View::notice(
 				sprintf(
 					/* translators: %d: number of deleted rows. */
