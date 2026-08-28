@@ -103,7 +103,39 @@ final class JobQueueDb extends wpdb {
 
 	public function get_results( string $sql, $output = null ) {
 		$this->queries[] = $sql;
+		// Phase 27: the status tally behind JobQueue::stats().
+		if ( str_contains( $sql, 'igbz_jobs' ) && str_contains( $sql, 'GROUP BY status' ) ) {
+			$tallies = [];
+			foreach ( $this->tables['jobs'] as $row ) {
+				$status           = (string) $row['status'];
+				$tallies[ $status ] = ( $tallies[ $status ] ?? 0 ) + 1;
+			}
+			$out = [];
+			foreach ( $tallies as $status => $total ) {
+				$out[] = [ 'status' => $status, 'total' => $total ];
+			}
+			return $out;
+		}
 		return $this->rows_for( $sql );
+	}
+
+	public function get_var( string $sql ) {
+		// Phase 27: the oldest waiting job behind JobQueue::stats().
+		if ( str_contains( $sql, 'igbz_jobs' ) && str_contains( $sql, 'MIN(available_at)' ) ) {
+			$this->queries[] = $sql;
+			$min             = null;
+			foreach ( $this->tables['jobs'] as $row ) {
+				if ( JobQueue::STATUS_PENDING !== $row['status'] ) {
+					continue;
+				}
+				$value = (string) $row['available_at'];
+				if ( null === $min || strcmp( $value, $min ) < 0 ) {
+					$min = $value;
+				}
+			}
+			return $min;
+		}
+		return parent::get_var( $sql );
 	}
 
 	public function get_col( string $sql ) {

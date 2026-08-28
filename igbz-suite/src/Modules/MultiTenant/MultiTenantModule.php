@@ -113,6 +113,7 @@ final class MultiTenantModule implements ModuleInterface {
 			( new Admin\TranslatorPage() )->register();
 			( new Admin\MasterPaymentPage() )->register();
 			( new Admin\DomainPage() )->register();
+			( new Admin\JobsPage() )->register();
 
 		add_action( 'woocommerce_product_saved', [ $this, 'on_product_saved' ], 10, 2 );
 		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'marketplace_tick' ] );

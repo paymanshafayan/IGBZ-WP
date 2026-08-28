@@ -33,6 +33,9 @@ final class Cron {
 
 		// Phase 26: housekeeping itself is a queued job, drained by the same daily beat.
 		igbz()->get( 'jobs' )->register( 'cron.housekeeping', [ $this, 'run_housekeeping' ] );
+
+		// Phase 27: operator tooling — a no-op outside WP-CLI.
+		Jobs\Cli::maybe_register();
 	}
 
 	/**

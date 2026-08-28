@@ -325,6 +325,90 @@ final class JobQueue {
 	}
 
 	/**
+	 * Phase 27 — observability: queue totals by status plus the age of the oldest job still
+	 * waiting, so the dashboard can flag a drain that stopped keeping up.
+	 *
+	 * @return array{pending:int,claimed:int,done:int,dead:int,cancelled:int,oldest_pending_age_seconds:int}
+	 */
+	public function stats(): array {
+		$out = [
+			'pending'                    => 0,
+			'claimed'                    => 0,
+			'done'                       => 0,
+			'dead'                       => 0,
+			'cancelled'                  => 0,
+			'oldest_pending_age_seconds' => 0,
+		];
+
+		$rows = $this->db->results(
+			'SELECT status, COUNT(*) AS total FROM ' . $this->db->table( 'jobs' ) . ' GROUP BY status'
+		);
+		foreach ( $rows as $row ) {
+			$status = (string) $row['status'];
+			if ( isset( $out[ $status ] ) ) {
+				$out[ $status ] = (int) $row['total'];
+			}
+		}
+
+		$oldest = $this->db->scalar(
+			'SELECT MIN(available_at) FROM ' . $this->db->table( 'jobs' ) . ' WHERE status = %s',
+			self::STATUS_PENDING
+		);
+		if ( is_string( $oldest ) && '' !== $oldest ) {
+			$out['oldest_pending_age_seconds'] = max( 0, time() - strtotime( $oldest . ' UTC' ) );
+		}
+		return $out;
+	}
+
+	/**
+	 * Phase 27 — the dead-letter backlog, most recent first, for inspection and replay.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	public function dead_letters( int $limit = 30 ): array {
+		return $this->db->results(
+			'SELECT * FROM ' . $this->db->table( 'jobs' ) . ' WHERE status = %s ORDER BY updated_at DESC, id DESC LIMIT %d',
+			self::STATUS_DEAD,
+			$limit
+		);
+	}
+
+	/**
+	 * Phase 27 — controlled replay: a dead-lettered job is deliberately put back in the queue
+	 * with its attempts reset. The idempotency key is kept on purpose — replay IS the same
+	 * logical operation, so the protection against duplicate delivery must survive it.
+	 */
+	public function replay( int $job_id ): bool {
+		$row = $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'jobs' ) . ' WHERE id = %d AND status = %s',
+			$job_id,
+			self::STATUS_DEAD
+		);
+		if ( ! $row ) {
+			return false;
+		}
+		$changed = $this->db->update(
+			'jobs',
+			[
+				'status'           => self::STATUS_PENDING,
+				'attempts'         => 0,
+				'claim_expires_at' => null,
+				'available_at'     => current_time( 'mysql', true ),
+				'last_error'       => null,
+				'updated_at'       => current_time( 'mysql', true ),
+			],
+			[
+				'id'     => $job_id,
+				'status' => self::STATUS_DEAD,
+			]
+		);
+		if ( $changed > 0 ) {
+			$this->logger->info( 'jobs', 'job replayed', [ 'id' => $job_id, 'type' => (string) $row['job_type'] ] );
+		}
+		return $changed > 0;
+	}
+
+	/**
 	 * Return expired-lease (crashed-worker) jobs to the queue, or dead-letter them when they are
 	 * out of attempts. Returns [returned, dead].
 	 *
