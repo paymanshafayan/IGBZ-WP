@@ -49,7 +49,7 @@
   },
   "code": {
     "source_php_count": 229,
-    "source_php_sha256": "d6287bb5d9595701f3d739c0c7e7216dd7b06e67b9fff6a1c0ac07d0e7f1c4ab",
+    "source_php_sha256": "3d6b7357472ee5d97de05e9371bb3dc61611cf6674699ed1e59a4452ddd38582",
     "source_php_files": [
       "igbz-suite/src/Modules/Fx/Admin/FxPage.php",
       "igbz-suite/src/Modules/Fx/Contracts/FxPayoutAdapterInterface.php",
@@ -290,7 +290,7 @@
       "RestApi": 22
     },
     "support_php_count": 31,
-    "all_plugin_php_count": 280
+    "all_plugin_php_count": 281
   },
   "database": {
     "version": 24,
@@ -817,7 +817,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 49,
+    "php_file_count": 50,
     "php_files": [
       "igbz-suite/tests/AccountCredentialsTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
@@ -865,11 +865,12 @@
       "igbz-suite/tests/UpsertTest.php",
       "igbz-suite/tests/UrlGuardTest.php",
       "igbz-suite/tests/VipChannelTest.php",
+      "igbz-suite/tests/WalletLedgerTest.php",
       "igbz-suite/tests/bootstrap.php",
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 45,
+    "main_case_count": 46,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -915,7 +916,8 @@
       "CronJobsTest",
       "HourlyJobsTest",
       "DailyJobsTest",
-      "QueueLoadTest"
+      "QueueLoadTest",
+      "WalletLedgerTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

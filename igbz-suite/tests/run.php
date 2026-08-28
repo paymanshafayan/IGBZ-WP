@@ -58,6 +58,7 @@ $cases = [
 	'HourlyJobsTest',
 	'DailyJobsTest',
 	'QueueLoadTest',
+	'WalletLedgerTest',
 ];
 
 foreach ( $cases as $case ) {

@@ -501,7 +501,7 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		// duplicate beats. Bounded services carry the continuation contract inside the handler.
 		$jobs = igbz()->get( 'jobs' );
 		$slot = JobQueue::slot( DAY_IN_SECONDS );
-		foreach ( [ 'plans.renewals', 'affiliate.commissions', 'marketplace.flush', 'master.release' ] as $job_type ) {
+		foreach ( [ 'plans.renewals', 'affiliate.commissions', 'marketplace.flush', 'master.release', 'wallet.reconcile' ] as $job_type ) {
 			$jobs->enqueue( $job_type, [], [ 'idempotency_key' => $slot ] );
 		}
 	}
@@ -625,6 +625,10 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 			}
 			$processed = igbz()->get( 'master.payment' )->release_due();
 			$jobs->continue_round( $ctx, $payload, 'master.release', $processed, self::DAILY_BATCH_MASTER, self::MAX_SWEEP_ROUNDS );
+		} );
+		$jobs->register( 'wallet.reconcile', static function (): void {
+			// Phase 28: the ledger is the source of truth; any cached-balance drift is repaired.
+			igbz()->get( 'wallet' )->reconcile_all();
 		} );
 	}
 

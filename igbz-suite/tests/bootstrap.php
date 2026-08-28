@@ -648,6 +648,10 @@ function __( string $text, string $domain = '' ): string {
 	return $text;
 }
 
+function esc_like( string $text ): string {
+	return addcslashes( $text, '_%\\' );
+}
+
 function esc_html__( string $text, string $domain = '' ): string {
 	return $text;
 }
@@ -742,6 +746,10 @@ class wpdb {
 
 	public function get_charset_collate(): string {
 		return 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
+	}
+
+	public function esc_like( string $text ): string {
+		return addcslashes( $text, '_%\\' );
 	}
 
 	public function prepare( string $query, ...$args ): string {
