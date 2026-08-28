@@ -2,8 +2,10 @@
 
 **منبع رسمی:** https://owasp.org/API-Security/editions/2023/en/0xa3-broken-object-property-level-authorization/
 **بازیابی:** ۱۴۰۵/۰۵/۳۱
-**چرا در پروژهٔ ما:** یکی از دو ریسکی که الزام «امضای بیومتریک برای خروجی گروهی»
-(`DESIGN-LEGAL-AUTH.md §۷.۶`) و بستن مسیرهای هستهٔ وردپرس (`§۷.۷`) به آن پاسخ می‌دهند.
+**ثبت محل استفاده:** ۱۴۰۵/۰۶/۰۵، فاز ۰۱
+**چرا در پروژهٔ ما:** مبنای فهرست سفید ورودی/خروجی، منع mass assignment و کنترل مجوز
+ویژگی در `DESIGN-LEGAL-AUTH.md §۷.۶/§۷.۷` و نیاز SEC-002 در
+`REQUIREMENTS-TRACEABILITY.md`.
 
 ---
 
