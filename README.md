@@ -6,7 +6,9 @@ The IGBZ product ported from **nopCommerce** to **WordPress + WooCommerce**.
 
 | Path | What it is |
 | --- | --- |
-| [`PROJECT-STATE.md`](PROJECT-STATE.md) | **Start here.** Current state of the project (in Persian): what is built, in which commit and why, the rules that must be followed, and the decisions still waiting on the client. |
+| [`PROJECT-STATE.md`](PROJECT-STATE.md) | **Start here.** Current state of the project (in Persian): what is built, decided and still gated. |
+| [`ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md`](ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md) | Accepted Pado, DeepInfra and Zernio architecture; supersedes ADR-0002. |
+| [`DESIGN-INSTAGRAM-PADO-ZERNIO.md`](DESIGN-INSTAGRAM-PADO-ZERNIO.md) | Detailed target design, trust boundaries, flows, provider gates and migration scope. |
 | [`igbz-suite/`](igbz-suite/) | The plugin. One plugin, six toggleable modules. See its [README](igbz-suite/README.md) for installation, configuration and the API reference. |
 | [`DESIGN-VIP.md`](DESIGN-VIP.md) | Design document for the VIP channel (in Persian): tables, endpoints, flows, and the security decision. |
 | [`REVIEW-IGBZ-NopCommerce.md`](REVIEW-IGBZ-NopCommerce.md) | Read-only review of the original nopCommerce repository (in Persian), which this port is based on. |
@@ -14,23 +16,30 @@ The IGBZ product ported from **nopCommerce** to **WordPress + WooCommerce**.
 
 ## The port at a glance
 
-The nopCommerce original was four separate plugins. This is **one plugin with six modules** you can
-switch on and off independently:
+The nopCommerce original was four separate plugins. This repository contains **one plugin with six
+toggleable modules**. The accepted target architecture is versioned in
+[`ADR-0004`](ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md):
 
-* **Multi-Tenant Stores** — tenants, wallet, subscription plans, BNPL, affiliate, LMS, OTP login,
-  marketplace feeds, and four Iranian payment gateways (Zarinpal, IDPay, NextPay, Pay.ir).
-* **Instagram Automation** — product registration from the phone, content generation and
-  auto-publishing via **Manus**, comment-to-DM funnels via **ManyChat**, and the **VIP channel**.
-* **Master Site Hub** — public store directory, tenant signup, domain verification, VIP links.
-* **Mobile REST API** — JWT auth with rotating refresh tokens, catalog/account/admin endpoints,
+* **Multi-Tenant Stores** — the target is WordPress Multisite with one data-plane site per store and
+  a shared IGBZ control plane. The current code is still single-site with `tenant_id` columns and
+  requires migration.
+* **Pado** — each store has a constrained, versioned Playbook runtime for marketing analysis,
+  planning, production and learning. DeepInfra is the v1 inference target; each store owns and pays
+  for its account and IGBZ does not store that credential.
+* **Instagram Automation** — Zernio is the sole social provider, paid centrally by IGBZ with a
+  separate profile per store. It covers account connection, publishing/scheduling, inbox,
+  comment-to-DM and analytics. WooCommerce remains the commerce source of truth.
+* **FX** — existing foreign-payment and payout infrastructure; legacy Manus/ManyChat metering must
+  be migrated because DeepInfra is paid directly by each store and Zernio is included in IGBZ billing.
+* **Master Site Hub** — public store directory, tenant signup, domain verification and VIP links.
+* **Mobile REST API** — JWT auth with rotating refresh tokens, catalog/account/admin endpoints and
   FCM push.
 
-**The single functional change from the nopCommerce version** is that the Instagram Graph API
-integration is replaced by Manus (research, design, reels, captions, scheduling and auto-publish at
-peak hours) and ManyChat (DM funnels, over both a real-time webhook and the ManyChat API). The
-publisher and generator sit behind interfaces so a Graph adapter can be added back later.
-
-Tenancy is single-site with `tenant_id` columns — not WordPress Multisite.
+The historical Agent Reach Instagram-session proposal is rejected. The existing plugin still contains integrations for Manus, ManyChat and ChatPlace; they are
+legacy implementation debt, not accepted providers, and must not receive new production credentials.
+Ayrshare is not to be introduced. Direct Meta API calls, Instagram scraping, browser cookies and
+sessions are outside the target. See
+[`DESIGN-INSTAGRAM-PADO-ZERNIO.md`](DESIGN-INSTAGRAM-PADO-ZERNIO.md) for the target flow and gates.
 
 ## The VIP channel
 
@@ -61,7 +70,7 @@ product gets created.
 |---|------|-------|
 | 1–2 | Tap *register image*, shoot live or pick from the gallery | app |
 | 3 | The assistant grades the photo for background removal and video suitability; an unusable photo comes back with **specific, fixable reasons** and the seller retries | `POST /intake/photo` |
-| 4 | The photo is cut out, given a new background and relit into a commercial product image | Manus |
+| 4 | The photo is cut out, given a new background and relit into a commercial product image | Pado Playbook (target; legacy code uses Manus) |
 | 5 | It opens in an Instagram-like editor for optional tweaks | app (the plugin only serves the image and accepts the edit back) |
 | 6 | The seller describes the product **by typing or by voice**, and sets the price, stock and category | `POST /intake/description` |
 | 7 | The assistant writes the listing and creates the WooCommerce product, translating it if the store is multilingual | `POST /intake/publish` |
@@ -69,13 +78,13 @@ product gets created.
 | 9 | Image post or video post? | `POST /intake/post-kind` |
 | 10 | For video: the seller's brief (typed or dictated) becomes a video, which they approve | `POST /intake/video` |
 | 11 | The code is stamped onto the media, the caption tells viewers to comment it, hashtags are chosen | `POST /intake/compose` |
-| 12–13 | The post goes to Manus and the purchase link goes to ManyChat | `POST /intake/schedule` |
+| 12–13 | The approved post is queued through Zernio; the comment-to-DM rule resolves the WooCommerce link in the IGBZ backend | `POST /intake/schedule` (target; migration pending) |
 
 Three things hold it together:
 
 * **There are two codes, and they are not the same string.** The *customer code* (`0047`) is the
   WooCommerce product id, left-padded to at least four digits. It is what gets burned onto the post,
-  what the caption asks for, and what the ManyChat funnel matches. It is digits-only because the
+  what the caption asks for, and what the target Zernio comment-to-DM funnel matches. It is digits-only because the
   shopper types it into an Instagram comment on a Persian keyboard, where reaching the Latin letters
   of a SKU means switching layouts mid-comment. Four digits is a floor rather than a format: a
   one- or two-digit code would be typed under a post by accident and fire the funnel for someone who
@@ -86,12 +95,12 @@ Three things hold it together:
   prompt explicitly forbids the model from stating or implying a price. It writes words, not numbers.
 * **Voice input is vendor-neutral.** `SpeechToTextInterface` covers any service that takes a
   multipart upload and returns JSON — Whisper, a self-hosted model, an Iranian provider — configured
-  by endpoint and API key. Manus is the always-available fallback, so voice never simply fails.
+  by endpoint and API key. No provider is an assumed fallback: Persian speech-to-text must pass a live acceptance gate, otherwise the user receives an explicit unavailable state.
 
 Multilingual stores get **real translated products, linked** when Polylang or WPML is installed.
 Without one the translations are stored on the product and can be turned into real products later.
 
-Every long step is asynchronous, because Manus is. The app polls `GET /intake/{id}`, which reports
+Every long step is asynchronous and must run through a durable, tenant-scoped job. The app polls `GET /intake/{id}`, which reports
 `status`, `waiting` and the `next` call to make, so the client never reimplements the state machine.
 A webhook settles finished tasks immediately; a five-minute cron sweep is the guarantee for the ones
 whose callback never arrived.
@@ -109,7 +118,7 @@ Caveats, because Playground is not a normal host:
 
 * It runs on **SQLite**, not MySQL. The plugin supports both, but Playground is not a substitute
   for testing on a real MySQL host before going live.
-* Outbound HTTP is proxied, so the payment gateways and the Manus/ManyChat calls will not complete
+* Outbound HTTP is proxied, so payment gateways and all legacy or target provider calls will not complete
   against real endpoints. Use it to review the admin screens, the database schema and the
   storefront pages.
 * Everything is wiped when you close the tab.

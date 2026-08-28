@@ -2,34 +2,33 @@
 
 A faithful port of the IGBZ product from nopCommerce to WordPress and WooCommerce.
 
-The nopCommerce original shipped as four separate plugins. This port ships as **one plugin with
-five toggleable modules**, so an operator installs once and turns on only what the site needs.
+The nopCommerce original shipped as four separate plugins. This port currently ships as **one plugin
+with six toggleable modules**.
 
-| Module | Id | Replaces (nop plugin) | What it does |
+> **Architecture status (2026-08-28):** the code inventory below is not the accepted provider
+> architecture. ADR-0004 selects a constrained per-store Pado Playbook runtime, per-store DeepInfra
+> inference accounts, and one central Zernio account with a separate profile per store. Zernio is the
+> sole social provider. The historical Agent Reach Instagram-session proposal is rejected; Manus, ManyChat and ChatPlace are legacy code to migrate. Do not
+> add production credentials to them. Ayrshare must not be introduced.
+
+| Module | Id | Replaces (nop plugin) | Target / current status |
 | --- | --- | --- | --- |
-| Multi-Tenant Stores | `multitenant` | `IGBZ.MultiTenant` | Tenants, wallet, subscription plans, BNPL, affiliate, LMS, OTP login, marketplace feeds, Iranian payment gateways, direct-bank IPGs, master-payment escrow, courier app, domains, SEO, i18n, legal auth |
-| Instagram Automation | `instagram` | `IGBZ.Instagram` | Content generation and auto-publishing via **Manus**, comment-to-DM funnels via **ManyChat/ChatPlace**, product intake from the phone, AI studio, giveaways, and the **VIP channel** (paid private feed) |
+| Multi-Tenant Stores | `multitenant` | `IGBZ.MultiTenant` | Target: one WordPress Multisite subsite per store; current code still uses single-site `tenant_id` |
+| Instagram Automation | `instagram` | `IGBZ.Instagram` | Target: Pado for analysis/production and Zernio for connect/publish/inbox/analytics; current Manus/DM clients are legacy |
 | Master Site Hub | `hub` | `IGBZ.Hub` | Public store directory, tenant signup, domain verification, VIP links, content blocks |
 | Mobile REST API | `rest_api` | `IGBZ.MobileApi` | JWT auth, catalog, account, store-admin endpoints, FCM push, device registry |
-| FX payment gateway | `fx` | *(new)* | Foreign-currency payment intermediary: Rial top-ups into a dollar wallet (10% fee), Manus metering, monthly bills, PST.NET/RedotPay payout adapters, USDT on-ramp (Nobitex), manual settlement, operator reports |
+| FX payment gateway | `fx` | *(new)* | Current legacy metering and payout infrastructure; it must not bill independent DeepInfra inference |
+| Pado | `pado` | *(new)* | Approval and theme scaffolding exists; the accepted Playbook/DeepInfra architecture is not implemented |
 
-### The one functional change from the nopCommerce version
+The target social flow uses only Zernio's officially mediated connection for publishing, scheduling,
+inbox/comment-to-DM, analytics and catalogued Instagram audio. WooCommerce is the commerce source of
+truth and the IGBZ backend owns authorization, queues, idempotency and audit. Direct Meta API calls,
+Instagram scraping, browser cookies and sessions are outside the target. Business Discovery and
+Hashtag Search remain gated until Zernio exposes documented endpoints.
 
-The Instagram **Graph API** is not used — but for an availability reason, not a policy one: it
-cannot be obtained as a service provider from Iran, and any service that *can* provide it for us
-(ChatPlace and its MCP, for example) is welcome. Until then the workflows run on:
-
-* **Manus** — niche research and trend discovery, graphic design, reels and short
-  video, caption writing, hashtag selection, and auto-publishing/scheduling of posts, stories and
-  reels at the page's peak-engagement hours. No manual download/upload step.
-* **ManyChat** (inactive fallback) / **ChatPlace** (selected) — DM funnels ("comment the word X
-  and I'll DM you the link"), over a real-time **webhook** and the provider API. The senior admin
-  switches between the two with `dm.provider = manychat|chatplace`.
-
-Everything Instagram-facing sits behind `Contracts\PublisherInterface`,
-`Contracts\ContentGeneratorInterface` and the `Gateways\` DM clients, so a Graph API adapter can
-be dropped back in later without touching the rest of the plugin. No direct Graph calls exist in
-this codebase, and browser automation of Instagram (e.g. Windsor) is rejected per Meta ToS.
+Target references: `../ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md` and
+`../DESIGN-INSTAGRAM-PADO-ZERNIO.md`. The legacy sections below document code that still exists;
+they are migration inventory, not operating guidance for new deployments.
 
 ---
 
@@ -263,7 +262,10 @@ every field is documented inline on the settings screen. Highlights:
 
 ### FX payment gateway (module `fx`)
 
-The foreign-currency intermediary for the tools themselves (Manus/ManyChat costs), separate from
+> **Legacy scope note:** Manus/ManyChat metering below reflects existing code. In the target, each
+> store pays DeepInfra directly and Zernio profile cost is included in that store's IGBZ subscription.
+
+The current foreign-currency intermediary for legacy tool costs, separate from
 the store's own international revenue:
 
 * **Top-up** — the admin charges a dollar amount; a **10% fee** (`fx.fee_percent`) is added on
@@ -284,7 +286,7 @@ the store's own international revenue:
 * **Operator reports** — `FxReportsService` aggregates top-ups, fees, metering, refunds, ramp
   purchases and bills over a chosen period on the FX page.
 
-### Manus (Instagram content)
+### Legacy Manus integration — migration required
 
 | Key | Notes |
 | --- | --- |
@@ -316,14 +318,13 @@ account's explicit `peak_hours`, then hours learned from the `ig_insights`
 `manus.min_gap_minutes`. Set each account's timezone on **IGBZ → Instagram → Accounts**; slots are
 computed in the account's own timezone, not the server's.
 
-### DM funnels: ManyChat (inactive fallback) and ChatPlace (selected)
+### Legacy DM provider switch — migration required
 
-The senior admin picks the provider with `dm.provider = manychat|chatplace`. ManyChat stays
-implemented and inactive by default; ChatPlace is the chosen provider (flat ~$20/mo, built-in AI
-agent, VIRALE trend research, official Meta partner, MCP-ready). `ChatPlaceClient` implements the
-same `Gateways\DmClientInterface` contract with its own `chatplace.api_key` / `chatplace.base_url`.
+The current code lets a senior admin pick `dm.provider = manychat|chatplace`; this switch and both
+clients are deprecated by ADR-0004. Zernio is the sole target provider. `ChatPlaceClient` remains in
+the repository only until an approved migration removes it and its credentials.
 
-### ManyChat (DM funnels)
+### Legacy ManyChat integration — migration required
 
 Both developer integration paths from the ManyChat docs are supported.
 

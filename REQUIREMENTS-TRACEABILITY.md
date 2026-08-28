@@ -1,11 +1,14 @@
 # ماتریس ردیابی نیازمندی‌های IGBZ-WP
 
-> نسخه: ۰.۱ — خروجی فاز ۰۱
+> نسخه: ۰.۲ — خروجی فاز ۰۱ با تطبیق تصمیم معماری
 >
-> تاریخ: ۱۴۰۵/۰۶/۰۵ — ۲۷ اوت ۲۰۲۶
+> تاریخ: ۱۴۰۵/۰۶/۰۶ — ۲۸ اوت ۲۰۲۶
 >
-> وضعیت: snapshot ماشینی و ماتریس اولیهٔ دوطرفه؛ اتصال سطح مسیر/جدول/تنظیم به آزمون و
-> کنترل واگرایی در فاز ۰۴ اجباری می‌شود.
+> وضعیت: snapshot ماشینی و ماتریس اولیهٔ دوطرفه؛ تصمیم پادو/اینستاگرام در ADR-0004 ثبت
+> شده است. اتصال سطح مسیر/جدول/تنظیم به آزمون و کنترل واگرایی در فاز ۰۴ اجباری می‌شود.
+>
+> معماری هدف: پادوی Playbookمحور، DeepInfra مستقل هر فروشگاه و Zernio مرکزی با profile
+> جدا به‌عنوان تنها provider اجتماعی. پیشنهاد کانال Instagram مبتنی بر session در Agent Reach رد شده و کد Manus/ChatPlace/ManyChat بدهی migration است.
 
 ---
 
@@ -196,14 +199,16 @@ igbz_otp_login
 - NOWPayments، Stripe و PayPal در تنظیمات/طراحی؛
 - Tapin و Postex؛
 - Digikala، Divar و Basalam؛
-- Manus، ChatPlace، ManyChat و AI Studio؛
+- کد legacy Manus، ChatPlace، ManyChat و AI Studio؛ پیشنهاد تاریخی کانال Instagram مبتنی بر session در Agent Reach رد شده است؛
 - ترجمه، گفتار به متن و SEO/تبلیغات؛
 - نرخ و payout ارزی؛
 - ارائه‌دهندهٔ دامنه؛
 - پیامک و شاهکار؛
 - درگاه بیرونی پادو.
 
-فاز `PV` برای هر provider فعال جداست و وجود کلاس به معنی تأیید provider نیست.
+هدف پذیرفته‌شده برای اینستاگرام فقط Zernio و برای inference نسخهٔ اول فقط DeepInfra است؛
+آداپتورهای هدف هنوز در کد وجود ندارند. فاز `PV` برای هر provider فعال جداست و وجود کلاس
+به معنی تأیید provider نیست.
 
 ---
 
@@ -349,23 +354,23 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| IG-001 | credential حساب، revoke و tenant scope | MODULES | AccountCredentials و tests | پیاده‌شدهٔ پایه؛ rotation/provider واقعی باز است |
-| IG-002 | تولید و انتشار محتوا با Manus | AUTOMATION/PADO | ManusClient، scheduler، verify tests | پیاده‌شدهٔ پایه؛ کلید و نتیجهٔ واقعی تأیید نشده |
-| IG-003 | comment-to-DM رسمی | AUTOMATION | ChatPlace/ManyChat/Funnel؛ tests | پیاده‌شدهٔ پایه؛ provider منتخب/قرارداد زنده باز است |
+| IG-001 | اتصال رسمی Zernio، profile جدا، revoke و tenant scope | ADR-0004؛ طراحی Zernio | AccountCredentials فقط برای معماری قدیمی | شکاف: adapter/profile mapping/rotation/آزمون دو فروشگاه پیاده نشده |
+| IG-002 | تولید، زمان‌بندی، انتشار و صدای رسمی با Zernio | ADR-0004؛ طراحی Zernio | ManusClient legacy؛ Agent Reach فقط پیشنهاد تاریخی ردشده | شکاف: migration و endpointهای Zernio کد ندارند؛ audio گیت production است |
+| IG-003 | comment-to-DM رسمی با policy بک‌اند | ADR-0004؛ طراحی Zernio | ChatPlace/ManyChat/Funnel legacy | شکاف: webhook امضاشده، dedup، opt-out و delivery واقعی Zernio پیاده نشده |
 | IG-004 | ثبت محصول ۱۳مرحله‌ای | MODULES/Apps | intake services؛ ۱۸ تست | پیاده‌شدهٔ قابل توجه؛ providerها و E2E زنده کامل نیست |
 | IG-005 | VIP کامل و امن | DESIGN-VIP/EXPIRY | ۱۰ جدول VIP؛ ۲۶ تست | پیاده‌شدهٔ پایه؛ اپ، provider پرداخت و بار/امنیت زنده باز است |
-| IG-006 | Giveaway و Insights واقعی | PHASES/Growth prompt | services؛ test قرعه‌کشی | پیاده‌شدهٔ پایه؛ provenance/تقلب/provider واقعی کامل نیست |
+| IG-006 | Giveaway، Insight و تحلیل رسمی/دستی رقبا | ADR-0004؛ Growth prompt | services؛ test قرعه‌کشی | شکاف: ingestion Zernio/provenance کامل نیست؛ Business Discovery و Hashtag Search تا endpoint رسمی backlog هستند |
 
 ### ۶.۹ پادو
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| PAD-001 | مرز سرویس و خروجی ساختاریافته | ADR-0002؛ DESIGN-PADO | PadoGateway | مرز پذیرفته شد: پادوی بیرونی per-site؛ adapter و قرارداد عمومی ندارد |
-| PAD-002 | صف مجوز اتمیک و دقیقاً یک‌بار | ADR-0002؛ منبع HITL | ApprovalRequestService | شکاف بحرانی race؛ فقط مسیر قالب سیم‌کشی واقعی دارد |
-| PAD-003 | عملیات حساس همگی از صف عبور کنند | ADR-0002؛ PADO | labelها در PadoPage | شکاف: قیمت/refund/حذف/کمپین/انتشار اجراکننده ندارند |
-| PAD-004 | قالب امن، preview و live tenant-scoped | ADR-0001/0002/0003؛ PADO §۱۸–۲۱ | ThemeValidator/Service | سه خروجی پذیرفته شد؛ اعتبارسنج/preview/Multisite و خط لولهٔ بازبینی PHP شکاف بحرانی‌اند |
-| PAD-005 | حافظه، Playbook و KPI | ADR-0002؛ PADO | طراحی سندی | حافظه در سرویس بیرونی است؛ قرارداد/گزارش IGBZ هنوز کد ندارد |
-| PAD-006 | دفاع عامل در برابر تزریق/ابزار/هزینه | ADR-0002؛ OWASP Agentic | کنترل محدود | مرز اعتماد پذیرفته شد؛ ابزار محدود و آزمون خصمانه هنوز کد ندارد |
+| PAD-001 | adapter ساختاریافتهٔ DeepInfra با حساب مستقل فروشگاه | ADR-0004؛ DESIGN-PADO §۲۲ | PadoGateway قدیمی | شکاف: `AiProviderInterface`، adapter و قرارداد عمومی کد ندارند |
+| PAD-002 | صف مجوز اتمیک و دقیقاً یک‌بار | ADR-0004؛ منبع HITL | ApprovalRequestService | شکاف بحرانی race؛ فقط مسیر قالب سیم‌کشی واقعی دارد |
+| PAD-003 | عملیات حساس همگی از صف عبور کنند | ADR-0004؛ PADO | labelها در PadoPage | شکاف: قیمت/refund/حذف/کمپین/انتشار اجراکننده ندارند |
+| PAD-004 | قالب امن، preview و live tenant-scoped | ADR-0001/0003/0004؛ PADO §۱۸–۲۲ | ThemeValidator/Service | سه خروجی پذیرفته شد؛ اعتبارسنج/preview/Multisite و خط لولهٔ بازبینی PHP شکاف بحرانی‌اند |
+| PAD-005 | چهار Playbook، حافظه، KPI و حلقهٔ یادگیری | ADR-0004؛ Growth prompt | طراحی سندی | شکاف: schema/version/provenance و یادگیری از فروش/Insight/campaign کد ندارد |
+| PAD-006 | دفاع در برابر تزریق، ابزار، هزینه و نشت secret | ADR-0004؛ OWASP Agentic | کنترل محدود | ابزار allowlist، بودجه، benchmark فارسی، منع نگهداشت credential و آزمون خصمانه هنوز کد ندارد |
 
 ### ۶.۱۰ API، تجربه و عملیات
 
@@ -395,8 +400,8 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
    یافته و برنامهٔ مهاجرت LTS لازم است.
 ۷. اسناد منبع nopCommerce در `ِDoc/` چند قابلیت را «کامل» یا provider را مناسب ایران اعلام
    می‌کنند؛ این ادعاها وضعیت کد WordPress یا تأیید حقوقی/تجاری امروز نیستند.
-۸. مرز پادو/ویرا/n8n/مدل و خروجی سه‌گانهٔ قالب در ADR-0002/0003 بسته شدند، ولی متن‌های
-   تاریخیِ ناسازگار و تاریخ ۱۴۰۶ باید در فاز ۰۳ یکدست شوند.
+۸. معماری پادو/اینستاگرام با ADR-0004 جای ADR-0002 را گرفت و خروجی سه‌گانهٔ قالب در
+   ADR-0003 بسته شد؛ متن تاریخی ناسازگار و کد providerهای حذف‌شده باید جدا و migrate شوند.
 ۹. گزارش تاریخی ویژوال ۳۵/۳۵ سبز با نتیجهٔ جاری ۳۴/۳۵ و نقص glyph ناسازگار بود؛ گزارش جاری
    اصلاح شده، ولی نقل‌های تاریخی باید در فاز ۰۳ برچسب بخورند.
 ۱۰. route registration موجود با schema/permission سطح endpoint در سند ماشینی متصل نیست؛
@@ -412,16 +417,17 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 
 ۱. **معماری مستأجر و قالب:** وردپرس چندسایتی با data plane مستقل هر زیرسایت و control
    plane مشترک IGBZ انتخاب شد. مرجع: `ADR/ADR-0001-MULTISITE-TENANCY.md`.
-۲. **مرز پادو، n8n، سرویس مدل و ویرا:** پادو حساب/سرویس بیرونی مستقل هر فروشگاه؛ n8n
-   گردش‌کار قطعی مشترک؛ ویرا ابزار داخلی و پشتیبان اسکیل/گزارش؛ مدل داخل سرویس بیرونی.
-   مرجع: `ADR/ADR-0002-EXTERNAL-PADO-PER-STORE.md`.
+۲. **معماری پادو و اینستاگرام:** پادوی Playbookمحور؛ DeepInfra با حساب/هزینهٔ مستقل هر
+   فروشگاه؛ Zernio به‌عنوان تنها provider اجتماعی با حساب مرکزی و profile جدا؛ حذف Manus،
+   ChatPlace، ManyChat و Ayrshare و رد کانال Instagram مبتنی بر session در Agent Reach. مرجع:
+   `ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md` که جانشین ADR-0002 است.
 ۳. **خروجی قالب:** طبق پاسخ مستقیم پیشین کارفرما هر سه نوع به انتخاب ادمین: قالب فرزند
    بلوکی، قالب کلاسیک PHP و تمپلیت صفحه‌ساز الحاقی. مرجع:
    `ADR/ADR-0003-THREE-THEME-OUTPUTS.md`.
 
 ### باز
 
-۴. فهرست providerهای واقعاً فعال و providerهای حذف‌شده؛
+۴. قرارداد و آزمون واقعی Zernio/DeepInfra و فهرست providerهای سایر حوزه‌ها؛
 ۵. ظرفیت هدف و SLO؛
 ۶. پایگاه‌دادهٔ تولید LTS؛
 ۷. دامنهٔ دقیق ترجمه و استثناها؛
@@ -450,7 +456,8 @@ visual-testing/phase-01-requirements-traceability.png
 - موجودی اولیهٔ کد، اسناد، امنیت، providerها و آزمون‌ها ثبت شد؛
 - ۶۷ نیاز سطح خانواده با شناسهٔ یکتا در ماتریس قرار گرفت؛
 - شکاف‌ها و تناقض‌های فعال از ادعاهای تاریخی جدا شدند؛
-- فاز بعدی، دریافت و ثبت تصمیم‌های معماری است و قبل از پاسخ‌های کارفرما نباید شروع شود.
+- تصمیم معماری پادو/اینستاگرام در ADR-0004 ثبت شد؛ فاز بعدی یکسان‌سازی باقی اسناد و سپس
+  برنامه‌ریزی migration است و هیچ تغییر کدی بدون مجوز صریح آغاز نمی‌شود.
 
 این سند در فاز ۰۴ به موجودی ماشینی endpoint/table/setting/job/test گسترش می‌یابد و از آن پس
 اختلاف با کد باید CI را قرمز کند.

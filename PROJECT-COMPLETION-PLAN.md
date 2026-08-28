@@ -1,8 +1,11 @@
 # برنامهٔ جامع تطبیق کد، اسناد و تکمیل پروژهٔ IGBZ-WP
 
-> تاریخ تدوین: ۱۴۰۵/۰۶/۰۵ — ۲۷ اوت ۲۰۲۶
+> تاریخ تدوین: ۱۴۰۵/۰۶/۰۵ — ۲۷ اوت ۲۰۲۶ · آخرین تطبیق: ۱۴۰۵/۰۶/۰۶ — ۲۸ اوت ۲۰۲۶
 >
-> وضعیت: فاز ۰۱ تمام؛ فاز ۰۲ در حال ثبت تصمیم‌ها؛ هنوز مجوز اجرای کد صادر نشده است.
+> وضعیت: فاز ۰۱ تمام؛ معماری پادو/اینستاگرام در ADR-0004 ثبت شده؛ هنوز مجوز اجرای کد فازهای بعدی صادر نشده است.
+>
+> تصمیم جاری: DeepInfra مستقل هر فروشگاه برای inference و Zernio مرکزی با profile جدا برای
+> هر فروشگاه به‌عنوان تنها provider اجتماعی. Manus، ChatPlace، ManyChat و Ayrshare حذف‌اند.
 >
 > دامنه: افزونهٔ IGBZ، محیط وردپرس/ووکامرس، پنل و فروشگاه، API، استقرار، آزمون و
 > اسناد همین مخزن. پوشهٔ `vira/` طبق دستور کارفرما خارج از محدوده است. اپ‌های فلاتر نیز
@@ -145,9 +148,9 @@ OPS  عملیات و استقرار         DOC  اسناد و انتشار
 - ۱۴۳ فراخوانی ثبت مسیر در کد در برابر شمارش ۱۴۵ بعضی اسناد؛
 - ادعای «تمام‌شدن فازهای ۶ تا ۱۴» در برابر نبود آزمون واقعی providerها؛
 - ادعای رمزشدن همهٔ کلیدها در برابر ۲۲ فیلد جاافتاده؛
-- «پادو سرویس بیرونی» در برابر نقش‌های نوشته‌شده برای ویرا و n8n؛
+- «پادو سرویس بیرونی» در برابر نقش‌های نوشته‌شده برای ویرا و n8n — با ADR-0004 بسته شد؛
 - خروجی فقط FSE در برابر سه نوع خروجی در بخش‌های دیگر؛
-- ChatPlace، ManyChat و مسیر رسمی اینستاگرام؛
+- چند provider اجتماعی و مسیر مستقیم/غیررسمی اینستاگرام — با انتخاب انحصاری Zernio بسته شد؛
 - وضعیت واقعی دامنه، HPOS، ترجمه، اپ‌ها و استقرار؛
 - شمارش و مسیرهای قدیمی در README، مرجع ماژول‌ها و هندآف.
 
@@ -157,12 +160,13 @@ OPS  عملیات و استقرار         DOC  اسناد و انتشار
 
 ۱. ✅ معماری نهایی مستأجر: **وردپرس چندسایتی + هستهٔ مدیریتی مشترک**؛ ثبت‌شده در
    `ADR/ADR-0001-MULTISITE-TENANCY.md`؛
-۲. ✅ مرز n8n، پادو، سرویس مدل و ویرا: **پادوی بیرونی مستقل هر فروشگاه**؛ n8n گردش‌کار
-   قطعی مشترک و ویرا ابزار داخلی IGBZ؛ ثبت‌شده در
-   `ADR/ADR-0002-EXTERNAL-PADO-PER-STORE.md`؛
+۲. ✅ معماری پادو و اینستاگرام: **پادوی Playbookمحور مستقل + DeepInfra مستقل هر
+   فروشگاه + Zernio مرکزی با profile جدا**؛ ثبت‌شده در
+   `ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md` که جانشین ADR-0002 است؛
 ۳. ✅ خروجی قالب: **هر سه نوع به انتخاب ادمین**؛ بلوکی، کلاسیک PHP و تمپلیت صفحه‌ساز
    الحاقی با گیت امنیتی متفاوت؛ ثبت‌شده در `ADR/ADR-0003-THREE-THEME-OUTPUTS.md`؛
-۴. فهرست providerهای رسمی و قرارداد/محیط sandbox هرکدام؛
+۴. قرارداد و محیط آزمون واقعی providerهای منتخب؛ از جمله Zernio، DeepInfra و providerهای
+   غیرمرتبط با این تصمیم مانند پرداخت/پیامک/لجستیک؛
 ۵. ظرفیت هدف، SLO، تعداد مستأجر و سقف سفارش/وبهوک؛
 ۶. پایگاه‌دادهٔ تولید و برنامهٔ مهاجرت از MySQL 8.0؛
 ۷. دامنهٔ ترجمه و پیام‌هایی که طبق تصمیم کارفرما عمداً انگلیسی می‌مانند؛
@@ -389,20 +393,24 @@ reconciliation روی sandbox واقعی موفق باشند.
 
 ## ۱۱. بستهٔ هشت — اینستاگرام، ثبت محصول و VIP
 
-- lifecycle حساب، token، revoke، rotation و tenant scope؛
-- مرز رسمی Manus و ChatPlace/ManyChat طبق تصمیم نهایی کارفرما؛
-- عدم تماس مستقیم با Graph API اگر ممنوعیت فعلی تأیید بماند؛
+- lifecycle اتصال Zernio، profile mapping، revoke، rotation کلید مرکزی و tenant scope؛
+- حذف/migration کامل Manus، ChatPlace، ManyChat و هر fallback اجتماعی دیگر؛ عدم ورود کانال
+  Instagram مبتنی بر session در Agent Reach؛
+- ممنوعیت Graph API مستقیم، scraper، cookie و session مرورگر Instagram؛
 - ثبت محصول ۱۳مرحله‌ای با checkpoint، resume، idempotency و بررسی انسانی؛
-- تولید محتوا، زمان‌بندی، انتشار و verify واقعی نتیجه؛
-- قیف comment-to-DM با deduplication، opt-out و rate limit؛
-- insights با provenance و بدون ادعای دادهٔ ناموجود؛
+- ورودی دادهٔ WooCommerce و Insight رسمی Zernio به Playbookهای پادو؛
+- تولید، زمان‌بندی، انتشار، webhook و verify واقعی نتیجه از مسیر Zernio؛
+- قیف comment-to-DM با deduplication، opt-out، rate limit، policy و audit بک‌اند؛
+- صدای Instagram فقط از endpoint کاتالوگ Zernio و با ذخیرهٔ شناسه/provenance؛
+- Business Discovery و Hashtag Search فقط پس از ارائهٔ endpoint رسمی Zernio؛
 - Giveaway مقاوم به تقلب و انتخاب قابل ممیزی؛
 - VIP: پلن، عضویت، خرید تکی، save، like، comment، message و expiry؛
 - حذف امن فایل منقضی، entitlement آفلاین و قرارداد API اپ؛
-- آزمون قطعی providerها در برابر timeout، ۴۲۹، ۵xx، پاسخ خراب و قطع شبکه.
+- آزمون Zernio در برابر timeout، ۴۲۹، ۵xx، webhook تکراری/نامعتبر و قطع شبکه.
 
-**دروازهٔ خروج:** مسیر کامل حساب تا انتشار و ثبت محصول با provider واقعی sandbox تأیید
-شود؛ هیچ mock به‌عنوان تکمیل provider شمرده نشود؛ حق دسترسی VIP در همهٔ نقش‌ها درست باشد.
+**دروازهٔ خروج:** دو profile مستقل Zernio باید بدون نشت متقاطع مسیر کامل اتصال، انتشار،
+Insight و comment-to-DM را در sandbox/حساب آزمون طی کنند؛ هیچ mock یا قابلیت فاقد endpoint
+به‌عنوان تکمیل شمرده نشود؛ حق دسترسی VIP در همهٔ نقش‌ها درست باشد.
 
 ---
 
@@ -735,10 +743,10 @@ REST/۷۲ جدول/۳۰۴ تنظیم، ده تناقض و نه تصمیم لاز
 
 #### فاز ۰۲ — ثبت تصمیم‌های معماری — در جریان
 
-پاسخ‌ها تک‌به‌تک گرفته و به ADRهای نسخه‌دار تبدیل می‌شوند. سه تصمیم بسته شده‌اند: معماری
-چندسایتی با control plane مشترک؛ پادوی بیرونی مستقل هر فروشگاه با n8n قطعی و ویرای داخلی؛
-و سه خروجی قالب به انتخاب ادمین. providerها، ظرفیت، دیتابیس، ترجمه و دامنهٔ پیشنهادها هنوز
-بازند.
+پاسخ‌ها تک‌به‌تک گرفته و به ADRهای نسخه‌دار تبدیل می‌شوند. چهار ADR ثبت شده‌اند: معماری
+چندسایتی با control plane مشترک؛ پادوی Playbookمحور و DeepInfra مستقل هر فروشگاه همراه
+Zernio مرکزی/چندپروفایلی به‌عنوان تنها provider اجتماعی؛ و سه خروجی قالب به انتخاب ادمین.
+ADR-0004 جانشین ADR-0002 است. ظرفیت، دیتابیس، ترجمه و دامنهٔ سایر پیشنهادها هنوز بازند.
 
 **خروج:** صفر تصمیم معماری لازمِ نامشخص برای فازهای بعدی.
 
@@ -999,41 +1007,47 @@ providerهای واقعی جداگانه تأیید می‌شوند.
 
 ### ۲۳.۹ موج شش — اینستاگرام و VIP
 
-#### فاز ۴۹ — حساب‌ها و credentialها
+#### فاز ۴۹ — اتصال Zernio و profile mapping
 
-lifecycle حساب، token، revoke، rotation، webhook identity و tenant scope.
+اتصال رسمی حساب، profile جدا برای هر فروشگاه، نگهداشت کلید مرکزی در secret store، revoke،
+rotation، webhook identity، tenant scope و حذف داده.
 
-#### فاز ۵۰ — تولید محتوا با Manus
+#### فاز ۵۰ — مهاجرت به تنها provider اجتماعی
 
-قرارداد ورودی/خروجی، job، هزینه، timeout، provenance، بازبینی و verify نتیجه؛ آزمون واقعی
-Manus در فاز provider جداست.
+ساخت adapter رسمی Zernio و migration کنترل‌شدهٔ داده؛ حذف Manus، ChatPlace، ManyChat و
+fallbackهای اجتماعی از container، تنظیمات، endpoint، UI و Runbook؛ افزودن گارد معماری و
+آزمون برای جلوگیری از ورود کانال Instagram مبتنی بر session در Agent Reach.
 
-#### فاز ۵۱ — پیام‌رسانی ChatPlace/ManyChat
+#### فاز ۵۱ — Inbox و comment-to-DM با Zernio
 
-مرز provider مصوب، قیف comment-to-DM، deduplication، opt-out، rate limit و delivery state.
+webhook امضاشده، deduplication، rule بک‌اند، opt-out، rate limit، approval، delivery state،
+idempotency و audit؛ هیچ تصمیم تجاری به automation بیرونی واگذار نمی‌شود.
 
 #### فاز ۵۲ — ثبت محصول ۱۳مرحله‌ای
 
 checkpoint، resume، idempotency، validation، تأیید انسانی، محصول ووکامرس و شکست/جبران.
 
-#### فاز ۵۳ — زمان‌بندی و راستی‌آزمایی انتشار
+#### فاز ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio
 
-انتخاب زمان، job انتشار، نتیجهٔ واقعی، duplicate prevention، failure state و گزارش.
+انتخاب زمان، دریافت صدای کاتالوگ‌شده، job انتشار، نتیجهٔ واقعی webhook/polling، duplicate
+prevention، failure state و گزارش؛ عدم دسترسی به audio گیت production است.
 
 #### فاز ۵۴ — کانال VIP
 
 پلن، عضویت، خرید تکی، entitlement، save، like، comment، message، expiry و حذف امن فایل.
 
-#### فاز ۵۵ — قرعه‌کشی و insights
+#### فاز ۵۵ — قرعه‌کشی، insights و ورودی رقبا
 
-انتخاب قابل ممیزی، مقاومت به تقلب، provenance آمار، retention و عدم ادعای دادهٔ ناموجود.
+انتخاب قابل ممیزی، مقاومت به تقلب، provenance آمار، retention، ingestion رسمی Insight و
+ورودی دستی رقبا. Business Discovery و Hashtag Search تا endpoint رسمی Zernio backlog هستند.
 
 ### ۲۳.۱۰ موج هفت — پادو
 
-#### فاز ۵۶ — مرز سرویس، schema و ابزار
+#### فاز ۵۶ — adapter مستقل DeepInfra، schema و ابزار
 
-نقش‌های مصوب، قرارداد نسخه‌دار، تفکیک داده از دستور، allowlist ابزار، بودجه و ممنوعیت اجرای
-کد تولیدی.
+قرارداد نسخه‌دار `AiProviderInterface`/`DeepInfraAdapter`، اجرای درخواست از حساب مستقل
+فروشگاه بدون ذخیرهٔ کلید در IGBZ، تفکیک داده از دستور، allowlist ابزار، بودجه، timeout،
+ثبت هزینه و ممنوعیت اجرای کد تولیدی. فعال‌سازی مشروط به benchmark فارسی و صلاحیت جغرافیایی.
 
 #### فاز ۵۷ — صف مجوز اتمیک
 
@@ -1059,9 +1073,11 @@ artefact امضاشده، preview جدا، اعمال tenant-scoped، مقایس
 
 دانش، تجربه، خاطره و حافظهٔ کاری با provenance، tenant scope، retention و دفاع از poisoning.
 
-#### فاز ۶۳ — Playbook، KPI و خودبازبینی
+#### فاز ۶۳ — چهار Playbook رشد، KPI و خودبازبینی
 
-نسخه‌بندی Playbook، سنجه‌های واقعی، نگهداشت دوره‌ای، هزینه، حذف و rollback دانش/قاعده.
+پیاده‌سازی گردآوری، تحلیل، راهبرد و تولید مطابق `PROMPT-IG-GROWTH-PADO.md`؛ نسخه‌بندی
+Playbook، schema/provenance، سنجه‌های فروش/Insight واقعی، نگهداشت دوره‌ای، هزینه، حذف و
+rollback دانش/قاعده.
 
 #### فاز ۶۴ — آزمون خصمانهٔ پادو
 

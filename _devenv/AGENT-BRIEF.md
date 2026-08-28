@@ -6,28 +6,34 @@ learned the hard way; following it will save hours.
 > **Start with [`PROJECT-STATE.md`](../PROJECT-STATE.md) in the repository root.** That document is
 > the single source of truth for what is built, what is decided, and what is still waiting on the
 > client. This brief is the deep technical companion to it: subsystem internals, environment
-> quirks, and the traps that cost real time. Where the two disagree, the code wins and both get
-> corrected.
+> quirks, and the traps that cost real time. Code is the source of current behavior; accepted ADRs
+> are the source of target architecture. Any disagreement is an explicit migration gap, not a reason
+> to silently override either one.
 
 ---
 
 ## 1. What this project is
 
-`igbz-suite/` is a **single WordPress plugin containing five toggleable modules**, a faithful port
-of the IGBZ product from nopCommerce to WordPress + WooCommerce.
+`igbz-suite/` is a **single WordPress plugin containing six toggleable modules**, ported from
+IGBZ's nopCommerce product to WordPress + WooCommerce.
 
-The one intentional functional difference from the nopCommerce original: the **Instagram Graph API
-is not used**. It is replaced by two services:
+> **Architecture decision (2026-08-28):** ADR-0004 supersedes every provider recommendation in
+> older sections of this brief. Pado is a constrained, versioned Playbook runtime per store.
+> DeepInfra is the v1 inference target and each store owns its account, credential, budget and bill;
+> IGBZ must not store or proxy that credential. Zernio is the sole social provider, paid from one
+> central IGBZ account with a separate profile per store. WooCommerce is the commerce source of
+> truth and the IGBZ backend owns authorization, queues, idempotency and audit.
 
-- **Manus** — automated Instagram workflow: niche/trend research, graphic design,
-  reels and short video, caption writing, hashtag selection, and auto-publishing/scheduling of
-  posts, stories and reels at peak-engagement hours.
-- **ManyChat** — DM funnels of the "comment X and I'll DM you the link" kind. Two integration
-  paths, both implemented: a **webhook** (real-time, preferred) and the **ManyChat API** (`GET`
-  subscriber profile, recent messages, custom fields).
+The historical Agent Reach Instagram-session proposal is rejected. Manus, ManyChat and ChatPlace remain in current code only as migration debt. Do not
+configure new production credentials or extend those integrations. Ayrshare must not be introduced.
+Direct Meta API calls, Instagram scraping, cookies and browser sessions are outside the target.
+Business Discovery and Hashtag Search are gated until Zernio documents endpoints. Read
+`ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md` and
+`DESIGN-INSTAGRAM-PADO-ZERNIO.md` before touching this area.
 
-The Instagram gateway sits behind an adapter interface so Graph API can be added back later, but
-**no direct Graph calls should be implemented now**.
+This brief still documents legacy implementation details because they are needed for a safe
+migration. When code and an accepted ADR disagree, the code describes current behavior while the ADR
+describes the required target; neither disagreement may be hidden.
 
 ### Standing constraints
 
@@ -747,8 +753,9 @@ to enqueue. The DDL is in the git history if a future subsystem wants it.
 - **Legal.** `NationalIdVerifier` (Shahkar) refuses to enable itself until the senior admin
   stores `legal.shahkar_api_key` — the lock is deliberate and must not be bypassed by defaulting
   the check to "pass".
-- **ChatPlace.** `dm.provider = manychat|chatplace`; ManyChat stays implemented as the inactive
-  fallback. ChatPlace is the chosen provider (flat price, built-in AI agent, VIRALE, MCP later).
+- **Legacy social switch.** `dm.provider = manychat|chatplace` exists in current code, but both
+  providers are deprecated by ADR-0004. Zernio is the only target; migration must remove the switch
+  and preserve/audit any historical records.
 - **i18n/SEO.** `I18nService` is a config endpoint, not a full translation memory.
   `SeoService` can write generated meta onto **real products** (the `igbz-seo` picker) — the nop
   gap. Feeds are served from the real catalog, never from a template string.
