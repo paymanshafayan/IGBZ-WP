@@ -62,6 +62,7 @@ final class Schema {
 			'api_tokens',
 			'devices',
 			'jobs',
+			'webhook_events',
 			'fx_wallets',
 			'fx_ledger',
 			'fx_rates',
@@ -763,6 +764,32 @@ final class Schema {
 			KEY status_available (status,available_at),
 			KEY tenant_queue (tenant_id,queue),
 			KEY claim_expires_at (claim_expires_at)
+		) {$charset};";
+
+		// Phase 29: the durable webhook inbox. Every inbound notification lands here FIRST —
+		// capturing is fast and synchronous, processing is async through the job queue. The
+		// (source,event_key) key is the deduplication guard: a provider that replays a delivery
+		// can never double-process an event. `available_at` + backoff give unknown states a
+		// scheduled retry instead of dropping them.
+		$sql[] = "CREATE TABLE {$p}webhook_events (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			source VARCHAR(32) NOT NULL,
+			event_key VARCHAR(191) NOT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'received',
+			signature_status VARCHAR(16) NOT NULL DEFAULT 'unchecked',
+			payload LONGTEXT NULL,
+			attempts INT UNSIGNED NOT NULL DEFAULT 0,
+			max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
+			available_at DATETIME NOT NULL,
+			last_error VARCHAR(255) NOT NULL DEFAULT '',
+			processed_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY source_event (source,event_key),
+			KEY status_available (status,available_at),
+			KEY tenant_source (tenant_id,source)
 		) {$charset};";
 
 		// The VIP channel: a private Instagram-shaped feed inside our own app.

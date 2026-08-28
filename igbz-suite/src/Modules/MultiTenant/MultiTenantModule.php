@@ -47,6 +47,9 @@ final class MultiTenantModule implements ModuleInterface {
 	private const DAILY_BATCH_COMMISSIONS  = 200;
 	private const DAILY_BATCH_MASTER       = 100;
 
+	/** Phase 29: webhook inbox batch per drain round. */
+	private const WEBHOOK_BATCH = 20;
+
 	public function id(): string {
 		return Modules::MULTITENANT;
 	}
@@ -117,10 +120,26 @@ final class MultiTenantModule implements ModuleInterface {
 
 		add_action( 'woocommerce_product_saved', [ $this, 'on_product_saved' ], 10, 2 );
 		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'marketplace_tick' ] );
+		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'webhook_tick' ] );
 
 		// Phase 24: marketplace sync runs as a queued job — leased and retried like everything
 		// else, instead of blocking the shared five-minute cron request.
 		$this->register_queue_handlers( $plugin->get( 'jobs' ) );
+
+		// Phase 29: provider payment notifications arrive in the durable inbox and are applied
+		// through the shared state machine — never directly, never in the request path.
+		$plugin->get( 'webhooks.inbox' )->register_source( 'psp', static function ( array $payload ): string {
+			$payment_id = (int) ( $payload['payment_id'] ?? 0 );
+			$verdict    = (string) ( $payload['status'] ?? '' );
+			if ( $payment_id <= 0 || '' === $verdict ) {
+				return 'done'; // Malformed — acknowledge so the provider stops re-delivering.
+			}
+			$outcome = igbz()->get( 'payments' )->apply_notification( $payment_id, $verdict, $payload );
+			if ( 'unknown' === $verdict && ! empty( $outcome['ok'] ) ) {
+				return 'unknown'; // The provider could not decide yet; the inbox retries later.
+			}
+			return 'done';
+		} );
 		add_action( 'woocommerce_add_to_cart', [ $this, 'watch_cart' ], 10, 6 );
 		add_action( Cron::HOOK_HOURLY, [ $this, 'abandoned_cart_tick' ] );
 		add_action( Cron::HOOK_DAILY, [ $this, 'master_payment_tick' ] );
@@ -571,6 +590,11 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		$sync->enqueue( $product_id, 'divar' );
 	}
 
+	/** Phase 29: drain the webhook inbox on the five-minute cron. */
+	public function webhook_tick(): void {
+		igbz()->get( 'jobs' )->enqueue( 'webhooks.drain', [], [ 'idempotency_key' => JobQueue::slot() ] );
+	}
+
 	/** Drain the marketplace queue on the five-minute cron. */
 	public function marketplace_tick(): void {
 		// Phase 24: the beat only enqueues; the enabled-check happens at run time inside the
@@ -629,6 +653,13 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		$jobs->register( 'wallet.reconcile', static function (): void {
 			// Phase 28: the ledger is the source of truth; any cached-balance drift is repaired.
 			igbz()->get( 'wallet' )->reconcile_all();
+		} );
+		$jobs->register( 'webhooks.drain', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			// Phase 29: one batch per round; a full batch re-queues the next round.
+			$inbox     = igbz()->get( 'webhooks.inbox' );
+			$totals    = $inbox->process_batch( self::WEBHOOK_BATCH );
+			$processed = $totals['done'] + $totals['unknown'] + $totals['failed'] + $totals['dead'];
+			$jobs->continue_round( $ctx, $payload, 'webhooks.drain', $processed, self::WEBHOOK_BATCH, self::MAX_SWEEP_ROUNDS );
 		} );
 	}
 

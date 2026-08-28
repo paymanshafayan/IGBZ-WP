@@ -101,6 +101,7 @@ final class Activator {
 			22 => [ self::class, 'migrate_to_v22' ],
 			23 => [ self::class, 'migrate_to_v23' ],
 			24 => [ self::class, 'migrate_to_v24' ],
+			25 => [ self::class, 'migrate_to_v25' ],
 		];
 	}
 
@@ -141,6 +142,15 @@ final class Activator {
 	 */
 	public static function migrate_to_v24(): void {
 		// Pure dbDelta work; see the jobs table in Schema::statements().
+	}
+
+	/**
+	 * v25 (phase 29): the durable webhook inbox (`webhook_events`).
+	 *
+	 * Pure dbDelta work — install_tables() creates the new table from Schema::statements().
+	 */
+	public static function migrate_to_v25(): void {
+		// Pure dbDelta work; see the webhook_events table in Schema::statements().
 	}
 
 	/**

@@ -13,6 +13,7 @@ use IGBZ\Suite\Modules\RestApi\Controllers\DeviceController;
 use IGBZ\Suite\Modules\RestApi\Controllers\FxController;
 use IGBZ\Suite\Modules\RestApi\Controllers\ProductIntakeController;
 use IGBZ\Suite\Modules\RestApi\Controllers\StoreAdminController;
+use IGBZ\Suite\Modules\RestApi\Controllers\WebhookController;
 use IGBZ\Suite\Modules\RestApi\Controllers\VipAdminController;
 use IGBZ\Suite\Modules\RestApi\Controllers\VipController;
 use IGBZ\Suite\Modules\RestApi\Push\DeviceRepository;
@@ -125,6 +126,7 @@ final class RestApiModule implements ModuleInterface {
 			new AccountController(),
 			new DeviceController( $plugin->get( 'api.devices' ), $plugin->get( 'api.notifications' ) ),
 			new StoreAdminController(),
+			new WebhookController( $plugin->get( 'webhooks.inbox' ) ),
 		];
 
 		// Product registration lives in the Instagram module — it is what owns the assistant, the

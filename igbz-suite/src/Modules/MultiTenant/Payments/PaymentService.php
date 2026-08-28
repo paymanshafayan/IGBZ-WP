@@ -275,6 +275,55 @@ final class PaymentService {
 	}
 
 	/**
+	 * Phase 29 — the provider-notification path (async webhooks).
+	 *
+	 * Unlike handle_callback() there is no browser to re-verify with, so the verdict travels in
+	 * the signed payload and the transition goes through the shared state machine: only legal
+	 * hops apply, the write is pinned on the current status, and a racing callback loses cleanly
+	 * instead of corrupting state. Settlement re-uses the exact same code path as the return URL.
+	 * `unknown` is reported back honestly so the inbox retries later instead of guessing.
+	 *
+	 * @param array<string,mixed> $extra Optional reference_id / error_code / error_message.
+	 * @return array<string,mixed>
+	 */
+	public function apply_notification( int $payment_id, string $verdict, array $extra = [] ): array {
+		$payment = $this->payment( $payment_id );
+		if ( ! $payment ) {
+			return [ 'ok' => false, 'reason' => 'not_found' ];
+		}
+		if ( self::STATUS_PAID === $payment['status'] ) {
+			return [ 'ok' => true, 'reason' => 'already_paid' ];
+		}
+
+		$map = [
+			'paid'      => self::STATUS_PAID,
+			'failed'    => self::STATUS_FAILED,
+			'cancelled' => self::STATUS_CANCELLED,
+		];
+		$to = $map[ $verdict ] ?? PaymentStateMachine::STATUS_UNKNOWN;
+
+		$write = array_intersect_key( $extra, array_flip( [ 'reference_id', 'error_code', 'error_message' ] ) );
+		if ( self::STATUS_PAID === $to ) {
+			$write['verified_at'] = current_time( 'mysql', true );
+		}
+
+		$result = PaymentStateMachine::make( $this->db )->advance( $payment_id, $to, $write );
+		if ( ! $result['ok'] ) {
+			return $result;
+		}
+
+		if ( self::STATUS_PAID === $to ) {
+			$verify = PaymentVerifyResult::ok( (string) ( $extra['reference_id'] ?? '' ) );
+			$this->settle( $payment, $verify );
+			do_action( 'igbz_payment_verified', $payment_id, $verify );
+		} elseif ( self::STATUS_PAID !== $to && PaymentStateMachine::STATUS_UNKNOWN !== $to ) {
+			do_action( 'igbz_payment_failed', $payment_id, PaymentVerifyResult::failure( (string) ( $extra['error_code'] ?? $verdict ), (string) ( $extra['error_message'] ?? '' ) ) );
+		}
+
+		return [ 'ok' => true, 'from' => $result['from'], 'to' => $to ];
+	}
+
+	/**
 	 * @param array<string,mixed> $payment
 	 */
 	private function settle( array $payment, PaymentVerifyResult $result ): void {
