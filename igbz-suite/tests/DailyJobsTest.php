@@ -165,7 +165,7 @@ final class DailyJobsTest extends TestCase {
 		$types = array_map( static fn ( array $j ) => (string) $j['job_type'], $jobs );
 		sort( $types );
 		$this->assert_same(
-			[ 'affiliate.commissions', 'marketplace.flush', 'master.release', 'plans.renewals', 'wallet.reconcile' ],
+			[ 'affiliate.commissions', 'marketplace.flush', 'master.reconcile', 'master.release', 'plans.renewals', 'wallet.reconcile' ],
 			$types,
 			'the daily set is one slot-keyed job each, master_payment_tick shares the master.release key'
 		);

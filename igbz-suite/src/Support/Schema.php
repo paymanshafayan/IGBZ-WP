@@ -1150,6 +1150,7 @@ final class Schema {
 			order_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			phase VARCHAR(8) NOT NULL DEFAULT 'rial',
 			amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+			refunded_amount DECIMAL(18,4) NOT NULL DEFAULT 0,
 			currency VARCHAR(8) NOT NULL DEFAULT 'IRT',
 			status VARCHAR(20) NOT NULL DEFAULT 'held',
 			hold_until DATETIME NULL,
@@ -1185,10 +1186,12 @@ final class Schema {
 			amount DECIMAL(18,4) NOT NULL DEFAULT 0,
 			method VARCHAR(16) NOT NULL DEFAULT 'card',
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
+			idempotency_key VARCHAR(191) NULL,
 			detail VARCHAR(255) NOT NULL DEFAULT '',
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_key (tenant_id,idempotency_key),
 			KEY tenant_status (tenant_id,status)
 		) {$charset};";
 

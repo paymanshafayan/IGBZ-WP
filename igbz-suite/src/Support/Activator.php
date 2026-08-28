@@ -102,6 +102,7 @@ final class Activator {
 			23 => [ self::class, 'migrate_to_v23' ],
 			24 => [ self::class, 'migrate_to_v24' ],
 			25 => [ self::class, 'migrate_to_v25' ],
+			26 => [ self::class, 'migrate_to_v26' ],
 		];
 	}
 
@@ -151,6 +152,15 @@ final class Activator {
 	 */
 	public static function migrate_to_v25(): void {
 		// Pure dbDelta work; see the webhook_events table in Schema::statements().
+	}
+
+	/**
+	 * v26 (phase 31): escrow hardening — `ig_master_payments.refunded_amount` (partial-refund
+	 * running total) and `ig_master_withdrawals.idempotency_key` with a per-tenant unique key
+	 * (a replayed withdrawal request can never debit twice). Pure dbDelta work.
+	 */
+	public static function migrate_to_v26(): void {
+		// Pure dbDelta work; see the ig_master_payments / ig_master_withdrawals tables.
 	}
 
 	/**
