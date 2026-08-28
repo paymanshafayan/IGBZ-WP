@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 223,
-    "source_php_sha256": "4df3fbb929a908d6acfa887707372d1c810d65f5f9b9993ea44b7ba37898bb02",
+    "source_php_count": 226,
+    "source_php_sha256": "79fee649805ed5041021319f9eabf7f095ce7f1bf41829994ebc8f00a6411c1c",
     "source_php_files": [
       "igbz-suite/src/Modules/Fx/Admin/FxPage.php",
       "igbz-suite/src/Modules/Fx/Contracts/FxPayoutAdapterInterface.php",
@@ -263,6 +263,9 @@
       "igbz-suite/src/Support/Db.php",
       "igbz-suite/src/Support/Http.php",
       "igbz-suite/src/Support/HttpResponse.php",
+      "igbz-suite/src/Support/Jobs/Envelope.php",
+      "igbz-suite/src/Support/Jobs/JobContext.php",
+      "igbz-suite/src/Support/Jobs/JobQueue.php",
       "igbz-suite/src/Support/Logger.php",
       "igbz-suite/src/Support/Migrator.php",
       "igbz-suite/src/Support/ModuleInterface.php",
@@ -283,12 +286,12 @@
       "Pado": 6,
       "RestApi": 22
     },
-    "support_php_count": 26,
-    "all_plugin_php_count": 269
+    "support_php_count": 29,
+    "all_plugin_php_count": 273
   },
   "database": {
-    "version": 23,
-    "table_count": 72,
+    "version": 24,
+    "table_count": 73,
     "tables": [
       "tenants",
       "tenant_domains",
@@ -321,6 +324,7 @@
       "ig_intake",
       "api_tokens",
       "devices",
+      "jobs",
       "vip_plans",
       "vip_memberships",
       "vip_posts",
@@ -798,7 +802,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 44,
+    "php_file_count": 45,
     "php_files": [
       "igbz-suite/tests/AccountCredentialsTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
@@ -816,6 +820,7 @@
       "igbz-suite/tests/GatewayTest.php",
       "igbz-suite/tests/HposOrderFlowTest.php",
       "igbz-suite/tests/IpgAdaptersTest.php",
+      "igbz-suite/tests/JobQueueTest.php",
       "igbz-suite/tests/JwtTest.php",
       "igbz-suite/tests/LmsTest.php",
       "igbz-suite/tests/MigratorTest.php",
@@ -845,7 +850,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 40,
+    "main_case_count": 41,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -886,7 +891,8 @@
       "ThemeRoutingTest",
       "MigratorTest",
       "BatchTest",
-      "HposOrderFlowTest"
+      "HposOrderFlowTest",
+      "JobQueueTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

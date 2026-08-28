@@ -100,6 +100,7 @@ final class Activator {
 			21 => [ self::class, 'migrate_to_v21' ],
 			22 => [ self::class, 'migrate_to_v22' ],
 			23 => [ self::class, 'migrate_to_v23' ],
+			24 => [ self::class, 'migrate_to_v24' ],
 		];
 	}
 
@@ -116,7 +117,7 @@ final class Activator {
 	 * encrypted device key the server uses to verify signed bulk requests. dbDelta adds the
 	 * column; existing rows simply carry the empty default. No data back-fill.
 	 */
-	private static function migrate_to_v22(): void {
+	public static function migrate_to_v22(): void {
 		// Pure dbDelta work; see Schema::devices().
 	}
 
@@ -129,8 +130,17 @@ final class Activator {
 	 * Validating them with EXPLAIN on production-sized data stays a recorded production task.
 	 * Pure dbDelta work; see Schema::api_tokens() and Schema::devices().
 	 */
-	private static function migrate_to_v23(): void {
+	public static function migrate_to_v23(): void {
 		// Pure dbDelta work; see Schema::api_tokens() and Schema::devices().
+	}
+
+	/**
+	 * v24 (phase 23): the durable job queue table (`jobs`).
+	 *
+	 * Pure dbDelta work — install_tables() creates the new table from Schema::statements().
+	 */
+	public static function migrate_to_v24(): void {
+		// Pure dbDelta work; see the jobs table in Schema::statements().
 	}
 
 	/**
@@ -141,7 +151,7 @@ final class Activator {
 	 * off while the code quietly runs them on. Filling the gaps here makes the form and the
 	 * behaviour agree. No schema change.
 	 */
-	private static function migrate_to_v21(): void {
+	public static function migrate_to_v21(): void {
 		self::seed_defaults();
 	}
 
@@ -156,7 +166,7 @@ final class Activator {
 	 * skips values that already carry the versioned payload prefix, and the read path never
 	 * broke because Crypto::decrypt() passes unversioned payloads through.
 	 */
-	private static function migrate_to_v20(): void {
+	public static function migrate_to_v20(): void {
 		( new Settings() )->encrypt_legacy_secrets();
 	}
 
@@ -177,7 +187,7 @@ final class Activator {
 	 * owner role and administrators, and seeds two demo approval requests so the admin
 	 * screen is not empty on first load.
 	 */
-	private static function migrate_to_v19(): void {
+	public static function migrate_to_v19(): void {
 		self::install_tables();
 		self::add_roles();
 		( new \IGBZ\Suite\Modules\Pado\PadoModule() )->seed_demo_requests();
@@ -205,7 +215,7 @@ final class Activator {
 	 * back-fill is written as a read plus per-row updates because a correlated UPDATE does not
 	 * survive the SQLite translator on Playground installs.
 	 */
-	private static function migrate_to_v17(): void {
+	public static function migrate_to_v17(): void {
 		$settings = new Settings();
 
 		if ( $settings->int( 'vip.default_expiry_days', 0 ) <= 0 ) {
@@ -244,7 +254,7 @@ final class Activator {
 	 * install does. Prices are deliberately conservative defaults; the operator edits them on the
 	 * FX payments screen (or leaves the module off entirely).
 	 */
-	private static function migrate_to_v14(): void {
+	public static function migrate_to_v14(): void {
 		self::seed_fx_prices();
 	}
 
@@ -297,7 +307,7 @@ final class Activator {
 	 * something needs to enqueue, and nothing does. If a future subsystem wants one, it will want
 	 * columns chosen for that job anyway, and this DDL is in the history.
 	 */
-	private static function migrate_to_v15(): void {
+	public static function migrate_to_v15(): void {
 		// Phase 6-14 tables are plain dbDelta work; nothing to back-fill.
 		self::seed_phase_defaults();
 	}
@@ -326,11 +336,11 @@ final class Activator {
 		);
 	}
 
-	private static function migrate_to_v16(): void {
+	public static function migrate_to_v16(): void {
 		// Phase 6-14 tables are plain dbDelta work; nothing to back-fill yet.
 	}
 
-	private static function migrate_to_v13(): void {
+	public static function migrate_to_v13(): void {
 		$db = new Db();
 
 		// IF EXISTS keeps this a no-op on installs created after the table stopped being made.
@@ -362,7 +372,7 @@ final class Activator {
 	 * publishing for months. The shortcode is derived from the permalink already on the row, so the
 	 * back-fill needs no network call -- fitting, since we have no Instagram API to ask.
 	 */
-	private static function migrate_to_v12(): void {
+	public static function migrate_to_v12(): void {
 		$db = new Db();
 
 		$ledger = $db->table( 'wallet_ledger' );
@@ -413,7 +423,7 @@ final class Activator {
 	 * is the safe direction: a certificate wrongly issued is a claim we cannot stand behind, while
 	 * one wrongly withheld comes back by itself.
 	 */
-	private static function migrate_to_v11(): void {
+	public static function migrate_to_v11(): void {
 		add_action(
 			'init',
 			static function (): void {
@@ -462,7 +472,7 @@ final class Activator {
 	 * when the table is completely empty, which makes re-running the step a no-op and means a shop
 	 * that deleted the sample never gets it back.
 	 */
-	private static function migrate_to_v10(): void {
+	public static function migrate_to_v10(): void {
 		add_action(
 			'init',
 			static function (): void {
@@ -525,7 +535,7 @@ final class Activator {
 	 * those posts. Old funnels keep matching the old keyword forever; only products registered
 	 * from here on use numbers.
 	 */
-	private static function migrate_to_v9(): void {
+	public static function migrate_to_v9(): void {
 		$db     = igbz()->db();
 		$intake = $db->table( 'ig_intake' );
 
@@ -567,7 +577,7 @@ final class Activator {
 	 * Rows that were left undelivered with no error message are the ones that never got as far as
 	 * a send. They become explicitly pending so retry_failed() picks them up.
 	 */
-	private static function migrate_to_v7(): void {
+	public static function migrate_to_v7(): void {
 		$db    = new Db();
 		$table = $db->table( 'ig_funnel_hits' );
 
@@ -592,7 +602,7 @@ final class Activator {
 	 * webhook tokens. The old global webhook tokens are intentionally left in settings: they no
 	 * longer authenticate anything, but keeping them avoids breaking a rollback.
 	 */
-	private static function migrate_to_v6(): void {
+	public static function migrate_to_v6(): void {
 		$db    = new Db();
 		$table = $db->table( 'ig_accounts' );
 

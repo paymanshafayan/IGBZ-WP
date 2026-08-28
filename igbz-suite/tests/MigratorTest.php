@@ -13,6 +13,37 @@ final class MigratorTest extends TestCase {
 		$this->fresh_lock_blocks_a_second_runner();
 		$this->stale_lock_is_taken_over();
 		$this->direct_upgrade_from_an_old_version_runs_only_the_missing_rungs();
+		$this->real_activation_ladder_is_constructible();
+	}
+
+	/**
+	 * Regression: on 1405-06-06 a version bump crashed the live site with
+	 * "Argument #2 ($step) must be of type callable, array given". The ladder entries were
+	 * [ Activator::class, 'migrate_to_vN' ] pointing at PRIVATE static methods, and an array
+	 * callable to a private method fails the `callable` parameter type check when the Migrator
+	 * (a different class) receives it. Every rung must be a genuine callable.
+	 */
+	private function real_activation_ladder_is_constructible(): void {
+		$this->fresh();
+
+		$method = new ReflectionMethod( \IGBZ\Suite\Support\Activator::class, 'migration_steps' );
+		$steps  = $method->invoke( null );
+
+		$this->assert_true( count( $steps ) > 0, 'the activation ladder has rungs' );
+
+		foreach ( $steps as $version => $step ) {
+			$this->assert_true(
+				is_callable( $step ),
+				"ladder rung {$version} is a genuine callable (a private method reference is not)"
+			);
+		}
+
+		// Building the migrator is exactly where the production crash happened.
+		$mig = new Migrator();
+		foreach ( $steps as $version => $step ) {
+			$mig->add( $version, $step );
+		}
+		$this->assert_true( true, 'the real ladder builds without a TypeError' );
 	}
 
 	private function fresh(): void {

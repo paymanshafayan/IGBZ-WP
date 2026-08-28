@@ -61,6 +61,7 @@ final class Schema {
 			'vip_messages',
 			'api_tokens',
 			'devices',
+			'jobs',
 			'fx_wallets',
 			'fx_ledger',
 			'fx_rates',
@@ -738,6 +739,30 @@ final class Schema {
 			KEY user_id (user_id),
 			KEY fcm_token (fcm_token(191)),
 			KEY last_seen_at (last_seen_at)
+		) {$charset};";
+
+		// Phase 23 — durable job queue: leased claims, retries with backoff, dead letters.
+		$sql[] = "CREATE TABLE {$p}jobs (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			queue VARCHAR(64) NOT NULL DEFAULT 'default',
+			group_key VARCHAR(64) NOT NULL DEFAULT '',
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			job_type VARCHAR(100) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending',
+			attempts INT UNSIGNED NOT NULL DEFAULT 0,
+			max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
+			available_at DATETIME NOT NULL,
+			claim_expires_at DATETIME NULL,
+			last_error TEXT NULL,
+			idempotency_key VARCHAR(191) NULL,
+			envelope LONGTEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY queue_idempotency (queue,idempotency_key),
+			KEY status_available (status,available_at),
+			KEY tenant_queue (tenant_id,queue),
+			KEY claim_expires_at (claim_expires_at)
 		) {$charset};";
 
 		// The VIP channel: a private Instagram-shaped feed inside our own app.
