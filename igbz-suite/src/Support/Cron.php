@@ -25,6 +25,9 @@ final class Cron {
 	public function register(): void {
 		self::register_schedules();
 		add_action( self::HOOK_DAILY, [ $this, 'housekeeping' ] );
+
+		// Phase 24: background work lives in the durable queue; the five-minute beat drains it.
+		igbz()->get( 'jobs.runner' )->register();
 	}
 
 	/**

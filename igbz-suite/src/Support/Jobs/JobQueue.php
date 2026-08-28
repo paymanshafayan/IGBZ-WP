@@ -61,6 +61,14 @@ final class JobQueue {
 	}
 
 	/**
+	 * Idempotency key for "once per time window" jobs (phase 24): WP-Cron fires at least once,
+	 * so the same beat can arrive twice — the slot key makes the second enqueue a no-op.
+	 */
+	public static function slot( int $window_seconds = 300 ): string {
+		return gmdate( 'Y-m-d H:i:s', intdiv( time(), max( 1, $window_seconds ) ) * max( 1, $window_seconds ) );
+	}
+
+	/**
 	 * Enqueue a job. Idempotent when an idempotency key is given: re-enqueuing the same key for
 	 * the same queue returns the existing job instead of creating a duplicate.
 	 *

@@ -18,6 +18,7 @@ use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletGateway;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletService;
 use IGBZ\Suite\Support\Capabilities;
 use IGBZ\Suite\Support\Cron;
+use IGBZ\Suite\Support\Jobs\JobQueue;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
@@ -102,6 +103,10 @@ final class MultiTenantModule implements ModuleInterface {
 
 		add_action( 'woocommerce_product_saved', [ $this, 'on_product_saved' ], 10, 2 );
 		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'marketplace_tick' ] );
+
+		// Phase 24: marketplace sync runs as a queued job — leased and retried like everything
+		// else, instead of blocking the shared five-minute cron request.
+		$this->register_queue_handlers( $plugin->get( 'jobs' ) );
 		add_action( 'woocommerce_add_to_cart', [ $this, 'watch_cart' ], 10, 6 );
 		add_action( Cron::HOOK_HOURLY, [ $this, 'abandoned_cart_tick' ] );
 		add_action( Cron::HOOK_DAILY, [ $this, 'master_payment_tick' ] );
@@ -522,10 +527,19 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 
 	/** Drain the marketplace queue on the five-minute cron. */
 	public function marketplace_tick(): void {
-		if ( ! igbz()->settings()->bool( 'marketplace.enabled', true ) ) {
-			return;
-		}
-		igbz()->get( 'marketplace.sync' )->process_pending();
+		// Phase 24: the beat only enqueues; the enabled-check happens at run time inside the
+		// handler so a late settings change is still respected. Slot key absorbs duplicate beats.
+		igbz()->get( 'jobs' )->enqueue( 'marketplace.sync', [], [ 'idempotency_key' => JobQueue::slot() ] );
+	}
+
+	/** Phase 24: handler wiring for the queued marketplace sync. */
+	public function register_queue_handlers( JobQueue $jobs ): void {
+		$jobs->register( 'marketplace.sync', static function (): void {
+			if ( ! igbz()->settings()->bool( 'marketplace.enabled', true ) ) {
+				return;
+			}
+			igbz()->get( 'marketplace.sync' )->process_pending();
+		} );
 	}
 
 	/** Track a cart for abandoned-cart recovery. */

@@ -33,6 +33,7 @@ use IGBZ\Suite\Modules\Instagram\Vip\VipSocialService;
 use IGBZ\Suite\Modules\Instagram\Webhooks\ManusWebhook;
 use IGBZ\Suite\Modules\Instagram\Webhooks\ManyChatWebhook;
 use IGBZ\Suite\Support\Cron;
+use IGBZ\Suite\Support\Jobs\JobQueue;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
@@ -102,6 +103,10 @@ final class InstagramModule implements ModuleInterface {
 		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'run_five_minutes' ] );
 		add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );
 		add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );
+
+		// Phase 24: the five-minute sweeps run as independent queued jobs — leased, retried
+		// with backoff, dead-lettered when broken — instead of one long blocking cron request.
+		$this->register_queue_handlers( $plugin->get( 'jobs' ) );
 
 		// Products deleted in WooCommerce must not leave funnels pointing at a 404.
 		add_action( 'before_delete_post', [ $this, 'detach_deleted_product' ] );
@@ -294,23 +299,30 @@ final class InstagramModule implements ModuleInterface {
 	// ------------------------------------------------------------------ cron
 
 	public function run_five_minutes(): void {
-		/** @var ContentScheduler $scheduler */
-		$scheduler = igbz()->get( 'ig.scheduler' );
-		$scheduler->tick();
+		// Phase 24: this beat only enqueues; the queue runner drains in the same beat with
+		// leases, retries and dead letters. The slot key absorbs WP-Cron's duplicate beats —
+		// the second delivery of the same five-minute window is a no-op.
+		$jobs = igbz()->get( 'jobs' );
+		$slot = JobQueue::slot();
+		foreach ( [ 'ig.content.tick', 'ig.intake.tick', 'ig.vip.publish_due', 'ig.vip.expire_due' ] as $job_type ) {
+			$jobs->enqueue( $job_type, [], [ 'idempotency_key' => $slot ] );
+		}
+	}
 
-		// The webhook is the fast path for a finished Manus task; this is the guarantee that a
-		// registration is never stranded by a callback that never arrived.
-		/** @var IntakeWorker $worker */
-		$worker = igbz()->get( 'ig.intake_worker' );
-		$worker->tick();
-
-		// VIP scheduling and expiry share this tick. Five minutes is the right granularity for
-		// both: a post scheduled for 9:00 that appears at 9:04 is fine, and an expiry window
-		// measured in days does not need to be enforced to the second.
-		/** @var VipPostService $vip_posts */
-		$vip_posts = igbz()->get( 'vip.posts' );
-		$vip_posts->publish_due();
-		$vip_posts->expire_due();
+	/** Phase 24: handler wiring for the queued five-minute sweeps. */
+	public function register_queue_handlers( JobQueue $jobs ): void {
+		$jobs->register( 'ig.content.tick', static function (): void {
+			igbz()->get( 'ig.scheduler' )->tick();
+		} );
+		$jobs->register( 'ig.intake.tick', static function (): void {
+			igbz()->get( 'ig.intake_worker' )->tick();
+		} );
+		$jobs->register( 'ig.vip.publish_due', static function (): void {
+			igbz()->get( 'vip.posts' )->publish_due();
+		} );
+		$jobs->register( 'ig.vip.expire_due', static function (): void {
+			igbz()->get( 'vip.posts' )->expire_due();
+		} );
 	}
 
 	public function run_hourly(): void {

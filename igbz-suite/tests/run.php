@@ -54,6 +54,7 @@ $cases = [
 	'BatchTest',
 	'HposOrderFlowTest',
 	'JobQueueTest',
+	'CronJobsTest',
 ];
 
 foreach ( $cases as $case ) {

@@ -146,6 +146,8 @@ final class Plugin {
 		$this->bind( 'db', static fn () => new Db() );
 		$this->bind( 'http', static fn ( Plugin $c ) => new Http( $c->get( 'logger' ) ) );
 		$this->bind( 'tenancy', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Repository\TenantContext( $c->get( 'db' ) ) );
+		$this->bind( 'jobs', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Jobs\JobQueue( $c->get( 'db' ), $c->get( 'logger' ) ) );
+		$this->bind( 'jobs.runner', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Jobs\QueueRunner( $c->get( 'jobs' ), $c->get( 'logger' ) ) );
 	}
 
 	public function settings(): Settings {
