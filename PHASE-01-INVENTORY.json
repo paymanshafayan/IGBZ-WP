@@ -49,7 +49,7 @@
   },
   "code": {
     "source_php_count": 227,
-    "source_php_sha256": "6fc63fb3b13421b9c47e62704c01671d2203f4cf906feebcee7bdf303b8f5ce3",
+    "source_php_sha256": "f05e74015c5f79e74208ee539ba69fd266dcff2c78f3a465c9dee0a49a4dbf3d",
     "source_php_files": [
       "igbz-suite/src/Modules/Fx/Admin/FxPage.php",
       "igbz-suite/src/Modules/Fx/Contracts/FxPayoutAdapterInterface.php",
@@ -288,7 +288,7 @@
       "RestApi": 22
     },
     "support_php_count": 30,
-    "all_plugin_php_count": 275
+    "all_plugin_php_count": 276
   },
   "database": {
     "version": 24,
@@ -681,25 +681,25 @@
       {
         "hook_reference": "HOOK_HOURLY",
         "file": "igbz-suite/src/Modules/Hub/HubModule.php",
-        "line": "72",
+        "line": "73",
         "registration": "add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );"
       },
       {
         "hook_reference": "HOOK_FIVE_MINUTES",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "103",
+        "line": "110",
         "registration": "add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'run_five_minutes' ] );"
       },
       {
         "hook_reference": "HOOK_HOURLY",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "104",
+        "line": "111",
         "registration": "add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );"
       },
       {
         "hook_reference": "HOOK_DAILY",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "105",
+        "line": "112",
         "registration": "add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );"
       },
       {
@@ -711,31 +711,31 @@
       {
         "hook_reference": "HOOK_HOURLY",
         "file": "igbz-suite/src/Modules/MultiTenant/MultiTenantModule.php",
-        "line": "83",
+        "line": "91",
         "registration": "add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );"
       },
       {
         "hook_reference": "HOOK_DAILY",
         "file": "igbz-suite/src/Modules/MultiTenant/MultiTenantModule.php",
-        "line": "84",
+        "line": "92",
         "registration": "add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );"
       },
       {
         "hook_reference": "HOOK_FIVE_MINUTES",
         "file": "igbz-suite/src/Modules/MultiTenant/MultiTenantModule.php",
-        "line": "105",
+        "line": "113",
         "registration": "add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'marketplace_tick' ] );"
       },
       {
         "hook_reference": "HOOK_HOURLY",
         "file": "igbz-suite/src/Modules/MultiTenant/MultiTenantModule.php",
-        "line": "111",
+        "line": "119",
         "registration": "add_action( Cron::HOOK_HOURLY, [ $this, 'abandoned_cart_tick' ] );"
       },
       {
         "hook_reference": "HOOK_DAILY",
         "file": "igbz-suite/src/Modules/MultiTenant/MultiTenantModule.php",
-        "line": "112",
+        "line": "120",
         "registration": "add_action( Cron::HOOK_DAILY, [ $this, 'master_payment_tick' ] );"
       },
       {
@@ -755,6 +755,12 @@
         "file": "igbz-suite/src/Support/Jobs/QueueRunner.php",
         "line": "31",
         "registration": "add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'on_beat' ], 50 );"
+      },
+      {
+        "hook_reference": "HOOK_HOURLY",
+        "file": "igbz-suite/src/Support/Jobs/QueueRunner.php",
+        "line": "34",
+        "registration": "add_action( Cron::HOOK_HOURLY, [ $this, 'on_beat' ], 50 );"
       }
     ],
     "action_scheduler_calls_in_source": 0
@@ -809,7 +815,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 46,
+    "php_file_count": 47,
     "php_files": [
       "igbz-suite/tests/AccountCredentialsTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
@@ -826,6 +832,7 @@
       "igbz-suite/tests/FunnelDeliveryTest.php",
       "igbz-suite/tests/FxTest.php",
       "igbz-suite/tests/GatewayTest.php",
+      "igbz-suite/tests/HourlyJobsTest.php",
       "igbz-suite/tests/HposOrderFlowTest.php",
       "igbz-suite/tests/IpgAdaptersTest.php",
       "igbz-suite/tests/JobQueueTest.php",
@@ -858,7 +865,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 42,
+    "main_case_count": 43,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -901,7 +908,8 @@
       "BatchTest",
       "HposOrderFlowTest",
       "JobQueueTest",
-      "CronJobsTest"
+      "CronJobsTest",
+      "HourlyJobsTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

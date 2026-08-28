@@ -106,6 +106,25 @@ final class JobQueueDb extends wpdb {
 		return $this->rows_for( $sql );
 	}
 
+	public function get_col( string $sql ) {
+		$this->queries[] = $sql;
+		if ( ! str_contains( $sql, 'igbz_jobs' ) ) {
+			return parent::get_col( $sql );
+		}
+		if ( ! preg_match( '/SELECT\s+(?:DISTINCT\s+)?([a-z_]+)/i', $sql, $m ) ) {
+			return [];
+		}
+		$column = $m[1];
+		$out    = [];
+		foreach ( $this->rows_for( $sql ) as $row ) {
+			$out[] = $row[ $column ] ?? null;
+		}
+		if ( preg_match( '/DISTINCT/i', $sql ) ) {
+			$out = array_values( array_unique( array_map( 'strval', $out ) ) );
+		}
+		return $out;
+	}
+
 	public function insert( string $table, array $data, $format = null ): int|bool {
 		if ( 'jobs' !== $this->short( $table ) ) {
 			return parent::insert( $table, $data, $format );

@@ -29,6 +29,9 @@ final class QueueRunner {
 	public function register(): void {
 		// Late priority: the same beat enqueues first (module ticks), then drains.
 		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'on_beat' ], 50 );
+		// Phase 25: the hourly beat fans out the tenant sweeps; drain there too so the work
+		// starts in the same request instead of waiting up to five minutes for the next beat.
+		add_action( Cron::HOOK_HOURLY, [ $this, 'on_beat' ], 50 );
 	}
 
 	/**

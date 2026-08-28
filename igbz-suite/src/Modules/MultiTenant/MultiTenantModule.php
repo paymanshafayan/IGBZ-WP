@@ -18,6 +18,7 @@ use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletGateway;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletService;
 use IGBZ\Suite\Support\Capabilities;
 use IGBZ\Suite\Support\Cron;
+use IGBZ\Suite\Support\Jobs\JobContext;
 use IGBZ\Suite\Support\Jobs\JobQueue;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
@@ -33,6 +34,13 @@ defined( 'ABSPATH' ) || exit;
  * modules (and third-party code) can reuse them.
  */
 final class MultiTenantModule implements ModuleInterface {
+
+	/** Phase 25: batch sizes of the tenant sweeps (must match the service LIMITs). */
+	private const SWEEP_BATCH_BNPL  = 200;
+	private const SWEEP_BATCH_CARTS = 50;
+
+	/** Phase 25: continuation rounds per tenant per hour — caps the worst-case loop. */
+	private const MAX_SWEEP_ROUNDS = 10;
 
 	public function id(): string {
 		return Modules::MULTITENANT;
@@ -450,8 +458,36 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 	}
 
 	public function run_hourly(): void {
-		igbz()->get( 'bnpl' )->process_overdue();
-		igbz()->get( 'bnpl' )->send_reminders();
+		$this->fan_out_hourly_sweeps();
+	}
+
+	/**
+	 * Phase 25: the hourly sweeps run as one job per active tenant instead of one global scan
+	 * with a LIMIT. The hourly slot key absorbs duplicate beats, `group_key` gives each tenant
+	 * a fair round-robin share of the claim budget, and every handler re-queues a next round
+	 * while its batch comes back full — capped, so a pathological backlog cannot loop forever.
+	 */
+	private function fan_out_hourly_sweeps(): void {
+		$ids = $this->active_tenant_ids();
+		if ( ! $ids ) {
+			return;
+		}
+		$jobs = igbz()->get( 'jobs' );
+		foreach ( [ 'bnpl.overdue', 'bnpl.reminders', 'carts.sweep' ] as $job_type ) {
+			$jobs->fan_out_tenants( $job_type, $ids, [ 'slot' => JobQueue::slot( HOUR_IN_SECONDS ) ] );
+		}
+	}
+
+	/** Active tenants (active status or a trial that has not ended). @return array<int,int> */
+	private function active_tenant_ids(): array {
+		$tenants = igbz()->get( 'tenants' )->all( [ 'limit' => 500 ] );
+		$ids     = [];
+		foreach ( $tenants as $tenant ) {
+			if ( $tenant->is_active() ) {
+				$ids[] = $tenant->id;
+			}
+		}
+		return $ids;
 	}
 
 	public function run_daily(): void {
@@ -532,7 +568,7 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		igbz()->get( 'jobs' )->enqueue( 'marketplace.sync', [], [ 'idempotency_key' => JobQueue::slot() ] );
 	}
 
-	/** Phase 24: handler wiring for the queued marketplace sync. */
+	/** Phase 24/25: handler wiring for the queued jobs owned by this module. */
 	public function register_queue_handlers( JobQueue $jobs ): void {
 		$jobs->register( 'marketplace.sync', static function (): void {
 			if ( ! igbz()->settings()->bool( 'marketplace.enabled', true ) ) {
@@ -540,6 +576,49 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 			}
 			igbz()->get( 'marketplace.sync' )->process_pending();
 		} );
+
+		// Phase 25 — the tenant-scoped hourly sweeps. Each handler stays within its capped
+		// batch and applies the continuation contract: a full batch means more rows may wait,
+		// so the next round re-queues itself under a derived idempotency key.
+		$jobs->register( 'bnpl.overdue', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$processed = igbz()->get( 'bnpl' )->process_overdue( $ctx->tenant_id );
+			$this->continue_sweep( $jobs, 'bnpl.overdue', $ctx, $payload, $processed, self::SWEEP_BATCH_BNPL );
+		} );
+		$jobs->register( 'bnpl.reminders', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$processed = igbz()->get( 'bnpl' )->send_reminders( $ctx->tenant_id );
+			$this->continue_sweep( $jobs, 'bnpl.reminders', $ctx, $payload, $processed, self::SWEEP_BATCH_BNPL );
+		} );
+		$jobs->register( 'carts.sweep', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			// Settings are consulted at run time (phase 24 pattern), not at enqueue time.
+			if ( ! igbz()->settings()->bool( 'abandoned_cart.enabled', true ) ) {
+				return;
+			}
+			$processed = $this->carts()->sweep( $ctx->tenant_id );
+			$this->continue_sweep( $jobs, 'carts.sweep', $ctx, $payload, $processed, self::SWEEP_BATCH_CARTS );
+		} );
+	}
+
+	/**
+	 * Phase 25 continuation contract for capped sweeps: when a batch comes back full there may
+	 * be more rows, so round N enqueues round N+1 under a derived idempotency key. The round
+	 * cap bounds the worst case (batch × rounds rows per tenant per hour).
+	 *
+	 * @param array<string,mixed> $payload
+	 */
+	private function continue_sweep( JobQueue $jobs, string $job_type, JobContext $ctx, array $payload, int $processed, int $batch ): void {
+		$round = (int) ( $payload['round'] ?? 0 );
+		if ( $processed < $batch || $round >= self::MAX_SWEEP_ROUNDS ) {
+			return;
+		}
+		$jobs->enqueue(
+			$job_type,
+			[ 'round' => $round + 1 ],
+			[
+				'tenant_id'       => $ctx->tenant_id,
+				'group'           => '' !== $ctx->group ? $ctx->group : (string) $ctx->tenant_id,
+				'idempotency_key' => $ctx->idempotency_key . ':r' . ( $round + 1 ),
+			]
+		);
 	}
 
 	/** Track a cart for abandoned-cart recovery. */
@@ -551,12 +630,16 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		$this->carts()->watch( get_current_user_id(), (string) WC()->session->get_customer_id(), $total );
 	}
 
-	/** Sweep abandoned carts hourly. */
+	/**
+	 * Sweep abandoned carts hourly. Phase 25: one `carts.sweep` job per active tenant — the
+	 * enabled-check moved to run time inside the handler. Duplicate fan-outs (run_hourly hooks
+	 * this sweep too) are absorbed by the shared hourly slot key.
+	 */
 	public function abandoned_cart_tick(): void {
-		if ( ! igbz()->settings()->bool( 'abandoned_cart.enabled', true ) ) {
-			return;
+		$ids = $this->active_tenant_ids();
+		if ( $ids ) {
+			igbz()->get( 'jobs' )->fan_out_tenants( 'carts.sweep', $ids, [ 'slot' => JobQueue::slot( HOUR_IN_SECONDS ) ] );
 		}
-		$this->carts()->sweep();
 	}
 
 	private function carts(): \IGBZ\Suite\Modules\MultiTenant\Gamification\AbandonedCartService {

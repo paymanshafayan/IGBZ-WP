@@ -69,6 +69,43 @@ final class JobQueue {
 	}
 
 	/**
+	 * Phase 25 — tenant fan-out: one job per tenant, each in its own fairness group. The slot
+	 * key is mixed with the tenant so a duplicate beat is absorbed per tenant, and the group
+	 * keeps one loud tenant from starving the others at claim time.
+	 *
+	 * @param array<int,int>      $tenant_ids
+	 * @param array<string,mixed> $options Extra enqueue options (queue, delay, max_attempts...).
+	 * @return int Number of jobs now present for this fan-out (fresh or already queued).
+	 */
+	public function fan_out_tenants( string $job_type, array $tenant_ids, array $options = [] ): int {
+		$slot = (string) ( $options['slot'] ?? self::slot() );
+		unset( $options['slot'] );
+
+		$count = 0;
+		foreach ( array_unique( array_map( 'intval', $tenant_ids ) ) as $tenant_id ) {
+			if ( $tenant_id <= 0 ) {
+				continue;
+			}
+			$id = $this->enqueue(
+				$job_type,
+				(array) ( $options['payload'] ?? [] ),
+				array_merge(
+					$options,
+					[
+						'tenant_id'       => $tenant_id,
+						'group'           => (string) $tenant_id,
+						'idempotency_key' => $slot . ':' . $tenant_id,
+					]
+				)
+			);
+			if ( $id > 0 ) {
+				++$count;
+			}
+		}
+		return $count;
+	}
+
+	/**
 	 * Enqueue a job. Idempotent when an idempotency key is given: re-enqueuing the same key for
 	 * the same queue returns the existing job instead of creating a duplicate.
 	 *
@@ -109,6 +146,7 @@ final class JobQueue {
 			'jobs',
 			[
 				'queue'           => $queue,
+				'group_key'       => (string) ( $options['group'] ?? '' ),
 				'tenant_id'       => $tenant_id,
 				'job_type'        => $job_type,
 				'status'          => self::STATUS_PENDING,
@@ -132,41 +170,73 @@ final class JobQueue {
 	 * Claim up to $limit due jobs for processing, leasing each so a crashed worker's jobs come
 	 * back after the lease expires. Returns the claimed rows.
 	 *
+	 * Phase 25 — tenant fairness: due jobs are taken round-robin across `group_key` (normally
+	 * the tenant), so one tenant with a large backlog cannot starve the others when the claim
+	 * budget is smaller than the queue. The conditional UPDATE keeps the claim atomic either
+	 * way: two workers can never win the same row.
+	 *
 	 * @return array<int,array<string,mixed>>
 	 */
 	public function claim( int $limit = 5, int $lease_seconds = self::DEFAULT_LEASE_SECONDS ): array {
 		$now = current_time( 'mysql', true );
 		$this->reclaim_expired_leases();
+		if ( $limit < 1 ) {
+			return [];
+		}
 
-		$due = $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'jobs' ) . '
-			 WHERE status = %s AND available_at <= %s
-			 ORDER BY available_at ASC, id ASC LIMIT %d',
-			self::STATUS_PENDING,
-			$now,
-			$limit
+		$groups = array_map(
+			'strval',
+			$this->db->column(
+				'SELECT DISTINCT group_key FROM ' . $this->db->table( 'jobs' ) .
+				' WHERE status = %s AND available_at <= %s
+				  ORDER BY group_key ASC LIMIT 64',
+				self::STATUS_PENDING,
+				$now
+			)
 		);
 
 		$claimed = [];
-		foreach ( $due as $row ) {
-			$lease_until = gmdate( 'Y-m-d H:i:s', strtotime( $now . ' UTC' ) + $lease_seconds );
-			$won         = $this->db->update(
-				'jobs',
-				[
-					'status'           => self::STATUS_CLAIMED,
-					'claim_expires_at' => $lease_until,
-					'attempts'         => (int) $row['attempts'] + 1,
-					'updated_at'       => $now,
-				],
-				[
-					'id'     => (int) $row['id'],
-					'status' => self::STATUS_PENDING,
-				]
-			);
-			if ( $won > 0 ) {
-				$row['status']           = self::STATUS_CLAIMED;
-				$row['attempts']         = (int) $row['attempts'] + 1;
-				$claimed[]               = $row;
+		// Round-robin: one job per group per pass, until the budget is spent or the pool is dry.
+		while ( count( $claimed ) < $limit ) {
+			$progress = false;
+			foreach ( $groups as $group ) {
+				if ( count( $claimed ) >= $limit ) {
+					break;
+				}
+				$row = $this->db->row(
+					'SELECT * FROM ' . $this->db->table( 'jobs' ) .
+					' WHERE status = %s AND available_at <= %s AND group_key = %s
+					  ORDER BY available_at ASC, id ASC LIMIT 1',
+					self::STATUS_PENDING,
+					$now,
+					$group
+				);
+				if ( ! $row ) {
+					continue;
+				}
+				$lease_until = gmdate( 'Y-m-d H:i:s', strtotime( $now . ' UTC' ) + $lease_seconds );
+				$won         = $this->db->update(
+					'jobs',
+					[
+						'status'           => self::STATUS_CLAIMED,
+						'claim_expires_at' => $lease_until,
+						'attempts'         => (int) $row['attempts'] + 1,
+						'updated_at'       => $now,
+					],
+					[
+						'id'     => (int) $row['id'],
+						'status' => self::STATUS_PENDING,
+					]
+				);
+				if ( $won > 0 ) {
+					$row['status']   = self::STATUS_CLAIMED;
+					$row['attempts'] = (int) $row['attempts'] + 1;
+					$claimed[]       = $row;
+					$progress        = true;
+				}
+			}
+			if ( ! $progress ) {
+				break;
 			}
 		}
 		return $claimed;

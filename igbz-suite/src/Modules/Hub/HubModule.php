@@ -13,6 +13,7 @@ use IGBZ\Suite\Modules\MultiTenant\Payments\PaymentService;
 use IGBZ\Suite\Modules\MultiTenant\Plans\PlanService;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletService;
 use IGBZ\Suite\Support\Cron;
+use IGBZ\Suite\Support\Jobs\JobQueue;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
@@ -70,6 +71,10 @@ final class HubModule implements ModuleInterface {
 
 		// Aggregates and DNS re-checks.
 		add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );
+
+		// Phase 25: the hourly tick runs as a queued job — leased and retried like everything
+		// else, instead of blocking the shared hourly cron request.
+		$this->register_queue_handlers( $plugin->get( 'jobs' ) );
 
 		// Anything that changes the directory invalidates its cache.
 		foreach ( [ 'igbz_tenant_created', 'igbz_tenant_updated', 'igbz_tenant_deleted', 'igbz_subscription_started' ] as $hook ) {
@@ -135,21 +140,30 @@ final class HubModule implements ModuleInterface {
 	}
 
 	public function run_hourly(): void {
-		$settings = igbz()->settings();
-		if ( ! $settings->bool( 'hub.enabled', true ) ) {
-			return;
-		}
+		// Phase 25: the beat only enqueues; the interval gate and the enabled-check stay at run
+		// time inside the handler. The hourly slot key absorbs duplicate beats.
+		igbz()->get( 'jobs' )->enqueue( 'hub.tick', [], [ 'idempotency_key' => JobQueue::slot( HOUR_IN_SECONDS ) ] );
+	}
 
-		$interval = max( 300, $settings->int( 'hub.sync_interval', 3600 ) );
-		$last     = (int) get_option( 'igbz_hub_last_sync', 0 );
+	/** Phase 25: handler wiring for the queued hub tick. */
+	public function register_queue_handlers( JobQueue $jobs ): void {
+		$jobs->register( 'hub.tick', static function (): void {
+			$settings = igbz()->settings();
+			if ( ! $settings->bool( 'hub.enabled', true ) ) {
+				return;
+			}
 
-		if ( time() - $last >= $interval ) {
-			igbz()->get( 'hub.stats' )->summary( true );
-			igbz()->get( 'hub.directory' )->featured( 0, true );
-			update_option( 'igbz_hub_last_sync', time(), false );
-		}
+			$interval = max( 300, $settings->int( 'hub.sync_interval', 3600 ) );
+			$last     = (int) get_option( 'igbz_hub_last_sync', 0 );
 
-		igbz()->get( 'hub.domains' )->recheck_pending();
+			if ( time() - $last >= $interval ) {
+				igbz()->get( 'hub.stats' )->summary( true );
+				igbz()->get( 'hub.directory' )->featured( 0, true );
+				update_option( 'igbz_hub_last_sync', time(), false );
+			}
+
+			igbz()->get( 'hub.domains' )->recheck_pending();
+		} );
 	}
 
 	public function flush_caches(): void {

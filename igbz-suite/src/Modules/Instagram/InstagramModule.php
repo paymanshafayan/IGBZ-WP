@@ -33,6 +33,7 @@ use IGBZ\Suite\Modules\Instagram\Vip\VipSocialService;
 use IGBZ\Suite\Modules\Instagram\Webhooks\ManusWebhook;
 use IGBZ\Suite\Modules\Instagram\Webhooks\ManyChatWebhook;
 use IGBZ\Suite\Support\Cron;
+use IGBZ\Suite\Support\Jobs\JobContext;
 use IGBZ\Suite\Support\Jobs\JobQueue;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
@@ -49,6 +50,12 @@ defined( 'ABSPATH' ) || exit;
  * be dropped back in later without touching the rest of the module.
  */
 final class InstagramModule implements ModuleInterface {
+
+	/** Phase 25: funnel retry batch (must match FunnelService::retry_failed's default limit). */
+	private const FUNNEL_RETRY_BATCH = 20;
+
+	/** Phase 25: continuation rounds per hour — caps the worst-case loop. */
+	private const MAX_SWEEP_ROUNDS = 10;
 
 	public function id(): string {
 		return Modules::INSTAGRAM;
@@ -323,14 +330,34 @@ final class InstagramModule implements ModuleInterface {
 		$jobs->register( 'ig.vip.expire_due', static function (): void {
 			igbz()->get( 'vip.posts' )->expire_due();
 		} );
+
+		// Phase 25 — the hourly IG jobs.
+		$jobs->register( 'ig.funnels.retry', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$done  = igbz()->get( 'ig.funnels' )->retry_failed();
+			$round = (int) ( $payload['round'] ?? 0 );
+			if ( $done >= self::FUNNEL_RETRY_BATCH && $round < self::MAX_SWEEP_ROUNDS ) {
+				$jobs->enqueue(
+					'ig.funnels.retry',
+					[ 'round' => $round + 1 ],
+					[ 'idempotency_key' => $ctx->idempotency_key . ':r' . ( $round + 1 ) ]
+				);
+			}
+		} );
+		$jobs->register( 'ig.insights.reconcile', static function (): void {
+			if ( igbz()->settings()->bool( 'manus.collect_insights', true ) ) {
+				igbz()->get( 'ig.insights' )->reconcile();
+			}
+		} );
 	}
 
 	public function run_hourly(): void {
-		igbz()->get( 'ig.funnels' )->retry_failed();
-
-		if ( igbz()->settings()->bool( 'manus.collect_insights', true ) ) {
-			igbz()->get( 'ig.insights' )->reconcile();
-		}
+		// Phase 25: queued jobs with the hourly slot key absorbing duplicate beats. The funnel
+		// retry applies the continuation contract (capped batch, re-queue while full); the
+		// insights reconciler walks accounts itself, so it stays a single control-plane job.
+		$jobs = igbz()->get( 'jobs' );
+		$slot = JobQueue::slot( HOUR_IN_SECONDS );
+		$jobs->enqueue( 'ig.funnels.retry', [], [ 'idempotency_key' => $slot ] );
+		$jobs->enqueue( 'ig.insights.reconcile', [], [ 'idempotency_key' => $slot ] );
 	}
 
 	public function run_daily(): void {

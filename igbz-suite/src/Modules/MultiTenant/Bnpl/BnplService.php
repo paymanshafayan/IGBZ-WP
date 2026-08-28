@@ -519,16 +519,21 @@ final class BnplService {
 
 	// ------------------------------------------------------ cron: dunning
 
-	/** Flag overdue instalments, accrue penalties and try auto-collection from the wallet. */
-	public function process_overdue(): int {
-		$today = gmdate( 'Y-m-d' );
-		$rows  = $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . '
-			 WHERE status IN (%s,%s) AND due_date < %s LIMIT 200',
-			self::INSTALLMENT_DUE,
-			self::INSTALLMENT_OVERDUE,
-			$today
-		);
+	/**
+	 * Flag overdue instalments, accrue penalties and try auto-collection from the wallet.
+	 *
+	 * @param int $tenant_id Phase 25: scope the sweep to one tenant; 0 keeps the legacy global scan.
+	 */
+	public function process_overdue( int $tenant_id = 0 ): int {
+		$today  = gmdate( 'Y-m-d' );
+		$sql    = 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . '
+			 WHERE status IN (%s,%s) AND due_date < %s';
+		$params = [ self::INSTALLMENT_DUE, self::INSTALLMENT_OVERDUE, $today ];
+		if ( $tenant_id > 0 ) {
+			$sql     .= ' AND tenant_id = %d';
+			$params[] = $tenant_id;
+		}
+		$rows = $this->db->results( $sql . ' LIMIT 200', ...$params );
 
 		$penalty_rate = (float) igbz()->settings()->get( 'bnpl.penalty_percent_per_day', 0 );
 		$processed    = 0;
@@ -564,17 +569,23 @@ final class BnplService {
 		return $processed;
 	}
 
-	/** Send reminders a configurable number of days before the due date. */
-	public function send_reminders(): int {
+	/**
+	 * Send reminders a configurable number of days before the due date.
+	 *
+	 * @param int $tenant_id Phase 25: scope the sweep to one tenant; 0 keeps the legacy global scan.
+	 */
+	public function send_reminders( int $tenant_id = 0 ): int {
 		$lead   = (int) igbz()->settings()->get( 'bnpl.reminder_days_before', 3 );
 		$target = gmdate( 'Y-m-d', time() + $lead * DAY_IN_SECONDS );
 
-		$rows = $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . '
-			 WHERE status = %s AND due_date = %s AND reminder_sent_at IS NULL LIMIT 200',
-			self::INSTALLMENT_DUE,
-			$target
-		);
+		$sql    = 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . '
+			 WHERE status = %s AND due_date = %s AND reminder_sent_at IS NULL';
+		$params = [ self::INSTALLMENT_DUE, $target ];
+		if ( $tenant_id > 0 ) {
+			$sql     .= ' AND tenant_id = %d';
+			$params[] = $tenant_id;
+		}
+		$rows = $this->db->results( $sql . ' LIMIT 200', ...$params );
 
 		foreach ( $rows as $row ) {
 			do_action( 'igbz_bnpl_reminder_due', (int) $row['id'], (int) $row['user_id'], (float) $row['amount'], (string) $row['due_date'] );
