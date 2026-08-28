@@ -1,6 +1,8 @@
 <?php
 namespace IGBZ\Suite\Support;
 
+use IGBZ\Suite\Support\Jobs\JobQueue;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -28,6 +30,9 @@ final class Cron {
 
 		// Phase 24: background work lives in the durable queue; the five-minute beat drains it.
 		igbz()->get( 'jobs.runner' )->register();
+
+		// Phase 26: housekeeping itself is a queued job, drained by the same daily beat.
+		igbz()->get( 'jobs' )->register( 'cron.housekeeping', [ $this, 'run_housekeeping' ] );
 	}
 
 	/**
@@ -77,6 +82,12 @@ final class Cron {
 	}
 
 	public function housekeeping(): void {
+		// Phase 26: the beat only enqueues; the daily slot key absorbs duplicate beats.
+		igbz()->get( 'jobs' )->enqueue( 'cron.housekeeping', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
+	}
+
+	/** Phase 26: the actual housekeeping body, executed as a leased, retriable queued job. */
+	public function run_housekeeping(): void {
 		$settings = igbz()->settings();
 		igbz()->logger()->prune( $settings->int( 'log.retention_days', 30 ) );
 

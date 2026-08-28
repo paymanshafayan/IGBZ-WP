@@ -5,6 +5,8 @@ use IGBZ\Suite\Modules\Fx\Admin\FxPage;
 use IGBZ\Suite\Modules\Fx\Providers\PstNetPayoutAdapter;
 use IGBZ\Suite\Modules\Fx\Providers\RedotPayPayoutAdapter;
 use IGBZ\Suite\Support\Cron;
+use IGBZ\Suite\Support\Jobs\JobContext;
+use IGBZ\Suite\Support\Jobs\JobQueue;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
@@ -38,6 +40,12 @@ defined( 'ABSPATH' ) || exit;
  */
 final class FxModule implements ModuleInterface {
 
+	/** Phase 26: settlement batch (must match FxBillingService::due_bills' default limit). */
+	private const SETTLE_BATCH = 50;
+
+	/** Phase 26: continuation rounds per day — caps the worst-case loop. */
+	private const MAX_SETTLE_ROUNDS = 10;
+
 	public function id(): string {
 		return Modules::FX;
 	}
@@ -56,15 +64,36 @@ final class FxModule implements ModuleInterface {
 		$topup = $plugin->get( 'fx.topup' );
 		add_action( 'igbz_payment_verified', [ $topup, 'on_payment_verified' ], 10, 2 );
 
-		$billing = $plugin->get( 'fx.billing' );
-		add_action( Cron::HOOK_DAILY, [ $billing, 'run_daily' ] );
-
-		// After the billing sweep, keep the payout card funded so the next
-		// sweep can spend it (Rial -> USDT -> card, via the exchange ramp).
-		$ramp = $plugin->get( 'fx.ramp' );
-		add_action( Cron::HOOK_DAILY, [ $ramp, 'ensure_card_funded' ], 20 );
+		// Phase 26: the daily FX sweep runs as queued jobs (billed, settled and funded by the
+		// same daily beat's drain) instead of blocking the shared daily cron request.
+		add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );
+		$this->register_queue_handlers( $plugin->get( 'jobs' ) );
 
 		( new FxPage() )->register();
+	}
+
+	public function run_daily(): void {
+		$jobs = igbz()->get( 'jobs' );
+		$slot = JobQueue::slot( DAY_IN_SECONDS );
+		foreach ( [ 'fx.billing.bills', 'fx.billing.settle', 'fx.ramp.fund' ] as $job_type ) {
+			$jobs->enqueue( $job_type, [], [ 'idempotency_key' => $slot ] );
+		}
+	}
+
+	/** Phase 26: handler wiring for the queued daily FX jobs. */
+	public function register_queue_handlers( JobQueue $jobs ): void {
+		$jobs->register( 'fx.billing.bills', static function (): void {
+			igbz()->get( 'fx.billing' )->bill_accounts();
+		} );
+		$jobs->register( 'fx.billing.settle', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$processed = igbz()->get( 'fx.billing' )->settle_due( self::SETTLE_BATCH );
+			$jobs->continue_round( $ctx, $payload, 'fx.billing.settle', $processed, self::SETTLE_BATCH, self::MAX_SETTLE_ROUNDS );
+		} );
+		// After the billing sweep, keep the payout card funded so the next
+		// sweep can spend it (Rial -> USDT -> card, via the exchange ramp).
+		$jobs->register( 'fx.ramp.fund', static function (): void {
+			igbz()->get( 'fx.ramp' )->ensure_card_funded();
+		} );
 	}
 
 	private function bind_services( Plugin $plugin ): void {

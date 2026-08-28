@@ -106,6 +106,29 @@ final class JobQueue {
 	}
 
 	/**
+	 * Phase 26 — the canonical continuation contract for bounded sweeps. When a batch comes
+	 * back full there may be more rows, so round N enqueues round N+1 under a key derived from
+	 * the current one (`key:rN`) — stable per chain, so replaying a round can never fork a
+	 * duplicate continuation. The round cap bounds the worst case inside one drain.
+	 *
+	 * @param array<string,mixed> $payload Payload of the job that just ran (carries `round`).
+	 */
+	public function continue_round( JobContext $ctx, array $payload, string $job_type, int $processed, int $batch, int $max_rounds = 10 ): void {
+		$round = (int) ( $payload['round'] ?? 0 );
+		if ( $processed < $batch || $round >= $max_rounds ) {
+			return;
+		}
+		$options = [
+			'tenant_id'       => $ctx->tenant_id,
+			'idempotency_key' => $ctx->idempotency_key . ':r' . ( $round + 1 ),
+		];
+		if ( '' !== $ctx->group ) {
+			$options['group'] = $ctx->group;
+		}
+		$this->enqueue( $job_type, [ 'round' => $round + 1 ], $options );
+	}
+
+	/**
 	 * Enqueue a job. Idempotent when an idempotency key is given: re-enqueuing the same key for
 	 * the same queue returns the existing job instead of creating a duplicate.
 	 *

@@ -191,13 +191,32 @@ final class FxBillingService {
 	 * not have one yet, then try to settle every due bill.
 	 */
 	public function run_daily(): void {
+		$this->bill_accounts();
+		$this->settle_due();
+	}
+
+	/**
+	 * Phase 26 — billing half of the daily sweep: create the month's bill for every active
+	 * account that has none yet. create_monthly_bill() is itself idempotent (one bill per
+	 * account per period), so a re-run is harmless.
+	 */
+	public function bill_accounts(): void {
 		foreach ( $this->accounts->active() as $account ) {
 			$this->create_monthly_bill( $account );
 		}
+	}
 
-		foreach ( $this->due_bills() as $bill ) {
+	/**
+	 * Phase 26 — settlement half of the daily sweep: settle up to one bounded batch of due
+	 * bills. Returns how many were visited so the caller can apply the continuation contract
+	 * (a full batch means more bills may wait).
+	 */
+	public function settle_due( int $limit = 50 ): int {
+		$bills = $this->due_bills( $limit );
+		foreach ( $bills as $bill ) {
 			$this->settle_bill( $bill );
 		}
+		return count( $bills );
 	}
 
 	public function __construct(

@@ -32,6 +32,9 @@ final class QueueRunner {
 		// Phase 25: the hourly beat fans out the tenant sweeps; drain there too so the work
 		// starts in the same request instead of waiting up to five minutes for the next beat.
 		add_action( Cron::HOOK_HOURLY, [ $this, 'on_beat' ], 50 );
+		// Phase 26: same reasoning for the daily beat — renewals, settlements and cleanups
+		// enqueue there and drain in the same request.
+		add_action( Cron::HOOK_DAILY, [ $this, 'on_beat' ], 50 );
 	}
 
 	/**

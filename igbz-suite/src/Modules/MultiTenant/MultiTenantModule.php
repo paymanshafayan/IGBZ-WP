@@ -42,6 +42,11 @@ final class MultiTenantModule implements ModuleInterface {
 	/** Phase 25: continuation rounds per tenant per hour — caps the worst-case loop. */
 	private const MAX_SWEEP_ROUNDS = 10;
 
+	/** Phase 26: batch sizes of the daily sweeps (must match the service LIMITs). */
+	private const DAILY_BATCH_RENEWALS     = 100;
+	private const DAILY_BATCH_COMMISSIONS  = 200;
+	private const DAILY_BATCH_MASTER       = 100;
+
 	public function id(): string {
 		return Modules::MULTITENANT;
 	}
@@ -491,9 +496,13 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 	}
 
 	public function run_daily(): void {
-		igbz()->get( 'plans' )->process_due_renewals();
-		igbz()->get( 'affiliate' )->process_pending_commissions();
-		igbz()->get( 'marketplace' )->flush_cache();
+		// Phase 26: the daily set runs as independent queued jobs; the daily slot key absorbs
+		// duplicate beats. Bounded services carry the continuation contract inside the handler.
+		$jobs = igbz()->get( 'jobs' );
+		$slot = JobQueue::slot( DAY_IN_SECONDS );
+		foreach ( [ 'plans.renewals', 'affiliate.commissions', 'marketplace.flush', 'master.release' ] as $job_type ) {
+			$jobs->enqueue( $job_type, [], [ 'idempotency_key' => $slot ] );
+		}
 	}
 
 	// ----------------------------------------------------------------- health
@@ -596,29 +605,37 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 			$processed = $this->carts()->sweep( $ctx->tenant_id );
 			$this->continue_sweep( $jobs, 'carts.sweep', $ctx, $payload, $processed, self::SWEEP_BATCH_CARTS );
 		} );
+
+		// Phase 26 — the daily set. Bounded sweeps continue via the queue's canonical contract.
+		$jobs->register( 'plans.renewals', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$processed = igbz()->get( 'plans' )->process_due_renewals();
+			$jobs->continue_round( $ctx, $payload, 'plans.renewals', $processed, self::DAILY_BATCH_RENEWALS, self::MAX_SWEEP_ROUNDS );
+		} );
+		$jobs->register( 'affiliate.commissions', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$processed = igbz()->get( 'affiliate' )->process_pending_commissions();
+			$jobs->continue_round( $ctx, $payload, 'affiliate.commissions', $processed, self::DAILY_BATCH_COMMISSIONS, self::MAX_SWEEP_ROUNDS );
+		} );
+		$jobs->register( 'marketplace.flush', static function (): void {
+			igbz()->get( 'marketplace' )->flush_cache();
+		} );
+		$jobs->register( 'master.release', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			if ( ! igbz()->settings()->bool( 'master_payment.enabled', true ) || ! igbz()->has( 'master.payment' ) ) {
+				return;
+			}
+			$processed = igbz()->get( 'master.payment' )->release_due();
+			$jobs->continue_round( $ctx, $payload, 'master.release', $processed, self::DAILY_BATCH_MASTER, self::MAX_SWEEP_ROUNDS );
+		} );
 	}
 
 	/**
-	 * Phase 25 continuation contract for capped sweeps: when a batch comes back full there may
-	 * be more rows, so round N enqueues round N+1 under a derived idempotency key. The round
-	 * cap bounds the worst case (batch × rounds rows per tenant per hour).
+	 * Phase 25 continuation contract for capped sweeps — delegates to the queue's canonical
+	 * contract (phase 26): a full batch enqueues the next round under a derived key, bounded
+	 * by the round cap (batch × rounds rows per tenant per window, worst case).
 	 *
 	 * @param array<string,mixed> $payload
 	 */
 	private function continue_sweep( JobQueue $jobs, string $job_type, JobContext $ctx, array $payload, int $processed, int $batch ): void {
-		$round = (int) ( $payload['round'] ?? 0 );
-		if ( $processed < $batch || $round >= self::MAX_SWEEP_ROUNDS ) {
-			return;
-		}
-		$jobs->enqueue(
-			$job_type,
-			[ 'round' => $round + 1 ],
-			[
-				'tenant_id'       => $ctx->tenant_id,
-				'group'           => '' !== $ctx->group ? $ctx->group : (string) $ctx->tenant_id,
-				'idempotency_key' => $ctx->idempotency_key . ':r' . ( $round + 1 ),
-			]
-		);
+		$jobs->continue_round( $ctx, $payload, $job_type, $processed, $batch, self::MAX_SWEEP_ROUNDS );
 	}
 
 	/** Track a cart for abandoned-cart recovery. */
@@ -666,10 +683,9 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 
 	/** Release due master payments daily. */
 	public function master_payment_tick(): void {
-		if ( ! igbz()->settings()->bool( 'master_payment.enabled', true ) || ! igbz()->has( 'master.payment' ) ) {
-			return;
-		}
-		igbz()->get( 'master.payment' )->release_due();
+		// Phase 26: same daily slot key as run_daily() — whichever fires first enqueues, the
+		// other is a no-op. The enabled-check moved to run time inside the handler.
+		igbz()->get( 'jobs' )->enqueue( 'master.release', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
 	}
 
 	/** Hold a paid order's funds in the master gateway (when enabled + agreed). */

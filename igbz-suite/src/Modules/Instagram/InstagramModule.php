@@ -331,21 +331,21 @@ final class InstagramModule implements ModuleInterface {
 			igbz()->get( 'vip.posts' )->expire_due();
 		} );
 
-		// Phase 25 — the hourly IG jobs.
+		// Phase 25 — the hourly IG jobs (continuation via the queue's canonical contract).
 		$jobs->register( 'ig.funnels.retry', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
-			$done  = igbz()->get( 'ig.funnels' )->retry_failed();
-			$round = (int) ( $payload['round'] ?? 0 );
-			if ( $done >= self::FUNNEL_RETRY_BATCH && $round < self::MAX_SWEEP_ROUNDS ) {
-				$jobs->enqueue(
-					'ig.funnels.retry',
-					[ 'round' => $round + 1 ],
-					[ 'idempotency_key' => $ctx->idempotency_key . ':r' . ( $round + 1 ) ]
-				);
-			}
+			$done = igbz()->get( 'ig.funnels' )->retry_failed();
+			$jobs->continue_round( $ctx, $payload, 'ig.funnels.retry', $done, self::FUNNEL_RETRY_BATCH, self::MAX_SWEEP_ROUNDS );
 		} );
 		$jobs->register( 'ig.insights.reconcile', static function (): void {
 			if ( igbz()->settings()->bool( 'manus.collect_insights', true ) ) {
 				igbz()->get( 'ig.insights' )->reconcile();
+			}
+		} );
+
+		// Phase 26 — the daily insights collection (bounded keyset walk inside the service).
+		$jobs->register( 'ig.insights.collect', static function (): void {
+			if ( igbz()->settings()->bool( 'manus.collect_insights', true ) ) {
+				igbz()->get( 'ig.insights' )->collect_all();
 			}
 		} );
 	}
@@ -361,9 +361,9 @@ final class InstagramModule implements ModuleInterface {
 	}
 
 	public function run_daily(): void {
-		if ( igbz()->settings()->bool( 'manus.collect_insights', true ) ) {
-			igbz()->get( 'ig.insights' )->collect_all();
-		}
+		// Phase 26: the insights collector runs as a queued job; the enabled-check stays at
+		// run time inside the handler. The daily slot key absorbs duplicate beats.
+		igbz()->get( 'jobs' )->enqueue( 'ig.insights.collect', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
 	}
 
 	/**
