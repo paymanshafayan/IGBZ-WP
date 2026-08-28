@@ -415,6 +415,30 @@ namespace {
 						IgbzHposStub::$postmeta_writes,
 						"[$mode] the completed-order flow never bypasses the order CRUD"
 					);
+
+					// Reversal (refund/cancel/fail) must void the commission the same way on
+					// both storages. It works from the order id alone — no order read at all.
+					( new MultiTenantModule() )->on_order_reversed( 77 );
+					$void_queries = array_values( array_filter(
+						$wpdb->queries,
+						static fn ( $q ): bool => str_starts_with( trim( (string) $q ), 'UPDATE' )
+							&& str_contains( (string) $q, 'affiliate_commissions' )
+					) );
+					$this->assert_same(
+						1,
+						count( $void_queries ),
+						"[$mode] a reversed order voids its commission"
+					);
+					$this->assert_contains(
+						"'rejected'",
+						(string) implode( ' ', $void_queries ),
+						"[$mode] the void flips pending commissions to rejected"
+					);
+					$this->assert_contains(
+						"order_id = '77'",
+						(string) implode( ' ', $void_queries ),
+						"[$mode] the void is keyed by order id — it never opens the order object"
+					);
 				} );
 			}
 		}
