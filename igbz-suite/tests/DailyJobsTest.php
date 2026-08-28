@@ -44,6 +44,15 @@ final class DailyCountingSpy {
 		return $this->next();
 	}
 
+	public function expire_past_grace( int $limit = 100 ): int {
+		return 0; // Phase 32: the grace sweep rides the plans job but the spy counts renewals.
+	}
+
+	/** @return array{repaired:int,missing_credit:int,stale_disputes:int} */
+	public function reconcile(): array {
+		return [ 'repaired' => 0, 'missing_credit' => 0, 'stale_disputes' => 0 ];
+	}
+
 	public int $bill_calls = 0;
 
 	public function bill_accounts(): void {

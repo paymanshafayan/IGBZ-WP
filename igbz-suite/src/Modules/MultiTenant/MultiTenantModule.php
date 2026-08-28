@@ -633,7 +633,11 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 
 		// Phase 26 — the daily set. Bounded sweeps continue via the queue's canonical contract.
 		$jobs->register( 'plans.renewals', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
-			$processed = igbz()->get( 'plans' )->process_due_renewals();
+			$plans     = igbz()->get( 'plans' );
+			$processed = $plans->process_due_renewals();
+			// Phase 32: the grace sweep rides the same daily job; a full batch on either side
+			// continues the round so nothing waits another day.
+			$processed += $plans->expire_past_grace( self::DAILY_BATCH_RENEWALS );
 			$jobs->continue_round( $ctx, $payload, 'plans.renewals', $processed, self::DAILY_BATCH_RENEWALS, self::MAX_SWEEP_ROUNDS );
 		} );
 		$jobs->register( 'affiliate.commissions', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
