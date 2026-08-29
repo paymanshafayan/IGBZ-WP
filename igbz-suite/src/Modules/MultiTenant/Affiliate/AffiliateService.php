@@ -55,6 +55,14 @@ final class AffiliateService {
 			return $existing;
 		}
 
+		// Phase 40 — self-referral gate: a user cannot be their own parent.
+		if ( $parent_affiliate_id > 0 ) {
+			$parent = $this->find( $parent_affiliate_id );
+			if ( ! $parent || (int) $parent['user_id'] === $user_id ) {
+				$parent_affiliate_id = 0;
+			}
+		}
+
 		$code = $this->generate_code( $user_id );
 		$this->db->insert(
 			'affiliates',
@@ -255,15 +263,112 @@ final class AffiliateService {
 		do_action( 'igbz_affiliate_commission_recorded', $id, $affiliate_id, $order_id, $amount );
 	}
 
-	/** Reverse commissions when an order is refunded or cancelled. */
+	/**
+	 * Reverse commissions when an order is refunded or cancelled. Pending and
+	 * approved-but-unpaid rows are rejected outright; rows already PAID stay
+	 * paid — the money moved, so fraud_report() surfaces them instead of
+	 * pretending the reversal happened.
+	 */
 	public function void_order_commission( int $order_id ): void {
 		$this->db->query(
-			'UPDATE ' . $this->db->table( 'affiliate_commissions' ) . '
-			 SET status = %s WHERE order_id = %d AND status = %s',
+			'UPDATE ' . $this->db->table( 'affiliate_commissions' ) . '\n\t\t\t SET status = %s WHERE order_id = %d AND status IN ( %s, %s )',
 			self::STATUS_REJECTED,
 			$order_id,
-			self::STATUS_PENDING
+			self::STATUS_PENDING,
+			self::STATUS_APPROVED
 		);
+	}
+
+	/**
+	 * Phase 40 — fraud report: REPORT ONLY, nothing is punished automatically.
+	 *
+	 * Signals: self-referral commissions; one IP hash converting two or more
+	 * distinct users; affiliates with at least affiliate.fraud_min_commissions
+	 * (default 3) commissions and a rejected share above half; and paid
+	 * commissions whose order the shop later refunded — the debt the void path
+	 * cannot undo.
+	 *
+	 * @return array{self_referrals:int,shared_ip_groups:int,high_refund_affiliates:array<int,int>,paid_on_refunded_orders:int}
+	 */
+	public function fraud_report( int $tenant_id = 0 ): array {
+		$commissions = 0 === $tenant_id
+			? $this->db->results( 'SELECT * FROM ' . $this->db->table( 'affiliate_commissions' ) . ' LIMIT 5000' )
+			: $this->db->results(
+				'SELECT * FROM ' . $this->db->table( 'affiliate_commissions' ) . ' WHERE tenant_id = %d LIMIT 5000',
+				$tenant_id
+			);
+		$affiliates = 0 === $tenant_id
+			? $this->db->results( 'SELECT * FROM ' . $this->db->table( 'affiliates' ) . ' LIMIT 5000' )
+			: $this->db->results(
+				'SELECT * FROM ' . $this->db->table( 'affiliates' ) . ' WHERE tenant_id = %d LIMIT 5000',
+				$tenant_id
+			);
+
+		$owner_of = [];
+		foreach ( $affiliates as $a ) {
+			$owner_of[ (int) $a['id'] ] = (int) $a['user_id'];
+		}
+
+		$self_referrals = 0;
+		$per_affiliate  = [];
+		foreach ( $commissions as $c ) {
+			if ( ( $owner_of[ (int) $c['affiliate_id'] ] ?? 0 ) === (int) $c['referred_user_id'] && (int) $c['referred_user_id'] > 0 ) {
+				++$self_referrals;
+			}
+			$aid = (int) $c['affiliate_id'];
+			$per_affiliate[ $aid ]['total'] = ( $per_affiliate[ $aid ]['total'] ?? 0 ) + 1;
+			if ( self::STATUS_REJECTED === (string) $c['status'] ) {
+				$per_affiliate[ $aid ]['rejected'] = ( $per_affiliate[ $aid ]['rejected'] ?? 0 ) + 1;
+			}
+		}
+
+		$min_commissions = max( 1, igbz()->settings()->int( 'affiliate.fraud_min_commissions', 3 ) );
+		$high_refund     = [];
+		foreach ( $per_affiliate as $aid => $stat ) {
+			if ( $stat['total'] >= $min_commissions && ( $stat['rejected'] ?? 0 ) * 2 > $stat['total'] ) {
+				$high_refund[] = $aid;
+			}
+		}
+		sort( $high_refund );
+
+		$clicks = 0 === $tenant_id
+			? $this->db->results( 'SELECT ip_hash, converted_user_id FROM ' . $this->db->table( 'referral_clicks' ) . ' WHERE converted_user_id > 0 LIMIT 5000' )
+			: $this->db->results(
+				'SELECT ip_hash, converted_user_id FROM ' . $this->db->table( 'referral_clicks' ) . ' WHERE tenant_id = %d AND converted_user_id > 0 LIMIT 5000',
+				$tenant_id
+			);
+		$by_ip = [];
+		foreach ( $clicks as $click ) {
+			$ip = (string) $click['ip_hash'];
+			if ( '' === $ip ) {
+				continue;
+			}
+			$by_ip[ $ip ][ (int) $click['converted_user_id'] ] = true;
+		}
+		$shared_ip_groups = 0;
+		foreach ( $by_ip as $users ) {
+			if ( count( $users ) > 1 ) {
+				++$shared_ip_groups;
+			}
+		}
+
+		$paid_on_refunded = 0;
+		foreach ( $commissions as $c ) {
+			if ( self::STATUS_PAID !== (string) $c['status'] ) {
+				continue;
+			}
+			$order = wc_get_order( (int) $c['order_id'] );
+			if ( $order && in_array( $order->get_status(), [ 'refunded', 'cancelled' ], true ) ) {
+				++$paid_on_refunded;
+			}
+		}
+
+		return [
+			'self_referrals'          => $self_referrals,
+			'shared_ip_groups'        => $shared_ip_groups,
+			'high_refund_affiliates'  => $high_refund,
+			'paid_on_refunded_orders' => $paid_on_refunded,
+		];
 	}
 
 	/**
