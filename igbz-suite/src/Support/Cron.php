@@ -99,6 +99,10 @@ final class Cron {
 		if ( igbz()->has( 'pado.memory' ) ) {
 			igbz()->get( 'pado.memory' )->sweep();
 		}
+		// Phase 63: playbook maintenance — run retention and version cap.
+		if ( igbz()->has( 'pado.playbooks' ) ) {
+			igbz()->get( 'pado.playbooks' )->prune();
+		}
 		if ( igbz()->has( 'pado.approvals' ) ) {
 			igbz()->get( 'pado.approvals' )->expire_due();
 		}

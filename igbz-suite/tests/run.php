@@ -89,6 +89,7 @@ $cases = [
 	'ThemeContractTest',
 	'ThemeReleaseTest',
 	'PadoMemoryTest',
+	'GrowthPlaybookTest',
 ];
 
 foreach ( $cases as $case ) {

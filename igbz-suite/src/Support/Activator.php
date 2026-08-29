@@ -121,6 +121,7 @@ final class Activator {
 			43 => [ self::class, 'migrate_to_v43' ],
 			44 => [ self::class, 'migrate_to_v44' ],
 			45 => [ self::class, 'migrate_to_v45' ],
+			46 => [ self::class, 'migrate_to_v46' ],
 		];
 	}
 
@@ -378,6 +379,14 @@ final class Activator {
 	 * Pure dbDelta work; see Schema's pado_memory / pado_memory_access blocks.
 	 */
 	public static function migrate_to_v45(): void {
+		self::install_tables();
+	}
+
+	/**
+	 * v46 (phase 63): the versioned growth Playbooks and their run journal.
+	 * Pure dbDelta work; see Schema's pado_playbooks / pado_playbook_runs blocks.
+	 */
+	public static function migrate_to_v46(): void {
 		self::install_tables();
 	}
 

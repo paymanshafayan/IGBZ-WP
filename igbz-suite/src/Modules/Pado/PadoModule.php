@@ -131,6 +131,17 @@ final class PadoModule implements ModuleInterface {
 			)
 		);
 
+		// Phase 63 — the four growth Playbooks: immutable versions, run
+		// journal, KPI learning loop and periodic maintenance.
+		$plugin->bind(
+			'pado.playbooks',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\GrowthPlaybookService => new \IGBZ\Suite\Modules\Pado\Services\GrowthPlaybookService(
+				$c->db(),
+				$c->logger(),
+				$c->get( 'pado.memory' )
+			)
+		);
+
 		// Phase 61 — the signed-artefact release pipeline (sign / verify / diff).
 		$plugin->bind(
 			'pado.theme_releases',

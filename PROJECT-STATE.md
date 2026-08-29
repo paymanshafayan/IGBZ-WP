@@ -2248,3 +2248,36 @@ production، نه تزئین.
    ردیف‌ها. ویژوال کرومیوم سه‌صفحه‌ای (`visual-testing/phase-62/`): مرکز پادو،
    سلامت سایت، ویترین — صفر خطای JS، overflowX=۰؛ بازبینی پیکسلی ممکن نبود
    (بینایی خاموش) — شواهد DOM ملاک، مطابق رویهٔ ثبت‌شده.
+
+### ۱۱.۱۹ فاز ۶۳ — چهار Playbook رشد نسخه‌دار، KPI و حلقهٔ یادگیری — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+۱. **اسکیما v46** (`Activator::migrate_to_v46`): `pado_playbooks` (نسخه‌های
+   تغییرناپذیر با content_hash، تبار، changelog) + `pado_playbook_runs` (روزنامهٔ
+   اجرا: نسخه/مدل/snapshot ورودی/خروجی/حکم/هزینه؛ ستون هزینه `usage_json` نام دارد —
+   `usage` واژهٔ رزروشدهٔ MySQL است و dbDelta را می‌شکند؛ یافتهٔ زندهٔ پلی‌گراند).
+   DriftGuard و PHASE-01-INVENTORY به ۹۹ جدول / v46.
+۲. **سرویس** (`GrowthPlaybookService`، بایند `pado.playbooks`، وابسته به `pado.memory`):
+   - نسخه‌بندی: create_version (بدنه باید reality/analysis/suggestion جدا کند)،
+     activate (چرخش اتمیک؛ هرگز دو فعال)، rollback تک‌فراخوانی، retire_kind،
+     versions/active_version.
+   - قرارداد داده: هر fact دارای type از شش نوع + confidence + captured_at؛ رد PII؛
+     عدم آمیختن حساب متصل با عمومی رقیب در analyze.
+   - قرارداد خروجی: تفکیک سه‌گانه + fact_ids واقعی برای هر پیشنهاد؛ رد صریح
+     unbacked_claim / suggestion_without_fact_ids / output_missing_*.
+   - توقف امن: insufficient_evidence (<۳ fact) و provider_not_configured → وضعیت
+     stopped بدون هیچ خروجی قطعی.
+   - درز اجرا: `set_executor()` — در تولید اداپتور DeepInfra (فاز ۵۶)، در تست/دود
+     دابل قطعی.
+   - KPI: `kpi_snapshot` از ig_insights + قیف واقعی (درآمد وو فقط در دسترس‌بودن)؛
+     `learn()` مقایسهٔ پیش‌بینی/نتیجه → نوشتن تجربهٔ پالایش‌شده در حافظهٔ ۶۲ با اعتماد
+     outcome و بدون PII.
+   - اقتصاد: `cost_summary` = هزینه/خروجی پذیرفته‌شده.
+   - نگهداشت: `prune()` در کرون روزانه — حذف اجراهای منقضی، سقف ۲۰ نسخه هر kind،
+     محافظت از فعال و هدف rollback.
+۳. **تست:** `GrowthPlaybookTest` ۱۵ سناریو (دابل دوبل store مسطح با ارزیابی WHERE و
+   تجمیع GROUP BY). مجموعه **۱۴۹۲۰/۷۷** · لینت **۵۰۱۲/۰**.
+۴. **تأیید زنده:** دود ۲۱/۲۱ روی پلی‌گراند (مهاجرت v46 با install_tables پس از رفع
+   واژهٔ رزرو‌شده؛ نسخه‌گذاری/هش/چرخش/rollback/رد زامبی؛ رد نوع و PII؛ توقف امن؛ اجرای
+   معتبر با پین نسخه+مدل+snapshot؛ رد بی‌منبع؛ حلقهٔ یادگیری روی جدول‌های واقعی
+   pado_memory؛ هزینه به‌ازای پذیرفته؛ KPI از ig_insights واقعی؛ نگهداشت) + پاکسازی
+   کامل. ویژوال سه‌صفحه‌ای صفر خطای JS (`visual-testing/phase-63/`).

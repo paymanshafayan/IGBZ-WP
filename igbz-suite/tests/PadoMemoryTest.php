@@ -13,12 +13,12 @@ use IGBZ\Suite\Modules\Pado\Services\PadoMemoryService;
 use IGBZ\Suite\Support\Db;
 
 /** In-memory store standing in for the two memory tables. */
-final class MemoryStoreDb extends wpdb {
+class MemoryStoreDb extends wpdb {
 	/** @var array<int,array<string,mixed>> */
 	public array $memory = [];
 	/** @var array<int,array<string,mixed>> */
 	public array $access = [];
-	private int $next_id = 1;
+	protected int $next_id = 1;
 
 	public function insert( string $table, array $data, $format = null ): int|bool {
 		$this->queries[] = 'INSERT INTO ' . $table;

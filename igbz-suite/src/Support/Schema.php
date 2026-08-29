@@ -102,6 +102,8 @@ final class Schema {
 			'logs',
 			'pado_memory',
 			'pado_memory_access',
+			'pado_playbooks',
+			'pado_playbook_runs',
 			'approval_requests',
 			'themes',
 			'ig_ad_campaigns',
@@ -1631,6 +1633,67 @@ final class Schema {
 			KEY memory_id (memory_id),
 			KEY tenant_action (tenant_id,action),
 			KEY created_at (created_at)
+		) {$charset};";
+
+		// ---------------------------------------------------------------------
+		// v46 (phase 63): the four growth Playbooks of PROMPT-IG-GROWTH-PADO —
+		// versioned, IMMUTABLE definition rows (gather / analyze / strategy /
+		// produce). A change is always a new version with a changelog and a
+		// content hash; activation is a pointer flip that can be rolled back to
+		// the previous retired version in one call. Never edit in place: the
+		// audit trail and reproducibility of every past run depend on it.
+		$sql[] = "CREATE TABLE {$p}pado_playbooks (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			kind VARCHAR(20) NOT NULL DEFAULT '',
+			version INT UNSIGNED NOT NULL DEFAULT 1,
+			schema_version INT UNSIGNED NOT NULL DEFAULT 1,
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			body LONGTEXT NULL,
+			facts_contract LONGTEXT NULL,
+			output_contract LONGTEXT NULL,
+			tools LONGTEXT NULL,
+			model VARCHAR(120) NOT NULL DEFAULT '',
+			changelog TEXT NULL,
+			content_hash CHAR(64) NOT NULL DEFAULT '',
+			created_by VARCHAR(64) NOT NULL DEFAULT '',
+			status VARCHAR(16) NOT NULL DEFAULT 'draft',
+			parent_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_kind_version (tenant_id,kind,version),
+			KEY tenant_kind_status (tenant_id,kind,status),
+			KEY parent_id (parent_id)
+		) {$charset};";
+
+		// One row per Playbook execution: the exact version, model, input
+		// snapshot, output, backend verdict, provenance-tagged facts and the
+		// token/cost usage — enough to reproduce or audit any past run, and the
+		// raw material of the forecast-vs-actual learning loop.
+		$sql[] = "CREATE TABLE {$p}pado_playbook_runs (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			playbook_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			kind VARCHAR(20) NOT NULL DEFAULT '',
+			playbook_version INT UNSIGNED NOT NULL DEFAULT 1,
+			schema_version INT UNSIGNED NOT NULL DEFAULT 1,
+			model VARCHAR(120) NOT NULL DEFAULT '',
+			input_snapshot LONGTEXT NULL,
+			output LONGTEXT NULL,
+			facts LONGTEXT NULL,
+			verdict VARCHAR(16) NOT NULL DEFAULT 'pending',
+			rejection_reason VARCHAR(255) NOT NULL DEFAULT '',
+			usage_json LONGTEXT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'running',
+			correlation_key VARCHAR(191) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			finished_at DATETIME NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_kind (tenant_id,kind,created_at),
+			KEY playbook_id (playbook_id),
+			KEY status (status),
+			KEY correlation_key (correlation_key)
 		) {$charset};";
 
 		// Theme artefacts produced by Pado (or uploaded) and validated by
