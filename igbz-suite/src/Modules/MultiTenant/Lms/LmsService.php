@@ -528,7 +528,40 @@ final class LmsService {
 			return false;
 		}
 		$secret = igbz()->settings()->required( 'lms.video_hmac_secret' );
-		return Crypto::hmac_equals( Crypto::hmac( $video_key . '|' . $user_id . '|' . $expires, $secret ), $signature );
+		if ( ! Crypto::hmac_equals( Crypto::hmac( $video_key . '|' . $user_id . '|' . $expires, $secret ), $signature ) ) {
+			return false;
+		}
+
+		// Phase 42 — the signature only proves the link is ours and unexpired;
+		// ACCESS is checked here too. A refunded or lapsed enrollment must stop
+		// working immediately, not after the link's own TTL runs out.
+		return $this->can_watch( $video_key, $user_id );
+	}
+
+	/**
+	 * Phase 42 — may this user watch this video RIGHT NOW?
+	 *
+	 * Free-preview lessons are watchable by anyone; every other lesson needs a
+	 * live enrollment in its course (is_enrolled already honours the access
+	 * deadline and refund revocation deletes the row entirely).
+	 */
+	public function can_watch( string $video_key, int $user_id ): bool {
+		if ( '' === $video_key ) {
+			return false;
+		}
+
+		$lesson = $this->db->row(
+			'SELECT course_id, is_free_preview FROM ' . $this->db->table( 'lessons' ) . ' WHERE video_key = %s LIMIT 1',
+			$video_key
+		);
+		if ( null === $lesson ) {
+			return false;
+		}
+		if ( (int) $lesson['is_free_preview'] === 1 ) {
+			return true;
+		}
+
+		return $this->is_enrolled( (int) $lesson['course_id'], $user_id );
 	}
 
 	// -------------------------------------------------------------- quizzes

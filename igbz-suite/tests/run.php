@@ -72,6 +72,7 @@ $cases = [
 	'DomainLifecycleTest',
 	'AffiliateHardenTest',
 	'GamificationTest',
+	'LmsVideoAccessTest',
 ];
 
 foreach ( $cases as $case ) {
