@@ -1493,6 +1493,86 @@ ChatPlace و fallbackهای اجتماعی) از کد بیرون رفت.
   401 (cookie لاگین ≠ احراز REST، طبق طراحی)؛ لاگ بدون fatal (fatalهای کهنه
   پیش از اصلاح فاز ۵۱)؛ صفحهٔ تنظیمات ادمین سالم رندر می‌شود.
 
+### ۷.۷.۵۳ وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۳ ✅)
+
+پبلیشرِ واقعیِ محتوا: ماشینِ انتشاری که سطرِ draftِ `ig_content` (خروجیِ
+`approve` فاز ۵۲) را به اینستاگرام می‌رساند و **نتیجهٔ واقعی** را از provider
+می‌آموزد — نه فرض می‌کند. پیاده‌سازی روی قرارداد موجود (`ZernioClient`/
+`ZernioSocialService` از فاز ۴۹/۵۱) و بدون هیچ نتیجهٔ ساختگی.
+
+- **ماشینِ حالت روی خودِ سطر (بدون جدولِ وضعیتِ جدا):** `ContentPublishService`
+  (بایند `ig.content_publish`) پنج وضعیت را روی `ig_content.status` نگه
+  می‌دارد: `draft ← scheduled ← publishing ← published` و `failed` (با
+  `retry_count`). انتخاب زمان = `schedule` (۶۰ ثانیهٔ گذشته تا ۹۰ روز، UTC
+  ذخیره)؛ اجرای لحظه‌ای = `publish_now` (از `draft`، از `scheduled` — یعنی هم
+  sweep و هم operator می‌توانند «حالا» بزنند — و از `failed` پس از
+  reconcile).
+- **duplicate prevention ریشه‌ای، نه سطحی:** کلید idempotency **ثابتِ سطر**
+  `content:<id>` است — روی هر فراخوانیِ `POST /posts` (چه دستی، چه sweep، چه
+  retry پس از شکستِ transport) همان کلید می‌رود، پس یک سطرِ محتوا هرگز دو
+  پست نمی‌سازد (قاعدهٔ ADR-0004 §8: هر create = idempotencyِ provider + کلید
+  منطقیِ داخلی). در سطح خودِ ما هم `publish_now` روی `publishing`/`published`
+  رد می‌شود (409) و sweep فقط سطرهای `scheduled` **بدون** `provider_task_id` را
+  اجرا می‌کند — سطرِ دارای task به reconcile سپرده می‌شود، نه دوباره ساخته می‌شود.
+- **retry بدون کور بودن (ADR-0004 §8):** `retry` فقط از `failed` و با سقف
+  `MAX_RETRIES=3`؛ **اول reconcile** (`GET /posts/{id}`) — اگر provider در
+  واقع منتشر کرده (timeout بین ارسال و دریافت پاسخ) سطر `published` می‌شود و
+  چیزی ساخته/تلاش نمی‌شود؛ اگر هنوز `failed` است، از endpoint رسمی
+  `POST /posts/{id}/retry` provider استفاده می‌کند و اگر provider آن را هم رد
+  کند، re-publish با همان کلیدِ ثابت (safe-retry — دوباره publish نمی‌شود).
+  سقفِ ۳، `retry_limit_reached` برمی‌گردد و خروجیِ شبکه صفر است.
+- **نتیجهٔ واقعی از دو در، یک قیف:** webhook خودِ provider
+  (`POST /zernio/posts`) و pollingِ احتیاطی (job `ig.content_publish.reconcile`
+  در هر ضربِ ۵ دقیقه، فقط سطرهای `publishing|scheduled` که `updated_at` آن‌ها
+  بیش از ۵ دقیقه خنثی است — webhook مسیرِ سریع است و polling شبکه را
+  بمباران نمی‌کند) هر دو به `apply_provider_state` ختم می‌شوند که **فقط
+  پیشرویِ رو به جلو** می‌پذیرد: `published` روی سطرِ `published` دیگر بر
+  نمی‌گردد (roی رویدادِ failure دیررس) و `failed` با رویدادِ `published` واقعی
+  جلو می‌رود (retryِ گذرای خودِ provider موفق شده — این همان نتیجهٔ حقیقی است).
+  وضعیت‌های `partial`/`cancelled` به `failed` با دلیلِ نام‌دار
+  (`provider_partial_failure`/`post_cancelled_by_provider`) می‌روند.
+- **webhook خوداحرازی (همان مدلِ فاز ۵۱):** مالکیت از `accountId` روی واردۀ
+  رویداد ← `ig_zernio_profiles.account_id` ← tenant (بُردارِ چندمستأجری؛ account
+  نامعلوم = 404 بدون اثر)؛ سپس HMAC همان سِرِ profile روی
+  payload+timestamp در پنجرۀ replay (۳۰۰ ثانیه). رویدادها
+  `post.published/failed/partial/scheduled/cancelled` + رویدادهای پایانیِ
+  هر-پلتفرم (`post.platform.*`). جدولِ ledger **جدید** `ig_publish_events`
+  (اسکیمای v41، جدول ۹۲) با `UNIQUE(profile_id, event_id)` = dedupeِ
+  retryهای provider + گزارشِ انتشارِ store — عمداً جدا از `ig_zernio_inbox`
+  (سِمانتیکِ status/source آن مخصوص inbox است). رویدادی که `provider_task_id`
+  نداردِ row، ledger می‌شود با `outcome=no_content_row` — ثبت می‌شود، اثری
+  ندارد.
+- **صدا — گیت، نه تزئین (Rule 13):** `igbz.publisher_audio` (پیش‌فرض **خاموش**؛
+  فیلدِ جدید در تبِ Zernio تنظیمات) وقتی روشن است **فقط** اگر روی سطرِ
+  registrationِ محصولِ مرتبط `voice_url` واقعی باشد، آن mp3 را به `media[]`
+  پست اضافه می‌کند. خاموش = تصویر/ویدیو فقط؛ روشن ولی بدون URL واقعی = باز هم
+  تصویر/ویدیو فقط — هیچ صدای ساختگی‌ای ساخته نمی‌شود. این همان «عدم دسترسی به
+  audio گیت production است»: تا endpoint واقعی trending-audio در فاز PV-ZERNIO
+  راستی‌آزمایی نشود، صدا فقط از فایلِ ثبت‌شدهٔ registration می‌آید.
+- **jobها (ضربِ ۵ دقیقه، `run_five_minutes`):** `ig.content_publish.publish_due`
+  (فایرِ سطرهای مهلت‌گرفته) + `ig.content_publish.reconcile` (pollingِ
+  احتیاطی)؛ هر دو slot-idempotent مثل بقیهٔ jobهای ضرب. CronJobsTest به
+  ۴ job به‌روز شد.
+- **REST (scoped به مستأجر، ۷ مسیر):** `GET /igbz/v1/ig/content` (صف + گزارش،
+  فیلتر status)، `GET .../{id}`، `POST .../{id}/publish`، `POST
+  .../{id}/schedule {at}`، `POST .../{id}/retry`، `GET
+  /igbz/v1/ig/publish/events` (ledger) و `POST /igbz/v1/zernio/posts`
+  (webhook بدون JWT — امضا = احراز). خطای حالتِ غیرممکن 409.
+- **اسکیمای v41 (۹۲ جدول):** فقط `ig_publish_events` اضافه شد؛
+  `Activator::migrate_to_v41` (خالی — dbDelta) و فهرست حذف
+  `TenantOffboarding` +۱. ستونِ مرجعِ پست `provider_post_id` نام‌گذاری شد —
+  `post_id` صریحاً در فهرستِ wpdb است که به `%d` cast می‌کند و SchemaTest آن
+  را نگه می‌دارد. DriftGuard ۹۲/۴۱.
+- **پوشش:** `ContentPublishTest` با ۱۴ سناریو روی سرویس واقعی + client واقعی +
+  HMAC واقعی (فقط DB و شبکه double): دقیقاً یک provider call با کلیدِ ثابت
+  (بدون re-fire)، reconcile پیش از re-create، پنجرۀ schedule، sweep فقط
+  سطرهای مهلت‌گرفته-بدون-task، polling خنثی-بُند، webhook published + ledger +
+  dedupe، account نامعلوم، امضای بیگانه/stale، رویدادهای دیررس فقط رو به جلو،
+  retry (reconcile → provider-retry → سقف)، retry بدون task با همان کلید، گیتِ
+  صدا (خاموش/روشن/بدون-URL)، partial→failed، عایق‌بندی tenant روی محتوا و
+  رویدادها، و store اتصال‌نیافته. تست **۱۳۷۲۲/۶۷** · لینت ۳۰۶/۰ ·
+  DriftGuard ۹۲/۴۱.
+
 ---
 
 ## ۸. فازبندی پیاده‌سازی (پس از تأیید)

@@ -1576,10 +1576,28 @@ checkpoint، resume، idempotency، validation، تأیید انسانی، مح�
 `/igbz/v1/ig/product-registrations`. تست ۱۳۵۱۲/۶۶ · لینت ۳۰۳/۰ · DriftGuard ۹۱/۴۰.
 جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۲`.
 
-#### فاز ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio
+#### فاز ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 انتخاب زمان، دریافت صدای کاتالوگ‌شده، job انتشار، نتیجهٔ واقعی webhook/polling، duplicate
 prevention، failure state و گزارش؛ عدم دسترسی به audio گیت production است.
+
+**نتیجهٔ محقق‌شده:** `ContentPublishService` (بایند `ig.content_publish`) ماشینِ
+انتشار را روی خودِ `ig_content` پیاده کرد: `draft ← scheduled ← publishing ←
+published` + `failed`. انتخاب زمان = `schedule` (۶۰ ثانیه تا ۹۰ روز)؛ اجرای
+لحظه‌ای = `publish_now`. duplicate prevention ریشه‌ای با کلید idempotency ثابتِ
+سطر `content:<id>` روی هر `POST /posts` (دستی/sweep/retry) — یک سطر هرگز دو
+پست نمی‌سازد؛ sweep فقط `scheduled` بدون `provider_task_id` را اجرا می‌کند.
+retry بدون کور بودن: اول reconcile با `GET /posts/{id}`، سپس `POST /posts/{id}/
+retry` provider، در صورتِ رد re-publish با همان کلید؛ سقف ۳. نتیجهٔ واقعی از دو
+در (webhook خوداحرازی `POST /zernio/posts` با همان مدلِ امزای فاز ۵۱ + pollingِ
+احتیاطی هر ۵ دقیقه) به یک قیف (`apply_provider_state`) ختم می‌شود که فقط
+پیشرویِ رو به جلو می‌پذیرد؛ `partial`/`cancelled` به `failed` با دلیلِ نام‌دار.
+ledgerِ جدید `ig_publish_events` (اسکیمای v41، جدول ۹۲) با
+`UNIQUE(profile_id,event_id)` = dedupe + گزارش. صدا گیت است نه تزئین:
+`igbz.publisher_audio` (پیش‌فرض خاموش) فقط وقتی `voice_url` واقعی روی
+registration هست mp3 را به `media[]` اضافه می‌کند — هیچ صدای ساختگی. ۷ مسیر REST
+scoped + ۱ webhook. تست **۱۳۷۲۲/۶۷** · لینت ۳۰۶/۰ · DriftGuard ۹۲/۴۱.
+جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۳` و `PROJECT-STATE.md §۱۱.۹`.
 
 #### فاز ۵۴ — کانال VIP
 

@@ -12,6 +12,7 @@ use IGBZ\Suite\Modules\RestApi\Controllers\BaseController;
 use IGBZ\Suite\Modules\RestApi\Controllers\CatalogController;
 use IGBZ\Suite\Modules\RestApi\Controllers\DeviceController;
 use IGBZ\Suite\Modules\RestApi\Controllers\FxController;
+use IGBZ\Suite\Modules\RestApi\Controllers\ContentPublishController;
 use IGBZ\Suite\Modules\RestApi\Controllers\InboxController;
 use IGBZ\Suite\Modules\RestApi\Controllers\ProductRegistrationController;
 
@@ -151,6 +152,13 @@ final class RestApiModule implements ModuleInterface {
 		// state machine checkpoint by checkpoint; publishing stays human-gated.
 		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.product_registration' ) ) {
 			$controllers[] = new ProductRegistrationController();
+		}
+
+		// Phase 53: the publishing engine — the store's content queue, the
+		// publish/schedule/retry decisions, the event ledger, and the provider's
+		// self-authenticating post lifecycle webhook.
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.content_publish' ) ) {
+			$controllers[] = new ContentPublishController();
 		}
 
 		// Same story for the VIP channel: the posts, the paywall and the member inbox are owned

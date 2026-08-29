@@ -22,32 +22,36 @@
 
 ### تا کجا انجام شده
 
-- **فازهای ۰۱ تا ۵۲ برنامه (`PROJECT-COMPLETION-PLAN.md §۲۳`) کامل، مستند و پوش شده‌اند.**
+- **فازهای ۰۱ تا ۵۳ برنامه (`PROJECT-COMPLETION-PLAN.md §۲۳`) کامل، مستند و پوش شده‌اند.**
   تنها استثناء: فاز ۰۲ که ذاتاً «در جریان» است (تصمیم‌های ظرفیت/دیتابیس/ترجمه).
-- خلاصهٔ آخرین فازها: ۴۹ اتصال Zernio و نگاشت پروفایل (۳۷، طبق ADR-0004) · ۵۰ مهاجرت
-  به تنها provider اجتماعی · **۵۱ اینباکس و comment-to-DM** · **۵۲ ثبت محصول
-  ۱۳مرحله‌ای** — ماشین حالت سطر-محور روی `ig_product_registrations`: ۱۳ checkpoint،
-  resume از `failed_from`، idempotency دو لایه (token + product_id)، درز agent صادقانه
-  (`agent_not_configured` + مسیرهای `manual_*`؛ agent واقعی با ۵۳/۵۵)، محصول **فقط
-  draft** با کد عمومی، approval انسانی که سطر draft از `ig_content` (provider
-  `zernio`) می‌سازد، و `compensate` که فقط draft را حذف می‌کند. ۲۴ مسیر REST scoped.
-- معیارهای سبز: تست **۱۳۵۱۲ اظهارنظر در ۶۶ کیس** · لینت **۳۰۳ فایل/صفر خطا** ·
-  دیتابیس **v40 با ۹۱ جدول** (جدید: `ig_product_registrations` + پیش‌فرض
-  `ig_content.provider` = `zernio`).
+- خلاصهٔ آخرین فازها: ۵۰ مهاجرت به تنها provider اجتماعی · **۵۱ اینباکس و
+  comment-to-DM** · **۵۲ ثبت محصول ۱۳مرحله‌ای** (ماشین حالت سطر-محور روی
+  `ig_product_registrations`؛ approval انسانی سطر draft از `ig_content` می‌سازد؛
+  ۲۴ مسیر REST scoped) · **۵۳ انتشار، صدا و راستی‌آزمایی Zernio** —
+  `ContentPublishService` (بایند `ig.content_publish`) سطرهای draftِ `ig_content`
+  را منتشر می‌کند: انتخاب زمان (`schedule`) + `publish_now`، کلید idempotency
+  ثابتِ سطر `content:<id>` (یک سطر هرگز دو پست نمی‌سازد)، retry بدون کور بودن
+  (اول reconcile، سقف ۳)، نتیجهٔ واقعی از webhook خوداحرازی `POST /zernio/posts`
+  + polling هر ۵ دقیقه به یک قیف فقط-رو‌به‌جلو، ledger جدید `ig_publish_events`
+  (v41، جدول ۹۲) و صدای کاتالوگِ گیت‌شده (`igbz.publisher_audio`، پیش‌فرض خاموش؛
+  بدون URL واقعی = تصویر/ویدیو فقط). ۷ مسیر REST + ۱ webhook.
+- معیارهای سبز: تست **۱۳۷۲۲ اظهارنظر در ۶۷ کیس** · لینت **۳۰۶ فایل/صفر خطا** ·
+  دیتابیس **v41 با ۹۲ جدول** (جدید: `ig_publish_events`).
 
 ### از کجا باید ادامه داد
 
-- **فاز بعدی: ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio.** شرح کامل در
-  `PROJECT-COMPLETION-PLAN.md §۲۳` (بند «فاز ۵۳»): انتخاب زمان، دریافت صدای
-  کاتالوگ‌شده، job انتشار، نتیجهٔ واقعی webhook/polling، duplicate prevention،
-  failure state و گزارش؛ عدم دسترسی به audio گیت production است. publisher باید
-  سطرهای draftِ `ig_content`ِ ساخته‌شده در approvalِ فاز ۵۲ را مصرف کند و اتصال
-  agent واقعی (`ig.intake_agent`) به `IntakeAgentInterface` همین‌جا یا در ۵۵ می‌آید.
+- **فاز بعدی: ۵۴ — کانال VIP.** شرح کامل در `PROJECT-COMPLETION-PLAN.md §۲۳`
+  (بند «فاز ۵۴»): پلن، عضویت، خرید تکی، entitlement، save، like، comment،
+  message، expiry و حذف امن فایل.
+- **باقی‌مانده از ۵۳ (صادقانه):** endpoint واقعی trending-audio هنوز در
+  `PV-ZERNIO-*` راستی‌آزمایی نشده — تا آن زمان صدا فقط از `voice_url`ِ
+  registration می‌آید و گیت `igbz.publisher_audio` خاموش می‌ماند. اتصال agent
+  واقعی (`ig.intake_agent`) به `IntakeAgentInterface` هم هنوز کارِ فاز ۵۵ است.
 - **هشدار اجرا:** ثبت محصول و انتشار هرگز بدون تأیید انسانی به تولید نمی‌رسند؛ تمام
   مسیرهای پول/محتوای پرووایدری تا `PV-ZERNIO-*` (اعتبارنامهٔ واقعی از کارفرما) بسته
   هستند و پیش‌فرض‌ها در همین حال «انسانی/محدود» می‌مانند.
-- پس از ۵۳، فازهای ۵۴ تا ۵۵ (VIP، قرعه‌کشی/insights/ورودی رقبا) و سپس فازهای
-  `PV-*` در برنامه‌اند.
+- پس از ۵۴، فاز ۵۵ (قرعه‌کشی/insights/ورودی رقبا) و سپس فازهای `PV-*`
+  در برنامه‌اند.
 
 ### محیط و ابزار (پس از بازسازی سندباکس بازسازی شوند)
 

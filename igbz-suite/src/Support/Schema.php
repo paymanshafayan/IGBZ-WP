@@ -111,6 +111,7 @@ final class Schema {
 			'ig_inbox_actions',
 			'ig_inbox_optouts',
 			'ig_product_registrations',
+			'ig_publish_events',
 		];
 	}
 
@@ -1740,6 +1741,30 @@ final class Schema {
 			KEY tenant_status (tenant_id,status),
 			KEY stage_task (stage_task)
 		) {$charset};";
+
+		// Phase 53: the publish webhook ledger — capture + dedupe + the store's
+		// publishing report. One row per Zernio post lifecycle event (post.published,
+		// post.failed, post.partial, post.scheduled, post.cancelled, per-platform
+		// terminal events); the UNIQUE(profile_id, event_id) pair makes provider
+		// retries no-ops, exactly as the inbox capture does.
+		$sql[] = "CREATE TABLE {$p}ig_publish_events (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			profile_id BIGINT UNSIGNED NOT NULL,
+			event_id VARCHAR(64) NOT NULL,
+			event VARCHAR(48) NOT NULL,
+			provider_post_id VARCHAR(64) NOT NULL DEFAULT '',
+			platform_status VARCHAR(32) NOT NULL DEFAULT '',
+			content_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			outcome VARCHAR(32) NOT NULL DEFAULT 'received',
+			error VARCHAR(500) NOT NULL DEFAULT '',
+			occurred_at DATETIME NULL,
+			received_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY event (profile_id,event_id),
+			KEY tenant (tenant_id),
+			KEY provider_post (provider_post_id)
+		) {$charset}.";
 
 		return $sql;
 	}

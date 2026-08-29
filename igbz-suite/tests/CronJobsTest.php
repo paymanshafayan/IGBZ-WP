@@ -38,6 +38,10 @@ final class CronJobsSpy {
 		$this->tick();
 	}
 
+	public function reconcile(): void {
+		$this->tick();
+	}
+
 	public function process_pending(): void {
 		$this->tick();
 	}
@@ -123,39 +127,42 @@ final class CronJobsTest extends TestCase {
 
 		( new InstagramModule() )->run_five_minutes();
 		$rows = array_values( $this->wpdb->tables['jobs'] );
-		$this->assert_same( 2, count( $rows ), 'one beat enqueues the two VIP sweeps as separate jobs' );
+		$this->assert_same( 4, count( $rows ), 'one beat enqueues the two VIP sweeps and the two publisher sweeps as separate jobs' );
 
 		$types = array_map( static fn ( array $r ): string => (string) $r['job_type'], $rows );
 		sort( $types );
 		$this->assert_same(
-			[ 'ig.vip.expire_due', 'ig.vip.publish_due' ],
+			[ 'ig.content_publish.publish_due', 'ig.content_publish.reconcile', 'ig.vip.expire_due', 'ig.vip.publish_due' ],
 			$types,
-			'exactly the two remaining sweeps are enqueued (phase 50 removed the legacy content/intake ticks)'
+			'exactly the VIP sweeps and the phase-53 publisher sweeps are enqueued (phase 50 removed the legacy content/intake ticks)'
 		);
 
 		$keys = array_unique( array_map( static fn ( array $r ): string => (string) $r['idempotency_key'], $rows ) );
-		$this->assert_same( 1, count( $keys ), 'both share the beat slot key' );
+		$this->assert_same( 1, count( $keys ), 'all four share the beat slot key' );
 
 		// WP-Cron delivers a beat at least once; a duplicate must be absorbed.
 		( new InstagramModule() )->run_five_minutes();
-		$this->assert_same( 2, count( $this->wpdb->tables['jobs'] ), 'a duplicate beat in the same window enqueues nothing new' );
+		$this->assert_same( 4, count( $this->wpdb->tables['jobs'] ), 'a duplicate beat in the same window enqueues nothing new' );
 	}
 
 	private function runner_drains_the_beat_end_to_end(): void {
 		$this->fresh();
 
 		$this->with_clean_container( function (): void {
-			$vip = new CronJobsSpy();
+			$vip       = new CronJobsSpy();
+			$publisher = new CronJobsSpy();
 			igbz()->bind( 'vip.posts', static fn () => $vip );
+			igbz()->bind( 'ig.content_publish', static fn () => $publisher );
 
 			( new InstagramModule() )->register_queue_handlers( $this->queue );
 			( new InstagramModule() )->run_five_minutes();
 
 			$totals = $this->runner->run();
 
-			$this->assert_same( 2, $totals['done'], 'the runner completes both sweeps' );
+			$this->assert_same( 4, $totals['done'], 'the runner completes all four sweeps' );
 			$this->assert_same( 0, $totals['failed'] + $totals['dead'], 'nothing failed' );
 			$this->assert_same( 2, $vip->calls, 'both VIP sweeps ran (publish + expire)' );
+			$this->assert_same( 2, $publisher->calls, 'both publisher sweeps ran (due + reconcile)' );
 
 			foreach ( $this->wpdb->tables['jobs'] as $row ) {
 				$this->assert_same( 'done', (string) $row['status'], 'every drained job ends done' );

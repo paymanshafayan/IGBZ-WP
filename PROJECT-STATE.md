@@ -1882,3 +1882,63 @@ state، idempotency و audit. هیچ تصمیم تجاری به automation بی�
    در دسترس‌نبودن. تست **۱۳۵۱۲/۶۶** · لینت ۳۰۳/۰ · DriftGuard ۹۱/۴۰.
 9. **اسموک زندهٔ پلی‌گراند:** هر ۲۴ مسیر ثبت شد؛ POST بدون احراز صحتاً 401 (cookie
    لاگین ≠ احراز REST، طبق طراحی)؛ لاگ بدون fatal؛ صفحهٔ تنظیمات ادمین سالم.
+
+### ۱۱.۹ فاز ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+**هدف:** publisherِ واقعیِ محتوا — مصرفِ سطرهای draftِ `ig_content` (خروجیِ
+`approve` فاز ۵۲)، انتخاب زمان، job انتشار، **نتیجهٔ واقعی** از webhook/polling،
+duplicate prevention، failure state و گزارش. عدم دسترسی به audio = گیتِ
+production، نه تزئین.
+
+**بخش‌های اجرا:**
+1. **`ContentPublishService` (بایند `ig.content_publish`)** — ماشینِ انتشار روی
+   خودِ `ig_content` (بدون جدولِ وضعیتِ جدا): `draft ← scheduled ← publishing
+   ← published` + `failed` (با `retry_count`). `schedule` (پنجرۀ ۶۰ ثانیه تا
+   ۹۰ روز، UTC)، `publish_now` (از `draft`/`scheduled`/`failed`-پس‌از-reconcile)،
+   `publish_due` (sweep)، `reconcile` (polling خنثی-بُند)، `retry` (سقف ۳)،
+   `handle_post_event` (webhook)، `list_content`/`list_events` (گزارش).
+2. **duplicate prevention ریشه‌ای:** کلید idempotency **ثابتِ سطر**
+   `content:<id>` روی هر `POST /posts` (دستی/sweep/retry) — یک سطر هرگز دو پست
+   نمی‌سازد (ADR-0004 §8). در سطح خودمان: `publish_now` روی `publishing`/
+   `published` رد می‌شود؛ sweep فقط `scheduled` بدون `provider_task_id` را اجرا
+   می‌کند (سطرِ دارای task به reconcile می‌رود، نه دوباره ساخته).
+3. **retry بدون کور بودن:** `retry` فقط از `failed`؛ **اول reconcile** با
+   `GET /posts/{id}` (اگر در واقع منتشر شده → `published`، چیزی ساخته
+   نمی‌شود)؛ سپس `POST /posts/{id}/retry` provider؛ در صورتِ ردِ provider،
+   re-publish با همان کلیدِ ثابت (safe-retry). سقف ۳ = `retry_limit_reached`
+   با خروجیِ شبکهٔ صفر.
+4. **نتیجهٔ واقعی از دو در، یک قیف:** webhook خودِ provider + pollingِ
+   احتیاطی هر دو به `apply_provider_state` ختم می‌شوند که فقط پیشرویِ رو به جلو
+   می‌پذیرد: `published` بر نمی‌گردد (failure دیررس) و `failed` با رویدادِ
+   `published` واقعی جلو می‌رود. `partial`/`cancelled` → `failed` با دلیلِ
+   نام‌دار.
+5. **webhook خوداحرازی** (`POST /igbz/v1/zernio/posts`، بدون JWT — امزا = احراز،
+   همان مدلِ فاز ۵۱): مالکیت از `accountId` ← `ig_zernio_profiles` ← tenant
+   (account نامعلوم = 404 بدون اثر)؛ سپس HMAC سِرِ profile روی payload+timestamp
+   در پنجرۀ ۳۰۰ ثانیه. ledgerِ جدید **`ig_publish_events`** (اسکیمای v41، جدول
+   ۹۲) با `UNIQUE(profile_id, event_id)` = dedupe + گزارش؛ رویدادِ بدون row
+   ledger می‌شود با `outcome=no_content_row` (ثبت، بدون اثر).
+6. **صدا — گیت، نه تزئین:** `igbz.publisher_audio` (پیش‌فرض خاموش، فیلدِ جدید
+   تبِ Zernio) وقتی روشن است **فقط** اگر روی registrationِ محصول `voice_url`
+   واقعی باشد آن mp3 را به `media[]` اضافه می‌کند. خاموش یا بدون URL واقعی =
+   تصویر/ویدیو فقط — هیچ صدای ساختگی. تا endpoint واقعی trending-audio در
+   PV-ZERNIO راستی‌آزمایی نشود، صدا فقط از فایلِ ثبت‌شده می‌آید.
+7. **jobها** در `run_five_minutes` (هر ۵ دقیقه، slot-idempotent):
+   `ig.content_publish.publish_due` + `ig.content_publish.reconcile`.
+   `CronJobsTest` به ۴ job به‌روز شد (spy با `reconcile()`).
+8. **REST (scoped، ۷ مسیر):** `GET /igbz/v1/ig/content` (فیلتر status)، `GET
+   .../{id}`، `POST .../{id}/publish`، `POST .../{id}/schedule {at}`، `POST
+   .../{id}/retry`، `GET /igbz/v1/ig/publish/events`، `POST
+   /igbz/v1/zernio/posts` (webhook). خطای حالتِ غیرممکن 409.
+9. **اسکیمای v41 (۹۲ جدول):** فقط `ig_publish_events`؛
+   `Activator::migrate_to_v41` (dbDelta) + `TenantOffboarding`. ستونِ مرجعِ
+   پست `provider_post_id` نام دارد (نه `post_id` که wpdb آن را `%d` cast می‌کند
+   و SchemaTest نگه می‌دارد). DriftGuard ۹۲/۴۱.
+10. **`ContentPublishTest` با ۱۴ سناریو** (سرویس واقعی + client واقعی + HMAC
+    واقعی؛ فقط DB و شبکه double): یک provider call با کلیدِ ثابت، reconcile
+    پیش از re-create، پنجرۀ schedule، sweep فقط مهلت‌گرفته-بدون-task، polling
+    خنثی-بُند، webhook published + ledger + dedupe، account نامعلوم، امضای
+    بیگانه/stale، رویدادِ دیررس فقط رو به جلو، retry (reconcile → provider →
+    سقف)، retry بدون task با همان کلید، گیتِ صدا (خاموش/روشن/بدون-URL)،
+    partial→failed، عایق‌بندی tenant، store اتصال‌نیافته.
+    تست **۱۳۷۲۲/۶۷** · لینت ۳۰۶/۰ · DriftGuard ۹۲/۴۱.

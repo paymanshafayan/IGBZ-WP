@@ -3,6 +3,7 @@ namespace IGBZ\Suite\Modules\Instagram;
 
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioAdapterInterface;
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioClient;
+use IGBZ\Suite\Modules\Instagram\Services\ContentPublishService;
 use IGBZ\Suite\Modules\Instagram\Services\InboxService;
 use IGBZ\Suite\Modules\Instagram\Services\ProductRegistrationService;
 use IGBZ\Suite\Modules\Instagram\Services\SocialMigrationService;
@@ -137,6 +138,16 @@ final class InstagramModule implements ModuleInterface {
 				$c->has( 'ig.intake_agent' ) ? $c->get( 'ig.intake_agent' ) : null
 			)
 		);
+		$plugin->bind(
+			'ig.content_publish',
+			static fn ( Plugin $c ) => new ContentPublishService(
+				$c->db(),
+				$c->logger(),
+				$c->get( 'ig.zernio' ),
+				$c->get( 'ig.zernio_social' ),
+				$c->settings()
+			)
+		);
 
 		// --------------------------- building blocks for the rebuilt flows
 
@@ -187,7 +198,7 @@ final class InstagramModule implements ModuleInterface {
 		// the second delivery of the same five-minute window is a no-op.
 		$jobs = igbz()->get( 'jobs' );
 		$slot = JobQueue::slot();
-		foreach ( [ 'ig.vip.publish_due', 'ig.vip.expire_due' ] as $job_type ) {
+		foreach ( [ 'ig.vip.publish_due', 'ig.vip.expire_due', 'ig.content_publish.publish_due', 'ig.content_publish.reconcile' ] as $job_type ) {
 			$jobs->enqueue( $job_type, [], [ 'idempotency_key' => $slot ] );
 		}
 	}
@@ -199,6 +210,16 @@ final class InstagramModule implements ModuleInterface {
 		} );
 		$jobs->register( 'ig.vip.expire_due', static function (): void {
 			igbz()->get( 'vip.posts' )->expire_due();
+		} );
+
+		// Phase 53 — publishing: fire the due scheduled rows, then reconcile the
+		// in-flight ones against the provider (the webhook is the fast path; this
+		// five-minute poll is the safety net for missed or delayed events).
+		$jobs->register( 'ig.content_publish.publish_due', static function (): void {
+			igbz()->get( 'ig.content_publish' )->publish_due();
+		} );
+		$jobs->register( 'ig.content_publish.reconcile', static function (): void {
+			igbz()->get( 'ig.content_publish' )->reconcile();
 		} );
 
 		// Phase 50 — the controlled legacy→Zernio migration, one bounded round per

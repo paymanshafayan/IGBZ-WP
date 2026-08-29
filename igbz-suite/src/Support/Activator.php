@@ -116,6 +116,7 @@ final class Activator {
 			38 => [ self::class, 'migrate_to_v38' ],
 			39 => [ self::class, 'migrate_to_v39' ],
 			40 => [ self::class, 'migrate_to_v40' ],
+			41 => [ self::class, 'migrate_to_v41' ],
 		];
 	}
 
@@ -309,6 +310,13 @@ final class Activator {
 	 * work; the ig_content provider default also moved to the single provider.
 	 */
 	public static function migrate_to_v40(): void {
+	}
+
+	/**
+	 * v41 (phase 53): the publish webhook ledger. Pure dbDelta work; every statement
+	 * already exists in Schema::statements() for fresh installs.
+	 */
+	public static function migrate_to_v41(): void {
 	}
 
 	/**
