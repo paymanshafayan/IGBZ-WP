@@ -18,10 +18,32 @@ defined( 'ABSPATH' ) || exit;
 final class LogisticsService {
 
 	public const STATUS_DRAFT    = 'draft';
+	public const STATUS_ASSIGNED = 'assigned';
 	public const STATUS_REGISTERED = 'registered';
 	public const STATUS_IN_TRANSIT = 'in_transit';
+	public const STATUS_AT_DESTINATION = 'at_destination';
 	public const STATUS_DELIVERED  = 'delivered';
 	public const STATUS_FAILED     = 'failed';
+
+	/**
+	 * Phase 43 — the delivery state machine. Every transition not listed here
+	 * is impossible, whatever the caller promises. delivered and failed are
+	 * terminal; a carrier hand-off can only leave a draft; arriving somewhere
+	 * requires having left the warehouse.
+	 */
+	public const TRANSITIONS = [
+		self::STATUS_DRAFT         => [ self::STATUS_ASSIGNED, self::STATUS_REGISTERED, self::STATUS_FAILED ],
+		self::STATUS_ASSIGNED      => [ self::STATUS_IN_TRANSIT, self::STATUS_AT_DESTINATION, self::STATUS_FAILED ],
+		self::STATUS_REGISTERED    => [ self::STATUS_IN_TRANSIT, self::STATUS_FAILED ],
+		self::STATUS_IN_TRANSIT    => [ self::STATUS_AT_DESTINATION, self::STATUS_FAILED ],
+		self::STATUS_AT_DESTINATION => [ self::STATUS_DELIVERED, self::STATUS_FAILED ],
+		self::STATUS_DELIVERED     => [],
+		self::STATUS_FAILED        => [],
+	];
+
+	public static function can_transition( string $from, string $to ): bool {
+		return in_array( $to, self::TRANSITIONS[ $from ] ?? [], true );
+	}
 
 	public function __construct(
 		private Db $db,
@@ -105,9 +127,14 @@ final class LogisticsService {
 	 * @return array{ok:bool,tracking_code:string,message:string}
 	 */
 	public function register_with_carrier( int $shipment_id, ShippingAdapterInterface $adapter ): array {
-		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $shipment_id );
+		$tenant   = igbz()->tenancy()->id();
+		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d', $shipment_id, $tenant );
 		if ( ! $shipment ) {
 			return [ 'ok' => false, 'tracking_code' => '', 'message' => __( 'Shipment not found.', 'igbz-suite' ) ];
+		}
+		// Phase 43: a carrier hand-off can only leave a draft.
+		if ( self::STATUS_DRAFT !== (string) $shipment['status'] ) {
+			return [ 'ok' => false, 'tracking_code' => '', 'message' => __( 'This shipment has already left the draft state.', 'igbz-suite' ) ];
 		}
 
 		$result = $adapter->register( $shipment );
@@ -115,7 +142,7 @@ final class LogisticsService {
 			$this->db->update(
 				'ig_shipments',
 				[ 'status' => self::STATUS_FAILED, 'meta' => wp_json_encode( [ 'error' => $result['message'] ] ), 'updated_at' => current_time( 'mysql', true ) ],
-				[ 'id' => $shipment_id ]
+				[ 'id' => $shipment_id, 'tenant_id' => $tenant ]
 			);
 			return $result;
 		}
@@ -127,27 +154,36 @@ final class LogisticsService {
 				'tracking_code' => $result['tracking_code'],
 				'updated_at'    => current_time( 'mysql', true ),
 			],
-			[ 'id' => $shipment_id ]
+			[ 'id' => $shipment_id, 'tenant_id' => $tenant ]
 		);
 		$this->logger->info( 'logistics', 'Shipment registered', [ 'shipment_id' => $shipment_id, 'tracking' => $result['tracking_code'] ] );
 
 		return $result;
 	}
 
-	/** Mark delivered once the carrier (or the courier's PIN confirm) says so. */
+	/**
+	 * Mark delivered once the carrier (or the courier's PIN confirm) says so.
+	 * Phase 43: delivery is legal only from at_destination — the machine
+	 * refuses every other rung, whatever the caller claims.
+	 */
 	public function mark_delivered( int $shipment_id, string $pin = '' ): bool {
-		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $shipment_id );
+		$tenant   = igbz()->tenancy()->id();
+		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d', $shipment_id, $tenant );
 		if ( ! $shipment ) {
 			return false;
 		}
 		if ( '' !== $pin && ! hash_equals( (string) $shipment['delivery_pin'], $pin ) ) {
 			return false;
 		}
+		if ( ! self::can_transition( (string) $shipment['status'], self::STATUS_DELIVERED ) ) {
+			$this->logger->warning( 'logistics', 'Delivery refused by the state machine', [ 'shipment_id' => $shipment_id, 'status' => (string) $shipment['status'] ] );
+			return false;
+		}
 
 		$this->db->update(
 			'ig_shipments',
 			[ 'status' => self::STATUS_DELIVERED, 'updated_at' => current_time( 'mysql', true ) ],
-			[ 'id' => $shipment_id ]
+			[ 'id' => $shipment_id, 'tenant_id' => $tenant ]
 		);
 
 		return true;
@@ -169,7 +205,7 @@ final class LogisticsService {
 	}
 
 	public function get( int $id ): ?array {
-		$row = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $id );
+		$row = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d', $id, igbz()->tenancy()->id() );
 		return $row ?: null;
 	}
 }

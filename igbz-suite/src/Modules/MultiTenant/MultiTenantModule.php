@@ -18,6 +18,8 @@ use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletGateway;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletService;
 use IGBZ\Suite\Support\Capabilities;
 use IGBZ\Suite\Support\Cron;
+use IGBZ\Suite\Support\Jobs\JobContext;
+use IGBZ\Suite\Support\Jobs\JobQueue;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
@@ -33,6 +35,21 @@ defined( 'ABSPATH' ) || exit;
  */
 final class MultiTenantModule implements ModuleInterface {
 
+	/** Phase 25: batch sizes of the tenant sweeps (must match the service LIMITs). */
+	private const SWEEP_BATCH_BNPL  = 200;
+	private const SWEEP_BATCH_CARTS = 50;
+
+	/** Phase 25: continuation rounds per tenant per hour — caps the worst-case loop. */
+	private const MAX_SWEEP_ROUNDS = 10;
+
+	/** Phase 26: batch sizes of the daily sweeps (must match the service LIMITs). */
+	private const DAILY_BATCH_RENEWALS     = 100;
+	private const DAILY_BATCH_COMMISSIONS  = 200;
+	private const DAILY_BATCH_MASTER       = 100;
+
+	/** Phase 29: webhook inbox batch per drain round. */
+	private const WEBHOOK_BATCH = 20;
+
 	public function id(): string {
 		return Modules::MULTITENANT;
 	}
@@ -47,6 +64,14 @@ final class MultiTenantModule implements ModuleInterface {
 
 	public function register( Plugin $plugin ): void {
 		$this->bind_services( $plugin );
+
+		// Phase 13: deleting a tenant sweeps every tenant-scoped table with it, audited.
+		add_action(
+			'igbz_tenant_deleted',
+			static function ( int $tenant_id ): void {
+				igbz()->get( 'tenant.offboarding' )->purge( $tenant_id );
+			}
+		);
 
 		// --- storefront / account plumbing -----------------------------------
 		add_action( 'init', [ $this, 'capture_referral' ], 5 );
@@ -91,9 +116,33 @@ final class MultiTenantModule implements ModuleInterface {
 			( new Admin\TranslatorPage() )->register();
 			( new Admin\MasterPaymentPage() )->register();
 			( new Admin\DomainPage() )->register();
+			( new Admin\JobsPage() )->register();
 
 		add_action( 'woocommerce_product_saved', [ $this, 'on_product_saved' ], 10, 2 );
 		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'marketplace_tick' ] );
+		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'webhook_tick' ] );
+
+		// Phase 24: marketplace sync runs as a queued job — leased and retried like everything
+		// else, instead of blocking the shared five-minute cron request.
+		$this->register_queue_handlers( $plugin->get( 'jobs' ) );
+
+		// Phase 29: provider payment notifications arrive in the durable inbox and are applied
+		// through the shared state machine — never directly, never in the request path.
+		$plugin->get( 'webhooks.inbox' )->register_source( 'bnpl', static function ( array $payload ): string {
+			return igbz()->get( 'bnpl' )->apply_provider_notification( $payload );
+		} );
+		$plugin->get( 'webhooks.inbox' )->register_source( 'psp', static function ( array $payload ): string {
+			$payment_id = (int) ( $payload['payment_id'] ?? 0 );
+			$verdict    = (string) ( $payload['status'] ?? '' );
+			if ( $payment_id <= 0 || '' === $verdict ) {
+				return 'done'; // Malformed — acknowledge so the provider stops re-delivering.
+			}
+			$outcome = igbz()->get( 'payments' )->apply_notification( $payment_id, $verdict, $payload );
+			if ( 'unknown' === $verdict && ! empty( $outcome['ok'] ) ) {
+				return 'unknown'; // The provider could not decide yet; the inbox retries later.
+			}
+			return 'done';
+		} );
 		add_action( 'woocommerce_add_to_cart', [ $this, 'watch_cart' ], 10, 6 );
 		add_action( Cron::HOOK_HOURLY, [ $this, 'abandoned_cart_tick' ] );
 		add_action( Cron::HOOK_DAILY, [ $this, 'master_payment_tick' ] );
@@ -107,12 +156,14 @@ final class MultiTenantModule implements ModuleInterface {
 
 		( new Frontend\AccountEndpoints() )->register();
 		( new Frontend\ShortCodes() )->register();
+		( new Frontend\TenantThemeRouter( $plugin->db() ) )->register();
 
 		( new Lms\CertificatePage( $plugin->get( 'lms' ), $plugin->settings() ) )->register();
 	}
 
 	private function bind_services( Plugin $plugin ): void {
 		$plugin->bind( 'tenants', static fn ( Plugin $c ) => new TenantRepository( $c->db() ) );
+		$plugin->bind( 'tenant.offboarding', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\TenantOffboarding( $c->db(), $c->logger() ) );
 		$plugin->bind( 'wallet', static fn ( Plugin $c ) => new WalletService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'plans', static fn ( Plugin $c ) => new PlanService( $c->db(), $c->get( 'wallet' ), $c->logger() ) );
 				$plugin->bind( 'logistics.courier', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\CourierService( $c->db(), $c->logger() ) );
@@ -125,6 +176,15 @@ final class MultiTenantModule implements ModuleInterface {
 		$plugin->bind( 'webpresence', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Domain\WebPresenceService( $c->db(), $c->get( 'http' ), $c->logger() ) );
 		$plugin->bind( 'master.payment', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\MasterPayment\MasterPaymentService( $c->db(), $c->logger() ) );
 $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\LogisticsService( $c->db(), $c->settings(), $c->logger() ) );
+		$plugin->bind( 'logistics.sync', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\ShippingSyncService( $c->db(), $c->settings(), $c->logger() ) );
+		$plugin->bind( 'seo.structured_data', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\StructuredDataService() );
+		$plugin->bind( 'seo.head_tags', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\HeadTagsService( new \IGBZ\Suite\Modules\MultiTenant\Seo\SeoService() ) );
+		$plugin->bind( 'seo.sitemap', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\SitemapService() );
+		$plugin->bind( 'seo.campaigns', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\AdCampaignService( $c->db(), $c->logger(), new \IGBZ\Suite\Modules\MultiTenant\Seo\AdNetworkService( $c->get( 'http' ) ) ) );
+		$plugin->bind( 'seo.throttle', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\ContentThrottle( $c->db() ) );
+		$plugin->bind( 'translation.memory', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Translation\TranslationMemoryService( $c->db() ) );
+		$plugin->bind( 'intl.commerce', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Translation\IntlCommerceService( $c->db() ) );
+		$plugin->bind( 'intl.gateways', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Translation\IntlGatewayService() );
 		$plugin->bind( 'marketplace.sync', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Marketplace\MarketplaceSyncService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'marketplace.mappings', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Marketplace\CategoryMappingService( $c->db() ) );
 		$plugin->bind( 'gamification', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Gamification\GamificationService( $c->db(), $c->logger() ) );
@@ -148,6 +208,7 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 			static fn ( Plugin $c ) => new BnplService( $c->db(), $c->get( 'wallet' ), $c->logger(), $c->get( 'bnpl.providers' ) )
 		);
 		$plugin->bind( 'affiliate', static fn ( Plugin $c ) => new AffiliateService( $c->db(), $c->get( 'wallet' ), $c->logger() ) );
+		$plugin->bind( 'gamification', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Gamification\GamificationService( $c->db(), $c->settings(), $c->logger() ) );
 		$plugin->bind( 'lms', static fn ( Plugin $c ) => new LmsService( $c->db() ) );
 		$plugin->bind(
 			'payments',
@@ -435,14 +496,46 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 	}
 
 	public function run_hourly(): void {
-		igbz()->get( 'bnpl' )->process_overdue();
-		igbz()->get( 'bnpl' )->send_reminders();
+		$this->fan_out_hourly_sweeps();
+	}
+
+	/**
+	 * Phase 25: the hourly sweeps run as one job per active tenant instead of one global scan
+	 * with a LIMIT. The hourly slot key absorbs duplicate beats, `group_key` gives each tenant
+	 * a fair round-robin share of the claim budget, and every handler re-queues a next round
+	 * while its batch comes back full — capped, so a pathological backlog cannot loop forever.
+	 */
+	private function fan_out_hourly_sweeps(): void {
+		$ids = $this->active_tenant_ids();
+		if ( ! $ids ) {
+			return;
+		}
+		$jobs = igbz()->get( 'jobs' );
+		foreach ( [ 'bnpl.overdue', 'bnpl.reminders', 'carts.sweep' ] as $job_type ) {
+			$jobs->fan_out_tenants( $job_type, $ids, [ 'slot' => JobQueue::slot( HOUR_IN_SECONDS ) ] );
+		}
+	}
+
+	/** Active tenants (active status or a trial that has not ended). @return array<int,int> */
+	private function active_tenant_ids(): array {
+		$tenants = igbz()->get( 'tenants' )->all( [ 'limit' => 500 ] );
+		$ids     = [];
+		foreach ( $tenants as $tenant ) {
+			if ( $tenant->is_active() ) {
+				$ids[] = $tenant->id;
+			}
+		}
+		return $ids;
 	}
 
 	public function run_daily(): void {
-		igbz()->get( 'plans' )->process_due_renewals();
-		igbz()->get( 'affiliate' )->process_pending_commissions();
-		igbz()->get( 'marketplace' )->flush_cache();
+		// Phase 26: the daily set runs as independent queued jobs; the daily slot key absorbs
+		// duplicate beats. Bounded services carry the continuation contract inside the handler.
+		$jobs = igbz()->get( 'jobs' );
+		$slot = JobQueue::slot( DAY_IN_SECONDS );
+		foreach ( [ 'plans.renewals', 'affiliate.commissions', 'marketplace.flush', 'master.release', 'wallet.reconcile', 'master.reconcile', 'bnpl.reconcile', 'fx.billing.reconcile' ] as $job_type ) {
+			$jobs->enqueue( $job_type, [], [ 'idempotency_key' => $slot ] );
+		}
 	}
 
 	// ----------------------------------------------------------------- health
@@ -510,12 +603,104 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		$sync->enqueue( $product_id, 'divar' );
 	}
 
+	/** Phase 29: drain the webhook inbox on the five-minute cron. */
+	public function webhook_tick(): void {
+		igbz()->get( 'jobs' )->enqueue( 'webhooks.drain', [], [ 'idempotency_key' => JobQueue::slot() ] );
+	}
+
 	/** Drain the marketplace queue on the five-minute cron. */
 	public function marketplace_tick(): void {
-		if ( ! igbz()->settings()->bool( 'marketplace.enabled', true ) ) {
-			return;
-		}
-		igbz()->get( 'marketplace.sync' )->process_pending();
+		// Phase 24: the beat only enqueues; the enabled-check happens at run time inside the
+		// handler so a late settings change is still respected. Slot key absorbs duplicate beats.
+		igbz()->get( 'jobs' )->enqueue( 'marketplace.sync', [], [ 'idempotency_key' => JobQueue::slot() ] );
+	}
+
+	/** Phase 24/25: handler wiring for the queued jobs owned by this module. */
+	public function register_queue_handlers( JobQueue $jobs ): void {
+		$jobs->register( 'marketplace.sync', static function (): void {
+			if ( ! igbz()->settings()->bool( 'marketplace.enabled', true ) ) {
+				return;
+			}
+			igbz()->get( 'marketplace.sync' )->process_pending();
+		} );
+
+		// Phase 25 — the tenant-scoped hourly sweeps. Each handler stays within its capped
+		// batch and applies the continuation contract: a full batch means more rows may wait,
+		// so the next round re-queues itself under a derived idempotency key.
+		$jobs->register( 'bnpl.overdue', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$processed = igbz()->get( 'bnpl' )->process_overdue( $ctx->tenant_id );
+			$this->continue_sweep( $jobs, 'bnpl.overdue', $ctx, $payload, $processed, self::SWEEP_BATCH_BNPL );
+		} );
+		$jobs->register( 'bnpl.reminders', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$processed = igbz()->get( 'bnpl' )->send_reminders( $ctx->tenant_id );
+			$this->continue_sweep( $jobs, 'bnpl.reminders', $ctx, $payload, $processed, self::SWEEP_BATCH_BNPL );
+		} );
+		$jobs->register( 'carts.sweep', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			// Settings are consulted at run time (phase 24 pattern), not at enqueue time.
+			if ( ! igbz()->settings()->bool( 'abandoned_cart.enabled', true ) ) {
+				return;
+			}
+			$processed = $this->carts()->sweep( $ctx->tenant_id );
+			$this->continue_sweep( $jobs, 'carts.sweep', $ctx, $payload, $processed, self::SWEEP_BATCH_CARTS );
+		} );
+
+		// Phase 26 — the daily set. Bounded sweeps continue via the queue's canonical contract.
+		$jobs->register( 'plans.renewals', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$plans     = igbz()->get( 'plans' );
+			$processed = $plans->process_due_renewals();
+			// Phase 32: the grace sweep rides the same daily job; a full batch on either side
+			// continues the round so nothing waits another day.
+			$processed += $plans->expire_past_grace( self::DAILY_BATCH_RENEWALS );
+			$jobs->continue_round( $ctx, $payload, 'plans.renewals', $processed, self::DAILY_BATCH_RENEWALS, self::MAX_SWEEP_ROUNDS );
+		} );
+		$jobs->register( 'affiliate.commissions', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$processed = igbz()->get( 'affiliate' )->process_pending_commissions();
+			$jobs->continue_round( $ctx, $payload, 'affiliate.commissions', $processed, self::DAILY_BATCH_COMMISSIONS, self::MAX_SWEEP_ROUNDS );
+		} );
+		$jobs->register( 'marketplace.flush', static function (): void {
+			igbz()->get( 'marketplace' )->flush_cache();
+		} );
+		$jobs->register( 'master.release', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			if ( ! igbz()->settings()->bool( 'master_payment.enabled', true ) || ! igbz()->has( 'master.payment' ) ) {
+				return;
+			}
+			$processed = igbz()->get( 'master.payment' )->release_due();
+			$jobs->continue_round( $ctx, $payload, 'master.release', $processed, self::DAILY_BATCH_MASTER, self::MAX_SWEEP_ROUNDS );
+		} );
+		$jobs->register( 'wallet.reconcile', static function (): void {
+			// Phase 28: the ledger is the source of truth; any cached-balance drift is repaired.
+			igbz()->get( 'wallet' )->reconcile_all();
+		} );
+		$jobs->register( 'master.reconcile', static function (): void {
+			// Phase 31: released escrow must have its wallet credit; gaps are repaired and reported.
+			igbz()->get( 'master.payment' )->reconcile();
+		} );
+		$jobs->register( 'bnpl.reconcile', static function (): void {
+			// Phase 33: instalments must add up against their contracts; drift is reported, not hidden.
+			igbz()->get( 'bnpl' )->reconcile();
+		} );
+		$jobs->register( 'fx.billing.reconcile', static function (): void {
+			// Phase 36: pending payouts get a verdict or stay pending; nothing is guessed.
+			igbz()->get( 'fx.billing' )->reconcile();
+		} );
+		$jobs->register( 'webhooks.drain', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			// Phase 29: one batch per round; a full batch re-queues the next round.
+			$inbox     = igbz()->get( 'webhooks.inbox' );
+			$totals    = $inbox->process_batch( self::WEBHOOK_BATCH );
+			$processed = $totals['done'] + $totals['unknown'] + $totals['failed'] + $totals['dead'];
+			$jobs->continue_round( $ctx, $payload, 'webhooks.drain', $processed, self::WEBHOOK_BATCH, self::MAX_SWEEP_ROUNDS );
+		} );
+	}
+
+	/**
+	 * Phase 25 continuation contract for capped sweeps — delegates to the queue's canonical
+	 * contract (phase 26): a full batch enqueues the next round under a derived key, bounded
+	 * by the round cap (batch × rounds rows per tenant per window, worst case).
+	 *
+	 * @param array<string,mixed> $payload
+	 */
+	private function continue_sweep( JobQueue $jobs, string $job_type, JobContext $ctx, array $payload, int $processed, int $batch ): void {
+		$jobs->continue_round( $ctx, $payload, $job_type, $processed, $batch, self::MAX_SWEEP_ROUNDS );
 	}
 
 	/** Track a cart for abandoned-cart recovery. */
@@ -527,12 +712,16 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		$this->carts()->watch( get_current_user_id(), (string) WC()->session->get_customer_id(), $total );
 	}
 
-	/** Sweep abandoned carts hourly. */
+	/**
+	 * Sweep abandoned carts hourly. Phase 25: one `carts.sweep` job per active tenant — the
+	 * enabled-check moved to run time inside the handler. Duplicate fan-outs (run_hourly hooks
+	 * this sweep too) are absorbed by the shared hourly slot key.
+	 */
 	public function abandoned_cart_tick(): void {
-		if ( ! igbz()->settings()->bool( 'abandoned_cart.enabled', true ) ) {
-			return;
+		$ids = $this->active_tenant_ids();
+		if ( $ids ) {
+			igbz()->get( 'jobs' )->fan_out_tenants( 'carts.sweep', $ids, [ 'slot' => JobQueue::slot( HOUR_IN_SECONDS ) ] );
 		}
-		$this->carts()->sweep();
 	}
 
 	private function carts(): \IGBZ\Suite\Modules\MultiTenant\Gamification\AbandonedCartService {
@@ -559,10 +748,9 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 
 	/** Release due master payments daily. */
 	public function master_payment_tick(): void {
-		if ( ! igbz()->settings()->bool( 'master_payment.enabled', true ) || ! igbz()->has( 'master.payment' ) ) {
-			return;
-		}
-		igbz()->get( 'master.payment' )->release_due();
+		// Phase 26: same daily slot key as run_daily() — whichever fires first enqueues, the
+		// other is a no-op. The enabled-check moved to run time inside the handler.
+		igbz()->get( 'jobs' )->enqueue( 'master.release', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
 	}
 
 	/** Hold a paid order's funds in the master gateway (when enabled + agreed). */

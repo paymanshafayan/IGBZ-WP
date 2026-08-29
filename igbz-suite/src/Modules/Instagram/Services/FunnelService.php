@@ -119,7 +119,7 @@ final class FunnelService {
 
 	/** @return array<string,mixed>|null */
 	public function get( int $id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_funnels' ) . ' WHERE id = %d', $id );
+		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_funnels' ) . ' WHERE id = %d AND tenant_id = %d', $id, igbz()->tenancy()->id() );
 	}
 
 	/**
@@ -139,7 +139,8 @@ final class FunnelService {
 			$where[] = 'is_active = 1';
 		}
 
-		$sql = 'SELECT * FROM ' . $this->db->table( 'ig_funnels' ) . ' WHERE ' . implode( ' AND ', $where ) . ' ORDER BY id DESC';
+		// Phase 20: a tenant's funnel list is bounded; the cap documents it.
+		$sql = 'SELECT * FROM ' . $this->db->table( 'ig_funnels' ) . ' WHERE ' . implode( ' AND ', $where ) . ' ORDER BY id DESC LIMIT 500';
 
 		return $params ? $this->db->results( $sql, ...$params ) : $this->db->results( $sql );
 	}
@@ -966,24 +967,34 @@ final class FunnelService {
 	 *
 	 * Excluded: rows blocked by the per-user cap (retrying is exactly what the cap forbids) and
 	 * rows carrying the unconfirmed marker, which are already delivered.
+	 *
+	 * @param int $tenant_id Phase 25: scope the retry pass to one tenant; 0 keeps the global scan.
 	 */
-	public function retry_failed( int $limit = 20 ): int {
-		$now  = time();
-		$rows = $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'ig_funnel_hits' ) . '
-			 WHERE delivered = 0
-			   AND delivery_error <> %s
-			   AND delivery_error <> %s
-			   AND created_at >= %s
-			   AND ( delivery_error NOT IN ( %s, %s ) OR created_at <= %s )
-			 ORDER BY id DESC LIMIT %d',
+	public function retry_failed( int $limit = 20, int $tenant_id = 0 ): int {
+		$now    = time();
+		$scope  = '';
+		$params = [
 			'',
 			self::DELIVERY_BLOCKED,
 			gmdate( 'Y-m-d H:i:s', $now - DAY_IN_SECONDS ),
 			self::DELIVERY_PENDING,
 			self::DELIVERY_PENDING_INLINE,
 			gmdate( 'Y-m-d H:i:s', $now - self::FOLLOWUP_GRACE ),
-			$limit
+		];
+		if ( $tenant_id > 0 ) {
+			$scope    = ' AND tenant_id = %d';
+			$params[] = $tenant_id;
+		}
+		$params[] = $limit;
+		$rows     = $this->db->results(
+			'SELECT * FROM ' . $this->db->table( 'ig_funnel_hits' ) . '
+			 WHERE delivered = 0
+			   AND delivery_error <> %s
+			   AND delivery_error <> %s
+			   AND created_at >= %s
+			   AND ( delivery_error NOT IN ( %s, %s ) OR created_at <= %s )' . $scope . '
+			 ORDER BY id DESC LIMIT %d',
+			...$params
 		);
 
 		$done = 0;

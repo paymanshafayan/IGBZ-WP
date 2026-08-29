@@ -48,6 +48,8 @@ final class Plugin {
 
 		$this->register_core_services();
 
+		WooCommerceCompat::register();
+
 		add_action( 'plugins_loaded', [ $this, 'on_plugins_loaded' ], 5 );
 		add_action( 'init', [ $this, 'load_textdomain' ], 1 );
 	}
@@ -144,6 +146,10 @@ final class Plugin {
 		$this->bind( 'db', static fn () => new Db() );
 		$this->bind( 'http', static fn ( Plugin $c ) => new Http( $c->get( 'logger' ) ) );
 		$this->bind( 'tenancy', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Repository\TenantContext( $c->get( 'db' ) ) );
+		$this->bind( 'jobs', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Jobs\JobQueue( $c->get( 'db' ), $c->get( 'logger' ) ) );
+		$this->bind( 'jobs.runner', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Jobs\QueueRunner( $c->get( 'jobs' ), $c->get( 'logger' ) ) );
+		// Phase 29: the durable webhook inbox and the shared payment state machine.
+		$this->bind( 'webhooks.inbox', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Webhooks\WebhookInbox( $c->get( 'db' ), $c->get( 'settings' ), $c->get( 'logger' ) ) );
 	}
 
 	public function settings(): Settings {

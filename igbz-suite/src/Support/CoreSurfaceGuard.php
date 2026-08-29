@@ -86,6 +86,30 @@ final class CoreSurfaceGuard {
 		// WordPress XML exports can contain users, comments and site content. Keep this
 		// bulk escape hatch for the platform administrator only.
 		add_action( 'load-export.php', [ $this, 'guard_export' ], 1 );
+
+		// oEmbed answers "who wrote this?" and ships a REST route plus discovery links that
+		// nothing we ship needs. Author stripping below stays as a second layer in case an
+		// operator re-enables it.
+		if ( igbz()->settings()->bool( 'security.disable_oembed', true ) ) {
+			remove_action( 'rest_api_init', 'wp_oembed_register_route' );
+			add_filter( 'embed_oembed_discover', '__return_false' );
+			remove_action( 'wp_head', 'wp_oembed_add_discovery_links' );
+			remove_action( 'wp_head', 'wp_oembed_add_host_js' );
+		}
+	}
+
+	/**
+	 * The senior administrator id configured under Settings → Advanced (0 = unset).
+	 * The value is only ever written by a super admin; see SettingsPage::handle_post().
+	 */
+	private function senior_admin_id(): int {
+		return igbz()->settings()->int( 'security.senior_admin_id', 0 );
+	}
+
+	/** Whether $user_id is the configured senior administrator. */
+	public function is_senior_admin( int $user_id ): bool {
+		$senior = $this->senior_admin_id();
+		return $senior > 0 && $user_id === $senior;
 	}
 
 	/**
@@ -182,14 +206,41 @@ final class CoreSurfaceGuard {
 			return true;
 		}
 
-		return is_super_admin() || current_user_can( 'igbz_bulk_export_people' );
+		if ( is_super_admin() || current_user_can( 'igbz_bulk_export_people' ) ) {
+			return true;
+		}
+
+		// Emergency lane: the configured senior administrator may still collect in bulk, but
+		// every use is written to the audit log so the escape hatch never goes unseen.
+		if ( $this->is_senior_admin( get_current_user_id() ) ) {
+			$this->logger->warning(
+				'security',
+				'Senior administrator emergency bulk access',
+				[
+					'route'   => (string) $request->get_route(),
+					'user_id' => get_current_user_id(),
+				]
+			);
+			return true;
+		}
+
+		return false;
 	}
 
-	/** Refuse the core XML export screen to non-platform administrators. */
+	/** Refuse the core XML export screen to everyone except the platform administrator. */
 	public function guard_export(): void {
-		if ( ! is_super_admin() ) {
-			wp_die( esc_html__( 'Site export is restricted to the platform administrator.', 'igbz-suite' ), 403 );
+		if ( is_super_admin() ) {
+			return;
 		}
+		if ( $this->is_senior_admin( get_current_user_id() ) ) {
+			$this->logger->warning(
+				'security',
+				'Senior administrator emergency export access',
+				[ 'user_id' => get_current_user_id() ]
+			);
+			return;
+		}
+		wp_die( esc_html__( 'Site export is restricted to the platform administrator.', 'igbz-suite' ), 403 );
 	}
 
 	/**

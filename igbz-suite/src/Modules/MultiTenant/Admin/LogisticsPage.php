@@ -32,7 +32,7 @@ final class LogisticsPage {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( isset( $_GET['igbz_labels'] ) ) {
 			$gid = (int) $_GET['igbz_labels'];
-			echo igbz()->get( 'logistics.labels' )->render_labels( $gid );
+			echo igbz()->get( 'logistics.labels' )->render_labels( $gid, (int) igbz()->tenancy()->id() );
 			exit;
 		}
 

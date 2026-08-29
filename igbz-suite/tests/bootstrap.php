@@ -17,6 +17,7 @@ define( 'IGBZ_VERSION', '1.0.0' );
 define( 'AUTH_KEY', 'test-auth-key-0123456789abcdefghijklmnop' );
 define( 'SECURE_AUTH_SALT', 'test-secure-salt-0123456789abcdefghijkl' );
 define( 'DAY_IN_SECONDS', 86400 );
+define( 'YEAR_IN_SECONDS', 365 * DAY_IN_SECONDS );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'OBJECT', 'OBJECT' );
@@ -26,6 +27,14 @@ $GLOBALS['igbz_test_options'] = [];
 
 function get_option( string $name, $default = false ) {
 	return $GLOBALS['igbz_test_options'][ $name ] ?? $default;
+}
+
+function add_option( string $name, $value, $autoload = null ): bool {
+	if ( array_key_exists( $name, $GLOBALS['igbz_test_options'] ) ) {
+		return false;
+	}
+	$GLOBALS['igbz_test_options'][ $name ] = $value;
+	return true;
 }
 
 function update_option( string $name, $value, $autoload = null ): bool {
@@ -98,6 +107,10 @@ function sanitize_email( string $value ): string {
 	return trim( $value );
 }
 
+function is_email( string $value ): bool {
+	return false !== filter_var( trim( $value ), FILTER_VALIDATE_EMAIL );
+}
+
 function wp_parse_url( string $url, int $component = -1 ) {
 	return parse_url( $url, $component );
 }
@@ -123,6 +136,7 @@ $GLOBALS['igbz_test_http']         = [];
 $GLOBALS['igbz_test_http_requests'] = [];
 $GLOBALS['igbz_test_scheduled']    = [];
 $GLOBALS['igbz_test_users']        = [];
+$GLOBALS['igbz_test_user_roles']   = [];
 
 /** Queue one response for the next outbound request. */
 function igbz_test_queue_http( array $response ): void {
@@ -146,6 +160,19 @@ class WP_Error {
 
 	public function get_error_message(): string {
 		return $this->message;
+	}
+}
+
+/** Minimal stand-in for the core request object; only the accessors the guard reads. */
+class WP_REST_Request {
+	public function __construct( private string $route = '/wc/v3/customers', private string $method = 'GET' ) {}
+
+	public function get_route(): string {
+		return $this->route;
+	}
+
+	public function get_method(): string {
+		return $this->method;
 	}
 }
 
@@ -295,10 +322,86 @@ function current_user_can( string $capability, ...$args ): bool {
 	return user_can( get_current_user_id(), $capability, ...$args );
 }
 
+/**
+ * Mirrors core semantics on a single site: a super admin is whoever holds `delete_users`.
+ * Driven by the same capability table the other stubs use.
+ */
+function is_super_admin( $user_id = false ): bool {
+	$id = $user_id ? (int) $user_id : get_current_user_id();
+	return user_can( $id, 'delete_users' );
+}
+
+/** Tests assert against the thrown exception instead of a dead process. */
+function wp_die( $message = '', $title = '', $args = [] ): void {
+	throw new \RuntimeException( 'wp_die: ' . ( is_scalar( $message ) ? (string) $message : 'died' ) );
+}
+
+function get_transient( string $key ) {
+	return $GLOBALS['igbz_test_transients'][ $key ] ?? false;
+}
+
+function set_transient( string $key, $value, int $ttl = 0 ): bool {
+	$GLOBALS['igbz_test_transients'][ $key ] = $value;
+	return true;
+}
+
+function wp_cache_get( $key, $group = '' ) {
+	return $GLOBALS['igbz_test_cache'][ $group . ':' . $key ] ?? false;
+}
+
+function wp_cache_set( $key, $value, $group = '', $ttl = 0 ): bool {
+	$GLOBALS['igbz_test_cache'][ $group . ':' . $key ] = $value;
+	return true;
+}
+
+function wp_cache_delete( $key, $group = '' ): bool {
+	unset( $GLOBALS['igbz_test_cache'][ $group . ':' . $key ] );
+	return true;
+}
+
+function wp_unslash( $value ) {
+	if ( is_array( $value ) ) {
+		return array_map( 'wp_unslash', $value );
+	}
+	return is_string( $value ) ? stripslashes( $value ) : $value;
+}
+
+function check_admin_referer( string $action = '-1', string $query_arg = '_wpnonce' ): bool {
+	$nonce = (string) ( $_POST[ $query_arg ] ?? $_GET[ $query_arg ] ?? '' );
+	if ( ! wp_verify_nonce( $nonce, $action ) ) {
+		throw new \RuntimeException( 'check_admin_referer: nonce failed' );
+	}
+	return true;
+}
+
 function get_userdata( int $user_id ) {
-	return $user_id > 0
-		? (object) [ 'ID' => $user_id, 'display_name' => 'User ' . $user_id, 'user_email' => 'user' . $user_id . '@shop.test' ]
-		: false;
+	if ( $user_id <= 0 ) {
+		return false;
+	}
+
+	$user             = new class() {
+		public int $ID = 0;
+		public string $display_name = '';
+		public string $user_email = '';
+		public string $user_login = '';
+		/** @var string[] */
+		public array $roles = [];
+
+		public function add_role( string $role ): void {
+			if ( in_array( $role, $this->roles, true ) ) {
+				return;
+			}
+			$this->roles[]                                  = $role;
+			$GLOBALS['igbz_test_user_roles'][ $this->ID ][] = $role;
+		}
+	};
+	$user->ID           = $user_id;
+	$user->display_name = 'User ' . $user_id;
+	$user->user_email   = 'user' . $user_id . '@shop.test';
+	$user->user_login   = 'user' . $user_id;
+	$user->roles        = $GLOBALS['igbz_test_user_roles'][ $user_id ] ?? [];
+
+	return $user;
 }
 
 function get_avatar_url( $id_or_email, array $args = [] ): string {
@@ -312,6 +415,15 @@ function trailingslashit( string $value ): string {
 
 function wp_get_upload_dir(): array {
 	return [ 'basedir' => '/tmp/igbz-uploads', 'baseurl' => 'https://shop.test/wp-content/uploads' ];
+}
+
+function wp_upload_dir(): array {
+	return wp_get_upload_dir();
+}
+
+function wp_mkdir_p( string $dir ): bool {
+	$GLOBALS['igbz_test_dirs'][] = $dir;
+	return true;
 }
 
 function path_is_absolute( string $path ): bool {
@@ -537,6 +649,10 @@ function __( string $text, string $domain = '' ): string {
 	return $text;
 }
 
+function esc_like( string $text ): string {
+	return addcslashes( $text, '_%\\' );
+}
+
 function esc_html__( string $text, string $domain = '' ): string {
 	return $text;
 }
@@ -615,6 +731,10 @@ function wp_generate_uuid4(): string {
 class wpdb {
 	public string $prefix = 'wp_';
 
+	public string $posts = 'wp_posts';
+
+	public string $postmeta = 'wp_postmeta';
+
 	/** Every query passed to query(), so tests can assert on generated SQL. */
 	public array $queries = [];
 
@@ -627,6 +747,10 @@ class wpdb {
 
 	public function get_charset_collate(): string {
 		return 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
+	}
+
+	public function esc_like( string $text ): string {
+		return addcslashes( $text, '_%\\' );
 	}
 
 	public function prepare( string $query, ...$args ): string {
@@ -811,6 +935,15 @@ function is_admin(): bool {
 	return false;
 }
 
+/** @return array<string,array<string,mixed>> slug => theme header */
+function wp_get_themes(): array {
+	return $GLOBALS['igbz_test_themes'] ?? [];
+}
+
+function get_stylesheet(): string {
+	return (string) ( $GLOBALS['igbz_test_stylesheet'] ?? 'twentytwentysix' );
+}
+
 function wp_next_scheduled( string $hook ) {
 	return false;
 }
@@ -836,14 +969,27 @@ function igbz_test_reset_settings(): \IGBZ\Suite\Support\Settings {
 	$GLOBALS['igbz_test_http_requests'] = [];
 	$GLOBALS['igbz_test_scheduled']     = [];
 	$GLOBALS['igbz_test_users']         = [];
+	$GLOBALS['igbz_test_user_roles']    = [];
 	$GLOBALS['igbz_test_terms']          = [];
 	$GLOBALS['igbz_test_user_id']        = 0;
 	$GLOBALS['igbz_test_sideload_fails'] = false;
 	$GLOBALS['igbz_test_attachments']    = [];
 	$GLOBALS['igbz_test_capabilities']   = [];
 	$GLOBALS['igbz_test_headers']        = [];
+	$GLOBALS['igbz_test_cache']          = [];
 	igbz_test_reset_actions();
 	igbz()->bind( 'settings', static fn () => new \IGBZ\Suite\Support\Settings() );
 	igbz()->bind( 'logger', static fn ( $c ) => new \IGBZ\Suite\Support\Logger( $c->get( 'settings' ) ) );
 	return igbz()->settings();
+	$GLOBALS['igbz_test_cache'] = [];
 }
+
+// Phase 10: the sandbox resolver returns private-range addresses for every name, which
+// would trip the SSRF guard on all fake endpoints. The guard's own logic is covered by
+// UrlGuardTest with literal IPs; live resolution stays a production concern.
+add_filter(
+	'igbz_url_guard_resolve',
+	static fn () => false,
+	10,
+	0
+);

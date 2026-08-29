@@ -192,7 +192,9 @@ final class ManyChatClient {
 	 * @return array{ok:bool,data:array<string,mixed>,error:string,code:int}
 	 */
 	public function flows( bool $force = false ): array {
-		$key    = 'igbz_manychat_flows';
+		// Phase 15: the client is bound per account key, so the flow list belongs to that
+		// account — keying globally would serve one store's flows to every other store.
+		$key    = 'igbz_manychat_flows_' . md5( $this->api_key );
 		$cached = $force ? false : get_transient( $key );
 		if ( is_array( $cached ) ) {
 			return [ 'ok' => true, 'data' => $cached, 'error' => '', 'code' => 0 ];

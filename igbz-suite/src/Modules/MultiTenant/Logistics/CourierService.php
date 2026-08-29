@@ -33,6 +33,11 @@ final class CourierService {
 		if ( ! $courier ) {
 			return false;
 		}
+		// Phase 43: only a draft can be handed to a courier.
+		$row = $this->db->row( 'SELECT status FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $shipment_id );
+		if ( ! $row || ! LogisticsService::can_transition( (string) $row['status'], LogisticsService::STATUS_ASSIGNED ) ) {
+			return false;
+		}
 		$this->db->update(
 			'ig_shipments',
 			[
@@ -112,11 +117,15 @@ final class CourierService {
 	/** 'Arrived at destination' — open the shipment page (sequential flow). */
 	public function arrived( int $shipment_id, int $courier_id ): bool {
 		$row = $this->db->row(
-			'SELECT id FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
+			'SELECT id, status FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
 			$shipment_id,
 			$courier_id
 		);
 		if ( ! $row ) {
+			return false;
+		}
+		// Phase 43: arriving requires having been on the way (or assigned).
+		if ( ! LogisticsService::can_transition( (string) $row['status'], LogisticsService::STATUS_AT_DESTINATION ) ) {
 			return false;
 		}
 		$this->db->update(
@@ -127,8 +136,13 @@ final class CourierService {
 		return true;
 	}
 
-	/** Confirm delivery with the customer's PIN (never shown to the courier). */
-	public function deliver( int $shipment_id, int $courier_id, string $pin ): array {
+	/**
+	 * Confirm delivery with the customer's PIN (never shown to the courier).
+	 * Phase 44: the proof of delivery ($proof — a photo reference, signature id
+	 * or whatever the courier app captured) is stored on the row, so a COD
+	 * dispute can be answered from the shipment itself.
+	 */
+	public function deliver( int $shipment_id, int $courier_id, string $pin, string $proof = '' ): array {
 		$shipment = $this->db->row(
 			'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
 			$shipment_id,
@@ -140,13 +154,22 @@ final class CourierService {
 		if ( '' !== (string) $shipment['delivery_pin'] && ! hash_equals( (string) $shipment['delivery_pin'], $pin ) ) {
 			return [ 'ok' => false, 'error' => 'wrong_pin' ];
 		}
+		// Phase 43: delivery is legal only from at_destination.
+		if ( ! LogisticsService::can_transition( (string) $shipment['status'], LogisticsService::STATUS_DELIVERED ) ) {
+			return [ 'ok' => false, 'error' => 'bad_state' ];
+		}
 
 		$this->db->update(
 			'ig_shipments',
-			[ 'status' => 'delivered', 'updated_at' => current_time( 'mysql', true ) ],
+			[
+				'status'     => 'delivered',
+				'pod_ref'    => mb_substr( $proof, 0, 191 ),
+				'pod_at'     => current_time( 'mysql', true ),
+				'updated_at' => current_time( 'mysql', true ),
+			],
 			[ 'id' => $shipment_id ]
 		);
-		$this->logger->info( 'courier', 'Shipment delivered', [ 'shipment_id' => $shipment_id ] );
+		$this->logger->info( 'courier', 'Shipment delivered', [ 'shipment_id' => $shipment_id, 'pod' => '' !== $proof ] );
 
 		return [ 'ok' => true, 'error' => '' ];
 	}
@@ -174,8 +197,16 @@ final class CourierService {
 		$ref    = 'cod:' . $shipment_id . ':' . gmdate( 'ymdHis' );
 
 		if ( 'cash' === $method ) {
+			// Phase 44: cash settles only where the machine allows delivery.
+			if ( ! LogisticsService::can_transition( (string) $shipment['status'], LogisticsService::STATUS_DELIVERED ) ) {
+				return [ 'ok' => false, 'next' => '', 'gateway_link' => '', 'error' => 'bad_state' ];
+			}
 			$this->save_cod( $shipment, 'cash', 'paid', $amount, $ref, '', $card_ref );
-			$this->db->update( 'ig_shipments', [ 'status' => 'delivered', 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $shipment_id ] );
+			$this->db->update(
+				'ig_shipments',
+				[ 'status' => 'delivered', 'pod_ref' => 'cod-cash:' . $ref, 'pod_at' => current_time( 'mysql', true ), 'updated_at' => current_time( 'mysql', true ) ],
+				[ 'id' => $shipment_id ]
+			);
 			return [ 'ok' => true, 'next' => 'done', 'gateway_link' => '', 'error' => '' ];
 		}
 
@@ -208,12 +239,21 @@ final class CourierService {
 
 	/** Customer-app COD: the customer scanned the barcode and paid in-app. */
 	public function cod_app_paid( int $shipment_id, string $charge_ref ): array {
-		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $shipment_id );
+		$tenant   = igbz()->tenancy()->id();
+		$shipment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d', $shipment_id, $tenant );
 		if ( ! $shipment ) {
 			return [ 'ok' => false, 'error' => 'not_found' ];
 		}
+		// Phase 44: in-app payment settles only where the machine allows delivery.
+		if ( ! LogisticsService::can_transition( (string) $shipment['status'], LogisticsService::STATUS_DELIVERED ) ) {
+			return [ 'ok' => false, 'error' => 'bad_state' ];
+		}
 		$this->save_cod( $shipment, 'app', 'paid', (float) $shipment['cost_irt'], 'cod-app:' . $shipment_id, '', $charge_ref );
-		$this->db->update( 'ig_shipments', [ 'status' => 'delivered', 'updated_at' => current_time( 'mysql', true ) ], [ 'id' => $shipment_id ] );
+		$this->db->update(
+			'ig_shipments',
+			[ 'status' => 'delivered', 'pod_ref' => 'cod-app:' . $shipment_id, 'pod_at' => current_time( 'mysql', true ), 'updated_at' => current_time( 'mysql', true ) ],
+			[ 'id' => $shipment_id, 'tenant_id' => $tenant ]
+		);
 
 		return [ 'ok' => true, 'error' => '' ];
 	}
@@ -242,7 +282,16 @@ final class CourierService {
 	}
 
 	/** Chat between courier and customer. */
-	public function send_chat( int $shipment_id, string $sender, string $body, int $tenant_id ): int {
+	public function send_chat( int $shipment_id, string $sender, string $body, int $tenant_id, int $courier_id = 0 ): int {
+		// Ownership gate: a chat message can only land on a shipment bound to this courier.
+		$owned = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
+			$shipment_id,
+			$courier_id
+		);
+		if ( ! $owned ) {
+			return 0;
+		}
 		return (int) $this->db->insert(
 			'ig_courier_chat',
 			[
@@ -256,7 +305,15 @@ final class CourierService {
 	}
 
 	/** @return array<int,array<string,mixed>> */
-	public function chat( int $shipment_id ): array {
+	public function chat( int $shipment_id, int $courier_id ): array {
+		$owned = $this->db->row(
+			'SELECT id FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
+			$shipment_id,
+			$courier_id
+		);
+		if ( ! $owned ) {
+			return [];
+		}
 		return $this->db->results(
 			'SELECT sender, body, created_at FROM ' . $this->db->table( 'ig_courier_chat' ) . ' WHERE shipment_id = %d ORDER BY id ASC',
 			$shipment_id

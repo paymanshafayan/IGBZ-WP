@@ -70,6 +70,8 @@ final class DeviceController extends BaseController {
 				'fcm_token'   => (string) $request->get_param( 'fcm_token' ),
 				'app_version' => (string) $request->get_param( 'app_version' ),
 				'locale'      => (string) $request->get_param( 'locale' ),
+				// Phase 12: enrolment of the biometric signature key (stored encrypted).
+				'signing_key' => (string) $request->get_param( 'signing_key' ),
 			]
 		);
 

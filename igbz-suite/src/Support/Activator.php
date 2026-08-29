@@ -54,54 +54,257 @@ final class Activator {
 		self::install_tables();
 		self::add_roles();
 		self::seed_defaults();
-		self::migrate( $current );
+
+		// Preserve the historical behaviour: a site with no recorded version gets stamped,
+		// not migrated through the whole ladder.
+		if ( $current <= 0 ) {
+			update_option( self::VERSION_OPTION, IGBZ_DB_VERSION, true );
+			return;
+		}
+
+		// Phase 19: upgrades run through the Migrator — one runner at a time, a checkpoint
+		// after every step, and a readable progress record. A failed or interrupted upgrade
+		// simply resumes from its checkpoint on the next request instead of replaying blind.
+		$result = self::migrator()->run( $current, IGBZ_DB_VERSION );
+		if ( ! $result['ok'] ) {
+			// 'locked' means another request is upgrading right now; a step failure keeps the
+			// version option where it was. Either way the next request retries safely.
+			return;
+		}
+
 		self::schedule_events();
-		update_option( self::VERSION_OPTION, IGBZ_DB_VERSION, true );
 	}
 
 	/**
-	 * Data migrations that dbDelta cannot express.
+	 * Phase 19: the ordered data-migration steps, driven by the Migrator. Every step must
+	 * stay idempotent — dbDelta adds the columns, but existing rows still need values, and
+	 * the checkpoint/resume machinery re-runs steps after an interruption.
 	 *
-	 * dbDelta adds the new columns, but existing rows still need values, so each step is written
-	 * to be idempotent and safe to re-run.
+	 * @return array<int,callable> target version => step
 	 */
-	private static function migrate( int $from ): void {
-		if ( $from > 0 && $from < 6 ) {
-			self::migrate_to_v6();
+	private static function migration_steps(): array {
+		return [
+			6  => [ self::class, 'migrate_to_v6' ],
+			7  => [ self::class, 'migrate_to_v7' ],
+			9  => [ self::class, 'migrate_to_v9' ],
+			10 => [ self::class, 'migrate_to_v10' ],
+			11 => [ self::class, 'migrate_to_v11' ],
+			12 => [ self::class, 'migrate_to_v12' ],
+			13 => [ self::class, 'migrate_to_v13' ],
+			14 => [ self::class, 'migrate_to_v14' ],
+			15 => [ self::class, 'migrate_to_v15' ],
+			16 => [ self::class, 'migrate_to_v16' ],
+			17 => [ self::class, 'migrate_to_v17' ],
+			19 => [ self::class, 'migrate_to_v19' ],
+			20 => [ self::class, 'migrate_to_v20' ],
+			21 => [ self::class, 'migrate_to_v21' ],
+			22 => [ self::class, 'migrate_to_v22' ],
+			23 => [ self::class, 'migrate_to_v23' ],
+			24 => [ self::class, 'migrate_to_v24' ],
+			25 => [ self::class, 'migrate_to_v25' ],
+			26 => [ self::class, 'migrate_to_v26' ],
+			27 => [ self::class, 'migrate_to_v27' ],
+			28 => [ self::class, 'migrate_to_v28' ],
+			29 => [ self::class, 'migrate_to_v29' ],
+			30 => [ self::class, 'migrate_to_v30' ],
+			31 => [ self::class, 'migrate_to_v31' ],
+			32 => [ self::class, 'migrate_to_v32' ],
+			33 => [ self::class, 'migrate_to_v33' ],
+			34 => [ self::class, 'migrate_to_v34' ],
+			35 => [ self::class, 'migrate_to_v35' ],
+			36 => [ self::class, 'migrate_to_v36' ],
+			37 => [ self::class, 'migrate_to_v37' ],
+		];
+	}
+
+	private static function migrator(): Migrator {
+		$migrator = new Migrator();
+		foreach ( self::migration_steps() as $version => $step ) {
+			$migrator->add( $version, $step );
 		}
-		if ( $from > 0 && $from < 7 ) {
-			self::migrate_to_v7();
-		}
-		if ( $from > 0 && $from < 9 ) {
-			self::migrate_to_v9();
-		}
-		if ( $from > 0 && $from < 10 ) {
-			self::migrate_to_v10();
-		}
-		if ( $from > 0 && $from < 11 ) {
-			self::migrate_to_v11();
-		}
-		if ( $from > 0 && $from < 12 ) {
-			self::migrate_to_v12();
-		}
-		if ( $from > 0 && $from < 13 ) {
-			self::migrate_to_v13();
-		}
-		if ( $from > 0 && $from < 14 ) {
-			self::migrate_to_v14();
-		}
-		if ( $from > 0 && $from < 15 ) {
-			self::migrate_to_v15();
-		}
-		if ( $from > 0 && $from < 16 ) {
-			self::migrate_to_v16();
-		}
-		if ( $from > 0 && $from < 17 ) {
-			self::migrate_to_v17();
-		}
-		if ( $from > 0 && $from < 19 ) {
-			self::migrate_to_v19();
-		}
+		return $migrator;
+	}
+
+	/**
+	 * v22 (phase 12): biometric signature contract — devices gain `signing_key`, the
+	 * encrypted device key the server uses to verify signed bulk requests. dbDelta adds the
+	 * column; existing rows simply carry the empty default. No data back-fill.
+	 */
+	public static function migrate_to_v22(): void {
+		// Pure dbDelta work; see Schema::devices().
+	}
+
+	/**
+	 * v23 (phase 20): composite indexes for the housekeeping and routing access paths.
+	 *
+	 * Derived from the query patterns in the code rather than a live EXPLAIN (the sandbox has
+	 * no real MySQL): api_tokens gains expires_at / refresh_expires_at / revoked_at for the
+	 * daily prune and session scans, devices gains last_seen_at for stale-device trimming.
+	 * Validating them with EXPLAIN on production-sized data stays a recorded production task.
+	 * Pure dbDelta work; see Schema::api_tokens() and Schema::devices().
+	 */
+	public static function migrate_to_v23(): void {
+		// Pure dbDelta work; see Schema::api_tokens() and Schema::devices().
+	}
+
+	/**
+	 * v24 (phase 23): the durable job queue table (`jobs`).
+	 *
+	 * Pure dbDelta work — install_tables() creates the new table from Schema::statements().
+	 */
+	public static function migrate_to_v24(): void {
+		// Pure dbDelta work; see the jobs table in Schema::statements().
+	}
+
+	/**
+	 * v25 (phase 29): the durable webhook inbox (`webhook_events`).
+	 *
+	 * Pure dbDelta work — install_tables() creates the new table from Schema::statements().
+	 */
+	public static function migrate_to_v25(): void {
+		// Pure dbDelta work; see the webhook_events table in Schema::statements().
+	}
+
+	/**
+	 * v26 (phase 31): escrow hardening — `ig_master_payments.refunded_amount` (partial-refund
+	 * running total) and `ig_master_withdrawals.idempotency_key` with a per-tenant unique key
+	 * (a replayed withdrawal request can never debit twice). Pure dbDelta work.
+	 */
+	public static function migrate_to_v26(): void {
+		// Pure dbDelta work; see the ig_master_payments / ig_master_withdrawals tables.
+	}
+
+	/**
+	 * v27 (phase 33): `bnpl_installments.collection_attempts` — the bounded-retry counter that
+	 * stops the dunning sweep from hammering an empty wallet forever. Pure dbDelta work.
+	 */
+	public static function migrate_to_v27(): void {
+		// Pure dbDelta work; see the bnpl_installments table.
+	}
+
+	/**
+	 * v28 (phase 35): locked FX quotes carry their evidence — `spread_percent`, `rate_applied`
+	 * (the exact number the top-up was priced with) and `expires_at` (a quote is a promise with
+	 * a deadline, not forever). Pure dbDelta work.
+	 */
+	public static function migrate_to_v28(): void {
+		// Pure dbDelta work; see the fx_rates table.
+	}
+
+	/**
+	 * v29 (phase 37): domain commerce — `ig_domain_quotes` (a quote is a price with a
+	 * deadline) and `ig_domain_orders.idempotency_key` with a per-tenant unique key (a
+	 * replayed order request can never create a second reservation). Pure dbDelta work.
+	 */
+	public static function migrate_to_v29(): void {
+		// Pure dbDelta work; see the ig_domain_quotes / ig_domain_orders tables.
+	}
+
+	/**
+	 * v30 (phase 38): domain registration evidence — `ig_domain_journal` records every
+	 * registration event (registered, failed, refunded, callback) per order, so a provider
+	 * failure is always explainable after the fact. Pure dbDelta work.
+	 */
+	public static function migrate_to_v30(): void {
+		// Pure dbDelta work; see the ig_domain_journal table.
+	}
+
+	/**
+	 * v31 (phase 39): `ig_domains.auto_renew` — the tenant's opt-in for automatic renewal,
+	 * carried on the domain row itself so the expiry sweep can honour it. Pure dbDelta work.
+	 */
+	public static function migrate_to_v31(): void {
+		// Pure dbDelta work; see the ig_domains table.
+	}
+
+	/**
+	 * v32 (phase 41): gamification — `ig_points_ledger` (an append-only, idempotent points
+	 * ledger with per-row expiry), `ig_point_rewards` (the catalogue) and
+	 * `ig_reward_redemptions` (idempotent per user + key). Pure dbDelta work.
+	 */
+	public static function migrate_to_v32(): void {
+		// Pure dbDelta work; see the ig_points_ledger / ig_point_rewards / ig_reward_redemptions tables.
+	}
+
+	/**
+	 * v33 (phase 44): proof of delivery — `ig_shipments.pod_ref` / `pod_at` keep the evidence
+	 * that a delivery actually happened (photo reference, signature id, or whatever the courier
+	 * app captured), so a COD dispute can be answered from the row itself. Pure dbDelta work.
+	 */
+	public static function migrate_to_v33(): void {
+		// Pure dbDelta work; see the ig_shipments table.
+	}
+
+	/**
+	 * v34 (phase 46): durable marketplace sync — `marketplace_links.payload_hash` /
+	 * `remote_rev` remember what we last published and what revision the marketplace
+	 * acknowledged, so unchanged products are never re-pushed and foreign edits surface
+	 * as conflicts instead of being silently overwritten; `ig_marketplace_sync.not_before`
+	 * is the rate-limit/backoff gate that keeps a throttled row invisible until its due
+	 * time. No data back-fill.
+	 */
+	public static function migrate_to_v34(): void {
+		// Pure dbDelta work; see the marketplace_links and ig_marketplace_sync tables.
+	}
+
+	/**
+	 * v35 (phase 47): SEO & advertising governance — `ig_ad_campaigns` carries the approval
+	 * state machine (pending_approval → approved/rejected, only an approved campaign may
+	 * spend) and the hard budget cap that cost control checks before every advertorial;
+	 * `ig_seo_activity` counts a tenant's generated SEO content per day so the bulk
+	 * low-value-content guard has an honest ledger to enforce its cap against.
+	 */
+	public static function migrate_to_v35(): void {
+		// Pure dbDelta work; see the ig_ad_campaigns and ig_seo_activity tables.
+	}
+
+	/**
+	 * v36 (phase 48): international commerce foundations — `ig_translation_memory`
+	 * (tenant-scoped exact-match segments, unique per tenant/language/hash),
+	 * `ig_glossary_terms` (the do-not-translate term base a tenant locks per language)
+	 * and `ig_intl_consents` (the consent ledger cross-border processing checks before it
+	 * touches a customer's data). No data back-fill.
+	 */
+	public static function migrate_to_v36(): void {
+		// Pure dbDelta work; see the ig_translation_memory, ig_glossary_terms and ig_intl_consents tables.
+	}
+
+	/**
+	 * v37 (phase 49): Zernio connection registry — exactly one row per tenant holds the
+	 * profile/account/Instagram mapping the backend enforces, the profile-scoped key and
+	 * webhook secret (both encrypted at rest), the rotation counter and the revoke stamp.
+	 * The central Zernio key never lands in this table; it stays in the settings secret
+	 * store. No data back-fill.
+	 */
+	public static function migrate_to_v37(): void {
+		// Pure dbDelta work; see the ig_zernio_profiles table.
+	}
+
+	/**
+	 * v21 (phase 06): bring installs activated before the security defaults existed in line.
+	 *
+	 * seed_defaults() only fills keys that are absent, so a site created before
+	 * `security.*` landed never sees them and the Advanced tab renders the protections as
+	 * off while the code quietly runs them on. Filling the gaps here makes the form and the
+	 * behaviour agree. No schema change.
+	 */
+	public static function migrate_to_v21(): void {
+		self::seed_defaults();
+	}
+
+	/**
+	 * v20 (phase 05): registered secrets stored in plaintext are encrypted at rest.
+	 *
+	 * The v19 registry covered 17 keys, but the admin forms render 36 password fields and 22 of
+	 * them were never members, so every value an operator pasted in was persisted as a plain
+	 * option and echoed back into the form HTML. Phase 05 added those keys (plus one generated
+	 * token found along the way) to Settings::SECRETS; this step brings the rows already on
+	 * disk in line. No schema change. Idempotent by construction: encrypt_legacy_secrets()
+	 * skips values that already carry the versioned payload prefix, and the read path never
+	 * broke because Crypto::decrypt() passes unversioned payloads through.
+	 */
+	public static function migrate_to_v20(): void {
+		( new Settings() )->encrypt_legacy_secrets();
 	}
 
 	/**
@@ -121,7 +324,7 @@ final class Activator {
 	 * owner role and administrators, and seeds two demo approval requests so the admin
 	 * screen is not empty on first load.
 	 */
-	private static function migrate_to_v19(): void {
+	public static function migrate_to_v19(): void {
 		self::install_tables();
 		self::add_roles();
 		( new \IGBZ\Suite\Modules\Pado\PadoModule() )->seed_demo_requests();
@@ -149,7 +352,7 @@ final class Activator {
 	 * back-fill is written as a read plus per-row updates because a correlated UPDATE does not
 	 * survive the SQLite translator on Playground installs.
 	 */
-	private static function migrate_to_v17(): void {
+	public static function migrate_to_v17(): void {
 		$settings = new Settings();
 
 		if ( $settings->int( 'vip.default_expiry_days', 0 ) <= 0 ) {
@@ -188,7 +391,7 @@ final class Activator {
 	 * install does. Prices are deliberately conservative defaults; the operator edits them on the
 	 * FX payments screen (or leaves the module off entirely).
 	 */
-	private static function migrate_to_v14(): void {
+	public static function migrate_to_v14(): void {
 		self::seed_fx_prices();
 	}
 
@@ -241,7 +444,7 @@ final class Activator {
 	 * something needs to enqueue, and nothing does. If a future subsystem wants one, it will want
 	 * columns chosen for that job anyway, and this DDL is in the history.
 	 */
-	private static function migrate_to_v15(): void {
+	public static function migrate_to_v15(): void {
 		// Phase 6-14 tables are plain dbDelta work; nothing to back-fill.
 		self::seed_phase_defaults();
 	}
@@ -270,11 +473,11 @@ final class Activator {
 		);
 	}
 
-	private static function migrate_to_v16(): void {
+	public static function migrate_to_v16(): void {
 		// Phase 6-14 tables are plain dbDelta work; nothing to back-fill yet.
 	}
 
-	private static function migrate_to_v13(): void {
+	public static function migrate_to_v13(): void {
 		$db = new Db();
 
 		// IF EXISTS keeps this a no-op on installs created after the table stopped being made.
@@ -306,7 +509,7 @@ final class Activator {
 	 * publishing for months. The shortcode is derived from the permalink already on the row, so the
 	 * back-fill needs no network call -- fitting, since we have no Instagram API to ask.
 	 */
-	private static function migrate_to_v12(): void {
+	public static function migrate_to_v12(): void {
 		$db = new Db();
 
 		$ledger = $db->table( 'wallet_ledger' );
@@ -357,7 +560,7 @@ final class Activator {
 	 * is the safe direction: a certificate wrongly issued is a claim we cannot stand behind, while
 	 * one wrongly withheld comes back by itself.
 	 */
-	private static function migrate_to_v11(): void {
+	public static function migrate_to_v11(): void {
 		add_action(
 			'init',
 			static function (): void {
@@ -406,7 +609,7 @@ final class Activator {
 	 * when the table is completely empty, which makes re-running the step a no-op and means a shop
 	 * that deleted the sample never gets it back.
 	 */
-	private static function migrate_to_v10(): void {
+	public static function migrate_to_v10(): void {
 		add_action(
 			'init',
 			static function (): void {
@@ -469,7 +672,7 @@ final class Activator {
 	 * those posts. Old funnels keep matching the old keyword forever; only products registered
 	 * from here on use numbers.
 	 */
-	private static function migrate_to_v9(): void {
+	public static function migrate_to_v9(): void {
 		$db     = igbz()->db();
 		$intake = $db->table( 'ig_intake' );
 
@@ -511,7 +714,7 @@ final class Activator {
 	 * Rows that were left undelivered with no error message are the ones that never got as far as
 	 * a send. They become explicitly pending so retry_failed() picks them up.
 	 */
-	private static function migrate_to_v7(): void {
+	public static function migrate_to_v7(): void {
 		$db    = new Db();
 		$table = $db->table( 'ig_funnel_hits' );
 
@@ -536,7 +739,7 @@ final class Activator {
 	 * webhook tokens. The old global webhook tokens are intentionally left in settings: they no
 	 * longer authenticate anything, but keeping them avoids breaking a rollback.
 	 */
-	private static function migrate_to_v6(): void {
+	public static function migrate_to_v6(): void {
 		$db    = new Db();
 		$table = $db->table( 'ig_accounts' );
 
@@ -649,6 +852,11 @@ final class Activator {
 			'general.auto_approve_tenants'  => false,
 			'log.level'                     => Logger::INFO,
 			'log.retention_days'            => 30,
+			'security.disable_xmlrpc'       => true,
+			'security.disable_app_passwords' => true,
+			'security.block_user_enumeration' => true,
+			'security.disable_oembed'       => true,
+			'security.senior_admin_id'      => 0,
 			'http.timeout'                  => 20,
 			'purge_on_uninstall'            => false,
 			'wallet.enabled'                => true,
@@ -963,6 +1171,7 @@ final class Activator {
 			'api.jwt_ttl'                   => 3600,
 			'api.refresh_ttl'               => 2592000,
 			'api.rate_limit_per_minute'     => 120,
+			'api.tenant_rate_limit_per_minute' => 600,
 			'api.push_enabled'              => false,
 			'api.push_channel_id'           => 'igbz_default',
 			'api.push_order_updates'        => true,

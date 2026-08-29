@@ -104,7 +104,7 @@ final class FxController extends BaseController {
 
 	public function prices(): \WP_REST_Response {
 		$db    = igbz()->db();
-		$rows  = $db->results( 'SELECT service, price_usd, is_active FROM ' . $db->table( 'fx_prices' ) . ' ORDER BY id' );
+		$rows  = $db->results( 'SELECT service, price_usd, is_active FROM ' . $db->table( 'fx_prices' ) . ' ORDER BY id LIMIT 500' ); // Phase 20: bounded catalog list.
 
 		return $this->ok( [ 'items' => $rows ] );
 	}

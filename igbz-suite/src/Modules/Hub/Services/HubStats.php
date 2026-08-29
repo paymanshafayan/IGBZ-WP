@@ -4,6 +4,7 @@ namespace IGBZ\Suite\Modules\Hub\Services;
 use IGBZ\Suite\Modules\MultiTenant\Plans\PlanService;
 use IGBZ\Suite\Modules\MultiTenant\Repository\Tenant;
 use IGBZ\Suite\Support\Db;
+use IGBZ\Suite\Support\WooCommerceCompat;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -143,10 +144,12 @@ final class HubStats {
 
 		global $wpdb;
 		$revenue = 0.0;
-		if ( class_exists( \Automattic\WooCommerce\Utilities\OrderUtil::class )
-			&& \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled() ) {
+		$orders_table = WooCommerceCompat::hpos_enabled() ? WooCommerceCompat::orders_table_name() : null;
+		if ( null !== $orders_table ) {
+			// HPOS stores live in the custom tables; the name comes from
+			// OrdersTableDataStore so custom prefixes are honoured.
 			$revenue = (float) $wpdb->get_var(
-				"SELECT COALESCE(SUM(total_amount),0) FROM {$wpdb->prefix}wc_orders WHERE status IN ('wc-processing','wc-completed')"
+				"SELECT COALESCE(SUM(total_amount),0) FROM {$orders_table} WHERE status IN ('wc-processing','wc-completed')"
 			); // phpcs:ignore WordPress.DB
 		} else {
 			$revenue = (float) $wpdb->get_var(

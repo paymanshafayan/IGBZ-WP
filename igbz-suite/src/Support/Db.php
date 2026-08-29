@@ -107,6 +107,39 @@ final class Db {
 		return (int) $this->wpdb()->delete( $this->table( $table ), $where, $this->formats( $where ) ); // phpcs:ignore
 	}
 
+	/**
+	 * Phase 20: a bounded, resumable mass delete.
+	 *
+	 * One unbounded DELETE can hold locks for a long time, balloon the binary log, and die in
+	 * PHP's time limit halfway through — so housekeeping and offboarding trim in deterministic
+	 * id-ordered batches instead. The loop stops when a batch removes nothing or less than a
+	 * full batch; the safety cap bounds a single run and whatever is left carries over to the
+	 * next housekeeping pass.
+	 *
+	 * @param string $where_sql WHERE clause with placeholders; must not carry ORDER/LIMIT.
+	 * @param array<int,mixed> $args
+	 */
+	public function delete_batches( string $table, string $where_sql, array $args = [], int $batch = 500, int $max_batches = 200 ): int {
+		$batch   = max( 1, min( 5000, $batch ) );
+		$deleted = 0;
+
+		for ( $i = 0; $i < max( 1, $max_batches ); ++$i ) {
+			$affected = $this->query(
+				'DELETE FROM ' . $this->table( $table ) . ' WHERE ' . $where_sql . ' ORDER BY id LIMIT %d',
+				...array_merge( $args, [ $batch ] )
+			);
+			if ( $affected <= 0 ) {
+				break;
+			}
+			$deleted += $affected;
+			if ( $affected < $batch ) {
+				break;
+			}
+		}
+
+		return $deleted;
+	}
+
 	public function last_error(): string {
 		return (string) $this->wpdb()->last_error;
 	}

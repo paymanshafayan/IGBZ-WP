@@ -74,7 +74,7 @@ final class IdPayGateway implements GatewayInterface {
 				),
 				'headers' => $this->headers(),
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 
@@ -107,7 +107,7 @@ final class IdPayGateway implements GatewayInterface {
 				'json'    => [ 'id' => $id, 'order_id' => $order_id ],
 				'headers' => $this->headers(),
 				'channel' => 'payments',
-				'timeout' => 25,
+				'timeout' => PspHttp::timeout(),
 			]
 		);
 

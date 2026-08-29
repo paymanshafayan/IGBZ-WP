@@ -35,6 +35,34 @@ final class Settings {
 		'stt.api_key',
 		'dm.custom.api_key',
 		'pado.api_key',
+		// Phase 05 (API-KEYS.md §5 audit): the 22 password fields previously stored and
+		// re-rendered in plaintext. DriftGuardTest keeps this list in lockstep with the forms.
+		'bnpl.snapppay.password',
+		'bnpl.tara.api_key',
+		'domain.provider_api_key',
+		'fx.pstnet_api_key',
+		'fx.ramp_api_key',
+		'fx.redotpay_api_key',
+		'fx.webhook_token',
+		'legal.shahkar_api_key',
+		'logistics.postex_api_key',
+		'logistics.tapin_api_key',
+		'marketplace.digikala_api_key',
+		'marketplace.divar_token',
+		'nowpayments.api_key',
+		'payments.asanpardakht.api_key',
+		'payments.httppsp.api_key',
+		'payments.irankish.api_key',
+		'payments.mellat.password',
+		'payments.sepehr.api_key',
+		'paypal.client_id',
+		'seo.triboon_api_key',
+		'stripe.secret_key',
+		'translation.api_key',
+		// Found during phase 05: generated signing token, was never registered.
+		'vip.media_hmac_secret',
+		// Phase 49: the central Zernio account key (profile keys live in ig_zernio_profiles).
+		'zernio.central_api_key',
 	];
 
 	/** @return array<string,mixed> */
@@ -93,6 +121,11 @@ final class Settings {
 		return in_array( $key, self::SECRETS, true );
 	}
 
+	/** @return string[] Every key whose value is encrypted at rest. */
+	public static function secret_keys(): array {
+		return self::SECRETS;
+	}
+
 	public function has( string $key ): bool {
 		$raw = $this->all()[ $key ] ?? '';
 		return '' !== $raw && null !== $raw;
@@ -127,5 +160,46 @@ final class Settings {
 	/** Masked value suitable for rendering in an admin form. */
 	public function masked( string $key ): string {
 		return $this->has( $key ) ? Crypto::MASK : '';
+	}
+
+	/**
+	 * One-shot migration aid (DB v20): encrypt every registered secret that is still stored in
+	 * plaintext. Idempotent — values already carrying the `igbz1:` payload prefix, empty values
+	 * and mask placeholders are left untouched, and the read path kept working all along
+	 * because Crypto::decrypt() passes unversioned payloads through.
+	 *
+	 * @return int Number of values re-encrypted.
+	 */
+	public function encrypt_legacy_secrets(): int {
+		$count = 0;
+		foreach ( $this->all() as $key => $raw ) {
+			if ( ! $this->is_secret( (string) $key ) ) {
+				continue;
+			}
+			if ( ! is_string( $raw ) || '' === $raw || Crypto::MASK === $raw ) {
+				continue;
+			}
+			if ( str_starts_with( $raw, 'igbz1:' ) ) {
+				continue;
+			}
+			$this->set( (string) $key, $raw );
+			$count++;
+		}
+		return $count;
+	}
+
+	/**
+	 * Replace a registered secret with a freshly generated random token and return the new
+	 * plaintext value. Consumers of the old value must treat it as revoked from this moment.
+	 */
+	public function rotate_secret( string $key ): string {
+		if ( ! $this->is_secret( $key ) ) {
+			throw new \RuntimeException(
+				sprintf( 'IGBZ Suite: "%s" is not a registered secret; refusing to rotate it.', $key )
+			);
+		}
+		$token = Crypto::token( 32 );
+		$this->set( $key, $token );
+		return $token;
 	}
 }

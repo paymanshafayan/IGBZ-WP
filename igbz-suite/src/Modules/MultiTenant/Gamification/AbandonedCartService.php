@@ -24,9 +24,11 @@ final class AbandonedCartService {
 	public function watch( int $user_id, string $session_key, float $total ): void {
 		$existing = $this->db->row(
 			'SELECT id FROM ' . $this->db->table( 'ig_abandoned_carts' ) . '
-			 WHERE session_key = %s AND status = %s LIMIT 1',
+			 WHERE session_key = %s AND status = %s AND tenant_id = %d AND user_id = %d LIMIT 1',
 			$session_key,
-			self::STATUS_OPEN
+			self::STATUS_OPEN,
+			igbz()->tenancy()->id(),
+			$user_id
 		);
 		if ( $existing ) {
 			$this->db->update(
@@ -52,17 +54,23 @@ final class AbandonedCartService {
 		);
 	}
 
-	/** Cron sweep: remind carts older than the threshold, once each. */
-	public function sweep(): int {
+	/**
+	 * Cron sweep: remind carts older than the threshold, once each.
+	 *
+	 * @param int $tenant_id Phase 25: scope the sweep to one tenant; 0 keeps the legacy global scan.
+	 */
+	public function sweep( int $tenant_id = 0 ): int {
 		$after_hours = (int) igbz()->settings()->int( 'abandoned_cart.remind_after_hours', 6 );
 		$cutoff      = gmdate( 'Y-m-d H:i:s', time() - $after_hours * HOUR_IN_SECONDS );
 
-		$rows = $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'ig_abandoned_carts' ) . '
-			 WHERE status = %s AND updated_at <= %s ORDER BY id ASC LIMIT 50',
-			self::STATUS_OPEN,
-			$cutoff
-		);
+		$sql    = 'SELECT * FROM ' . $this->db->table( 'ig_abandoned_carts' ) . '
+			 WHERE status = %s AND updated_at <= %s';
+		$params = [ self::STATUS_OPEN, $cutoff ];
+		if ( $tenant_id > 0 ) {
+			$sql     .= ' AND tenant_id = %d';
+			$params[] = $tenant_id;
+		}
+		$rows = $this->db->results( $sql . ' ORDER BY id ASC LIMIT 50', ...$params );
 
 		$sent = 0;
 		foreach ( $rows as $row ) {

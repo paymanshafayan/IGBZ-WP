@@ -61,6 +61,8 @@ final class Schema {
 			'vip_messages',
 			'api_tokens',
 			'devices',
+			'jobs',
+			'webhook_events',
 			'fx_wallets',
 			'fx_ledger',
 			'fx_rates',
@@ -80,7 +82,12 @@ final class Schema {
 			'ig_nid_verifications',
 			'ig_legal_agreements',
 			'ig_domains',
+			'ig_domain_quotes',
 			'ig_domain_orders',
+			'ig_domain_journal',
+			'ig_points_ledger',
+			'ig_point_rewards',
+			'ig_reward_redemptions',
 			'ig_web_presence',
 			'ig_couriers',
 			'ig_label_groups',
@@ -92,6 +99,12 @@ final class Schema {
 			'logs',
 			'approval_requests',
 			'themes',
+			'ig_ad_campaigns',
+			'ig_seo_activity',
+			'ig_translation_memory',
+			'ig_glossary_terms',
+			'ig_intl_consents',
+			'ig_zernio_profiles',
 		];
 	}
 
@@ -281,6 +294,7 @@ final class Schema {
 			status VARCHAR(20) NOT NULL DEFAULT 'due',
 			payment_ref VARCHAR(128) NOT NULL DEFAULT '',
 			reminder_sent_at DATETIME NULL,
+			collection_attempts INT UNSIGNED NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
 			UNIQUE KEY contract_seq (contract_id,sequence),
 			KEY due_status (due_date,status),
@@ -489,6 +503,8 @@ final class Schema {
 			product_id BIGINT UNSIGNED NOT NULL,
 			channel VARCHAR(32) NOT NULL,
 			external_id VARCHAR(128) NOT NULL DEFAULT '',
+			payload_hash VARCHAR(64) NOT NULL DEFAULT '',
+			remote_rev VARCHAR(191) NOT NULL DEFAULT '',
 			last_synced_at DATETIME NULL,
 			sync_status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			sync_message VARCHAR(255) NOT NULL DEFAULT '',
@@ -715,7 +731,10 @@ final class Schema {
 			PRIMARY KEY  (id),
 			UNIQUE KEY jti (jti),
 			KEY user_id (user_id),
-			KEY refresh_hash (refresh_hash)
+			KEY refresh_hash (refresh_hash),
+			KEY expires_at (expires_at),
+			KEY refresh_expires_at (refresh_expires_at),
+			KEY revoked_at (revoked_at)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}devices (
@@ -723,6 +742,7 @@ final class Schema {
 			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			device_id VARCHAR(128) NOT NULL,
+			signing_key VARCHAR(255) NOT NULL DEFAULT '',
 			platform VARCHAR(16) NOT NULL DEFAULT '',
 			fcm_token VARCHAR(255) NOT NULL DEFAULT '',
 			app_version VARCHAR(32) NOT NULL DEFAULT '',
@@ -732,7 +752,58 @@ final class Schema {
 			PRIMARY KEY  (id),
 			UNIQUE KEY device (device_id),
 			KEY user_id (user_id),
-			KEY fcm_token (fcm_token(191))
+			KEY fcm_token (fcm_token(191)),
+			KEY last_seen_at (last_seen_at)
+		) {$charset};";
+
+		// Phase 23 — durable job queue: leased claims, retries with backoff, dead letters.
+		$sql[] = "CREATE TABLE {$p}jobs (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			queue VARCHAR(64) NOT NULL DEFAULT 'default',
+			group_key VARCHAR(64) NOT NULL DEFAULT '',
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			job_type VARCHAR(100) NOT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending',
+			attempts INT UNSIGNED NOT NULL DEFAULT 0,
+			max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
+			available_at DATETIME NOT NULL,
+			claim_expires_at DATETIME NULL,
+			last_error TEXT NULL,
+			idempotency_key VARCHAR(191) NULL,
+			envelope LONGTEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY queue_idempotency (queue,idempotency_key),
+			KEY status_available (status,available_at),
+			KEY tenant_queue (tenant_id,queue),
+			KEY claim_expires_at (claim_expires_at)
+		) {$charset};";
+
+		// Phase 29: the durable webhook inbox. Every inbound notification lands here FIRST —
+		// capturing is fast and synchronous, processing is async through the job queue. The
+		// (source,event_key) key is the deduplication guard: a provider that replays a delivery
+		// can never double-process an event. `available_at` + backoff give unknown states a
+		// scheduled retry instead of dropping them.
+		$sql[] = "CREATE TABLE {$p}webhook_events (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			source VARCHAR(32) NOT NULL,
+			event_key VARCHAR(191) NOT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'received',
+			signature_status VARCHAR(16) NOT NULL DEFAULT 'unchecked',
+			payload LONGTEXT NULL,
+			attempts INT UNSIGNED NOT NULL DEFAULT 0,
+			max_attempts INT UNSIGNED NOT NULL DEFAULT 5,
+			available_at DATETIME NOT NULL,
+			last_error VARCHAR(255) NOT NULL DEFAULT '',
+			processed_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY source_event (source,event_key),
+			KEY status_available (status,available_at),
+			KEY tenant_source (tenant_id,source)
 		) {$charset};";
 
 		// The VIP channel: a private Instagram-shaped feed inside our own app.
@@ -946,8 +1017,11 @@ final class Schema {
 		$sql[] = "CREATE TABLE {$p}fx_rates (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			rate_irt_per_usd DECIMAL(18,4) NOT NULL DEFAULT 0,
+			spread_percent DECIMAL(8,4) NOT NULL DEFAULT 0,
+			rate_applied DECIMAL(18,4) NOT NULL DEFAULT 0,
 			source VARCHAR(16) NOT NULL DEFAULT 'manual',
 			captured_at DATETIME NOT NULL,
+			expires_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			KEY captured_at (captured_at)
 		) {$charset};";
@@ -999,6 +1073,8 @@ final class Schema {
 			carrier VARCHAR(64) NOT NULL DEFAULT '',
 			tracking_code VARCHAR(191) NOT NULL DEFAULT '',
 			delivery_pin VARCHAR(8) NOT NULL DEFAULT '',
+			pod_ref VARCHAR(191) NOT NULL DEFAULT '',
+			pod_at DATETIME NULL,
 			status VARCHAR(20) NOT NULL DEFAULT 'draft',
 			route_type VARCHAR(32) NOT NULL DEFAULT '',
 			cost_irt DECIMAL(18,4) NOT NULL DEFAULT 0,
@@ -1023,6 +1099,7 @@ final class Schema {
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			attempts INT NOT NULL DEFAULT 0,
 			last_error VARCHAR(255) NOT NULL DEFAULT '',
+			not_before DATETIME NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
@@ -1093,6 +1170,7 @@ final class Schema {
 			order_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			phase VARCHAR(8) NOT NULL DEFAULT 'rial',
 			amount DECIMAL(18,4) NOT NULL DEFAULT 0,
+			refunded_amount DECIMAL(18,4) NOT NULL DEFAULT 0,
 			currency VARCHAR(8) NOT NULL DEFAULT 'IRT',
 			status VARCHAR(20) NOT NULL DEFAULT 'held',
 			hold_until DATETIME NULL,
@@ -1128,10 +1206,12 @@ final class Schema {
 			amount DECIMAL(18,4) NOT NULL DEFAULT 0,
 			method VARCHAR(16) NOT NULL DEFAULT 'card',
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
+			idempotency_key VARCHAR(191) NULL,
 			detail VARCHAR(255) NOT NULL DEFAULT '',
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_key (tenant_id,idempotency_key),
 			KEY tenant_status (tenant_id,status)
 		) {$charset};";
 
@@ -1182,12 +1262,78 @@ final class Schema {
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			provider_ref VARCHAR(191) NOT NULL DEFAULT '',
 			dns_verified TINYINT(1) NOT NULL DEFAULT 0,
+			auto_renew TINYINT(1) NOT NULL DEFAULT 0,
 			expires_at DATETIME NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY tenant (tenant_id),
 			KEY name (name)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_domain_journal (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			order_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			event VARCHAR(32) NOT NULL DEFAULT '',
+			detail VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY order_event (order_id,event)
+		) {$charset};";
+
+
+		$sql[] = "CREATE TABLE {$p}ig_points_ledger (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			reason VARCHAR(64) NOT NULL DEFAULT '',
+			reference VARCHAR(191) NOT NULL DEFAULT '',
+			points INT NOT NULL DEFAULT 0,
+			expires_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY user_reason_ref (user_id,reason,reference),
+			KEY tenant_user (tenant_id,user_id),
+			KEY expires (expires_at)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_point_rewards (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			slug VARCHAR(64) NOT NULL DEFAULT '',
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			cost_points INT NOT NULL DEFAULT 0,
+			is_active TINYINT(1) NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_slug (tenant_id,slug)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_reward_redemptions (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			reward_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			points_spent INT NOT NULL DEFAULT 0,
+			idempotency_key VARCHAR(191) DEFAULT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'issued',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY user_key (user_id,idempotency_key),
+			KEY tenant_user (tenant_id,user_id)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_domain_quotes (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			name VARCHAR(191) NOT NULL DEFAULT '',
+			price DECIMAL(18,4) NOT NULL DEFAULT 0,
+			currency VARCHAR(8) NOT NULL DEFAULT 'USD',
+			expires_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_name (tenant_id,name)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}ig_domain_orders (
@@ -1198,8 +1344,10 @@ final class Schema {
 			amount DECIMAL(18,4) NOT NULL DEFAULT 0,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			provider_ref VARCHAR(191) NOT NULL DEFAULT '',
+			idempotency_key VARCHAR(191) DEFAULT NULL,
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_key (tenant_id,idempotency_key),
 			KEY tenant (tenant_id),
 			KEY domain (domain_id)
 		) {$charset};";
@@ -1370,6 +1518,86 @@ final class Schema {
 			KEY tenant_status (tenant_id,status),
 			KEY slug (slug),
 			KEY created_at (created_at)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_ad_campaigns (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			channel VARCHAR(32) NOT NULL DEFAULT '',
+			budget_irt BIGINT NOT NULL DEFAULT 0,
+			spent_irt BIGINT NOT NULL DEFAULT 0,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending_approval',
+			approver_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			approved_at DATETIME NULL,
+			reject_reason VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_status (tenant_id,status)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_seo_activity (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			activity_date DATE NOT NULL,
+			count INT NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_date (tenant_id,activity_date)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_translation_memory (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			target_language VARCHAR(16) NOT NULL DEFAULT '',
+			source_hash VARCHAR(64) NOT NULL DEFAULT '',
+			source_text TEXT NOT NULL,
+			translated_text TEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_lang_hash (tenant_id,target_language,source_hash)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_glossary_terms (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			language VARCHAR(16) NOT NULL DEFAULT '',
+			term VARCHAR(191) NOT NULL DEFAULT '',
+			translation VARCHAR(191) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_lang_term (tenant_id,language,term)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_intl_consents (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			purpose VARCHAR(64) NOT NULL DEFAULT '',
+			granted TINYINT NOT NULL DEFAULT 0,
+			granted_at DATETIME NULL,
+			revoked_at DATETIME NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_user_purpose (tenant_id,user_id,purpose)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_zernio_profiles (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			profile_id VARCHAR(64) NOT NULL DEFAULT '',
+			account_id VARCHAR(64) NOT NULL DEFAULT '',
+			instagram_account_id VARCHAR(64) NOT NULL DEFAULT '',
+			status VARCHAR(16) NOT NULL DEFAULT 'pending',
+			key_enc TEXT NULL,
+			key_version INT NOT NULL DEFAULT 0,
+			webhook_secret_enc TEXT NULL,
+			connected_at DATETIME NULL,
+			revoked_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant (tenant_id)
 		) {$charset};";
 
 		return $sql;

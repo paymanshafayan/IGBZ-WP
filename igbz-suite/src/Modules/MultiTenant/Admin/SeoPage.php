@@ -7,6 +7,7 @@ use IGBZ\Suite\Modules\MultiTenant\Seo\SeoService;
 use IGBZ\Suite\Support\Admin\Menu;
 use IGBZ\Suite\Support\Admin\View;
 use IGBZ\Suite\Support\Capabilities;
+use IGBZ\Suite\Support\TenantScope;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -70,9 +71,9 @@ final class SeoPage {
 		submit_button( __( 'Generate meta', 'igbz-suite' ) );
 		echo '</form>';
 
-		$last = get_transient( 'igbz_seo_last' );
+		$last = get_transient( TenantScope::cache_key( 'igbz_seo_last' ) );
 		if ( $last ) {
-			delete_transient( 'igbz_seo_last' );
+			delete_transient( TenantScope::cache_key( 'igbz_seo_last' ) );
 			echo '<table class="widefat striped"><tbody>';
 			foreach ( $last as $label => $value ) {
 				printf( '<tr><th>%1$s</th><td>%2$s</td></tr>', esc_html( $label ), esc_html( (string) $value ) );
@@ -125,7 +126,7 @@ final class SeoPage {
 				update_post_meta( $product_id, 'igbz_seo_description', sanitize_textarea_field( $meta['meta_description'] ) );
 				View::notice( __( 'Meta generated and saved onto the product.', 'igbz-suite' ), 'success' );
 			} else {
-				set_transient( 'igbz_seo_last', $meta, 60 );
+				set_transient( TenantScope::cache_key( 'igbz_seo_last' ), $meta, 60 );
 			}
 			return;
 		}

@@ -92,6 +92,11 @@ final class FxDb extends wpdb {
 			return $this->tables[ $table ][ self::int_of( 'id', $sql ) ] ?? null;
 		}
 
+		if ( 'fx_rates' === $table ) {
+			// Phase 35: the top-up now reads its locked quote row back by id.
+			return $this->tables[ $table ][ self::int_of( 'id', $sql ) ] ?? null;
+		}
+
 		if ( 'payments' === $table ) {
 			return $this->tables[ $table ][ self::int_of( 'id', $sql ) ] ?? null;
 		}

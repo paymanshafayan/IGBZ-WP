@@ -58,6 +58,7 @@ final class SettingsPage {
 		if ( Modules::enabled( Modules::INSTAGRAM ) ) {
 			$tabs['manus']    = __( 'Manus', 'igbz-suite' );
 			$tabs['manychat'] = __( 'ManyChat', 'igbz-suite' );
+			$tabs['zernio']   = __( 'Zernio', 'igbz-suite' );
 			$tabs['dm']       = __( 'Direct messages', 'igbz-suite' );
 			$tabs['intake']   = __( 'Product registration', 'igbz-suite' );
 			$tabs['vip']      = __( 'VIP channel', 'igbz-suite' );
@@ -398,6 +399,15 @@ final class SettingsPage {
 					],
 				];
 
+			case 'zernio':
+				return [
+					[ 'key' => 'zernio.central_api_key', 'label' => __( 'Central Zernio API key', 'igbz-suite' ), 'type' => 'password', 'help' => __( 'The one IGBZ payment account key (ADR-0004). It only ever provisions profiles; stores receive profile-scoped keys and never see this one.', 'igbz-suite' ) ],
+					[ 'key' => 'zernio.base_url', 'label' => __( 'Zernio API base URL', 'igbz-suite' ), 'placeholder' => 'https://api.zernio.com' ],
+					[ 'key' => 'zernio.profiles_path', 'label' => __( 'Profiles path', 'igbz-suite' ), 'placeholder' => '/v1/profiles' ],
+					[ 'key' => 'zernio.profile_keys_path', 'label' => __( 'Profile keys path', 'igbz-suite' ), 'placeholder' => '/v1/profiles' ],
+					[ 'key' => 'zernio.auth_scheme', 'label' => __( 'Auth scheme', 'igbz-suite' ), 'placeholder' => 'Bearer' ],
+				];
+
 			case 'dm':
 				return [
 					[
@@ -718,6 +728,7 @@ final class SettingsPage {
 					[ 'key' => 'api.jwt_ttl', 'label' => __( 'Access token TTL (seconds)', 'igbz-suite' ), 'type' => 'number', 'min' => 300, 'max' => 86400, 'help' => __( 'Short lived on purpose; the original issued 30 day tokens with no revocation.', 'igbz-suite' ) ],
 					[ 'key' => 'api.refresh_ttl', 'label' => __( 'Refresh token TTL (seconds)', 'igbz-suite' ), 'type' => 'number', 'min' => 3600, 'max' => 31536000 ],
 					[ 'key' => 'api.rate_limit_per_minute', 'label' => __( 'Requests per minute per token', 'igbz-suite' ), 'type' => 'number', 'min' => 10, 'max' => 6000 ],
+				[ 'key' => 'api.tenant_rate_limit_per_minute', 'label' => __( 'Requests per minute per store (all devices combined)', 'igbz-suite' ), 'type' => 'number', 'min' => 10, 'max' => 60000, 'help' => __( 'Noisy-neighbour cap: one store cannot drown the shared API even with many devices. Zero disables it.', 'igbz-suite' ) ],
 					[ 'key' => 'api.push_enabled', 'label' => __( 'Enable push notifications', 'igbz-suite' ), 'type' => 'checkbox' ],
 					[ 'key' => 'api.fcm_project_id', 'label' => __( 'FCM project id', 'igbz-suite' ) ],
 					[ 'key' => 'api.fcm_service_account', 'label' => __( 'FCM service account JSON', 'igbz-suite' ), 'type' => 'password', 'help' => __( 'Paste the whole service account JSON. Stored encrypted, never written to disk.', 'igbz-suite' ) ],
@@ -863,13 +874,27 @@ final class SettingsPage {
 					],
 					[ 'key' => 'log.retention_days', 'label' => __( 'Log retention (days)', 'igbz-suite' ), 'type' => 'number', 'min' => 1, 'max' => 365 ],
 					[ 'key' => 'http.timeout', 'label' => __( 'Outbound HTTP timeout (seconds)', 'igbz-suite' ), 'type' => 'number', 'min' => 5, 'max' => 120 ],
-					[
-						'key'   => 'purge_on_uninstall',
-						'label' => __( 'Delete all data on uninstall', 'igbz-suite' ),
-						'type'  => 'checkbox',
-						'help'  => __( 'Off by default. When on, deleting the plugin drops every IGBZ table.', 'igbz-suite' ),
-					],
-				];
+				[
+					'key'   => 'purge_on_uninstall',
+					'label' => __( 'Delete all data on uninstall', 'igbz-suite' ),
+					'type'  => 'checkbox',
+					'help'  => __( 'Off by default. When on, deleting the plugin drops every IGBZ table.', 'igbz-suite' ),
+				],
+				[
+					'key'   => 'security.disable_oembed',
+					'label' => __( 'Disable oEmbed endpoints and discovery links', 'igbz-suite' ),
+					'type'  => 'checkbox',
+					'help'  => __( 'On by default. Author names stay stripped even if you re-enable it.', 'igbz-suite' ),
+				],
+				[
+					'key'   => 'security.senior_admin_id',
+					'label' => __( 'Senior administrator user id', 'igbz-suite' ),
+					'type'  => 'number',
+					'min'   => 0,
+					'max'   => 99999999,
+					'help'  => __( 'Emergency lane for bulk data and XML export; every use is audit-logged. Only the platform super admin may change this.', 'igbz-suite' ),
+				],
+			];
 		}
 
 		return [];
@@ -1068,6 +1093,16 @@ final class SettingsPage {
 			$type = $field['type'] ?? 'text';
 
 			if ( 'readonly' === $type ) {
+				continue;
+			}
+			if ( 'security.senior_admin_id' === $key && ! is_super_admin() ) {
+				// A store admin who could set this id would be granting themselves the audited
+				// emergency lane. The field renders for everyone but only a super admin writes it.
+				igbz()->logger()->warning(
+					'security',
+					'Attempt to change senior admin id without super admin',
+					[ 'user_id' => get_current_user_id() ]
+				);
 				continue;
 			}
 			if ( 'purge_on_uninstall' === $key ) {

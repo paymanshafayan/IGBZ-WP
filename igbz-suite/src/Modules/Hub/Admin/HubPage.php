@@ -8,6 +8,7 @@ use IGBZ\Suite\Modules\Hub\Services\DirectoryService;
 use IGBZ\Suite\Modules\Hub\Services\DomainVerifier;
 use IGBZ\Suite\Modules\Hub\Services\HubStats;
 use IGBZ\Suite\Modules\Hub\Services\VipLinkService;
+use IGBZ\Suite\Support\TenantScope;
 use IGBZ\Suite\Modules\MultiTenant\Repository\TenantRepository;
 use IGBZ\Suite\Support\Admin\Menu;
 use IGBZ\Suite\Support\Admin\View;
@@ -352,9 +353,9 @@ final class HubPage {
 		submit_button( __( 'Generate link', 'igbz-suite' ) );
 		echo '</form>';
 
-		$link = get_transient( 'igbz_hub_vip_' . get_current_user_id() );
+		$link = get_transient( TenantScope::cache_key( 'igbz_hub_vip_' . get_current_user_id() ) );
 		if ( is_string( $link ) && '' !== $link ) {
-			delete_transient( 'igbz_hub_vip_' . get_current_user_id() );
+			delete_transient( TenantScope::cache_key( 'igbz_hub_vip_' . get_current_user_id() ) );
 			echo '<h2>' . esc_html__( 'Your link', 'igbz-suite' ) . '</h2>';
 			printf(
 				'<input type="text" readonly onfocus="this.select()" class="large-text code" value="%s" />',
@@ -491,7 +492,7 @@ final class HubPage {
 			return;
 		}
 
-		set_transient( 'igbz_hub_vip_' . get_current_user_id(), $this->vip()->issue_url( $tenant_id, $user_id, $redirect ), 300 );
+		set_transient( TenantScope::cache_key( 'igbz_hub_vip_' . get_current_user_id() ), $this->vip()->issue_url( $tenant_id, $user_id, $redirect ), 300 );
 		View::notice( __( 'Link generated.', 'igbz-suite' ) );
 	}
 

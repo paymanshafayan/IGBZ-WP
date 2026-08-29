@@ -161,7 +161,19 @@ final class TokenService {
 			return [ 'ok' => false, 'error' => 'refresh_token_expired', 'tokens' => [] ];
 		}
 
-		$this->revoke_jti( (string) $row['jti'] );
+		// Atomic claim: exactly one request can burn this refresh token. Two parallel
+		// presentations race on the UPDATE; the loser sees zero affected rows, which is the
+		// same evidence as a replay, so the whole device goes down with it.
+		$claimed = (int) $this->db->query(
+			'UPDATE ' . $this->db->table( 'api_tokens' ) . ' SET revoked_at = %s WHERE id = %d AND revoked_at IS NULL',
+			current_time( 'mysql', true ),
+			(int) $row['id']
+		);
+		if ( $claimed < 1 ) {
+			$this->revoke_device( (int) $row['user_id'], (string) $row['device_id'] );
+			$this->logger->warning( 'api', 'Concurrent refresh token reuse detected', [ 'user_id' => (int) $row['user_id'] ] );
+			return [ 'ok' => false, 'error' => 'refresh_token_revoked', 'tokens' => [] ];
+		}
 
 		return [
 			'ok'     => true,
@@ -205,12 +217,11 @@ final class TokenService {
 	public function prune_expired( int $grace_days = 7 ): int {
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - ( max( 0, $grace_days ) * DAY_IN_SECONDS ) );
 
-		return (int) $this->db->query(
-			'DELETE FROM ' . $this->db->table( 'api_tokens' ) . '
-			 WHERE ( refresh_expires_at IS NOT NULL AND refresh_expires_at < %s )
-			    OR ( revoked_at IS NOT NULL AND revoked_at < %s )',
-			$cutoff,
-			$cutoff
+		// Phase 20: bounded batches on the hottest table of the API path.
+		return $this->db->delete_batches(
+			'api_tokens',
+			'( refresh_expires_at IS NOT NULL AND refresh_expires_at < %s ) OR ( revoked_at IS NOT NULL AND revoked_at < %s )',
+			[ $cutoff, $cutoff ]
 		);
 	}
 

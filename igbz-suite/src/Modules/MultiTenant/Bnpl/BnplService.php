@@ -382,14 +382,15 @@ final class BnplService {
 
 	/** @return array<string,mixed>|null */
 	public function contract( int $contract_id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_contracts' ) . ' WHERE id = %d', $contract_id );
+		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_contracts' ) . ' WHERE id = %d AND tenant_id = %d', $contract_id, igbz()->tenancy()->id() );
 	}
 
 	/** @return array<int,array<string,mixed>> */
 	public function installments( int $contract_id ): array {
 		return $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE contract_id = %d ORDER BY sequence',
-			$contract_id
+			'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE contract_id = %d AND tenant_id = %d ORDER BY sequence',
+			$contract_id,
+			igbz()->tenancy()->id()
 		);
 	}
 
@@ -418,7 +419,7 @@ final class BnplService {
 	 * Pay one instalment from the wallet. Idempotent through the ledger reference code.
 	 */
 	public function pay_installment_from_wallet( int $installment_id ): bool {
-		$installment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE id = %d', $installment_id );
+		$installment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE id = %d AND tenant_id = %d', $installment_id, igbz()->tenancy()->id() );
 		if ( ! $installment || self::INSTALLMENT_PAID === $installment['status'] ) {
 			return false;
 		}
@@ -444,20 +445,30 @@ final class BnplService {
 	}
 
 	public function mark_installment_paid( int $installment_id, string $payment_ref = '' ): bool {
-		$installment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE id = %d', $installment_id );
+		$installment = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE id = %d AND tenant_id = %d', $installment_id, igbz()->tenancy()->id() );
 		if ( ! $installment ) {
 			return false;
 		}
 
-		$this->db->update(
+		if ( self::INSTALLMENT_PAID === (string) $installment['status'] ) {
+			return false; // Already settled — a replay is a no-op, not a second payment.
+		}
+
+		// Phase 33: the paid flip is conditional on the status just read — a replayed provider
+		// callback and the wallet auto-collect racing on the same instalment can never both fire
+		// the hooks and provider reports.
+		$changed = $this->db->update(
 			'bnpl_installments',
 			[
 				'status'      => self::INSTALLMENT_PAID,
 				'paid_at'     => current_time( 'mysql', true ),
 				'payment_ref' => $payment_ref,
 			],
-			[ 'id' => $installment_id ]
+			[ 'id' => $installment_id, 'status' => (string) $installment['status'] ]
 		);
+		if ( 0 === $changed ) {
+			return false;
+		}
 
 		$contract = $this->contract( (int) $installment['contract_id'] );
 		if ( $contract ) {
@@ -518,16 +529,21 @@ final class BnplService {
 
 	// ------------------------------------------------------ cron: dunning
 
-	/** Flag overdue instalments, accrue penalties and try auto-collection from the wallet. */
-	public function process_overdue(): int {
-		$today = gmdate( 'Y-m-d' );
-		$rows  = $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . '
-			 WHERE status IN (%s,%s) AND due_date < %s LIMIT 200',
-			self::INSTALLMENT_DUE,
-			self::INSTALLMENT_OVERDUE,
-			$today
-		);
+	/**
+	 * Flag overdue instalments, accrue penalties and try auto-collection from the wallet.
+	 *
+	 * @param int $tenant_id Phase 25: scope the sweep to one tenant; 0 keeps the legacy global scan.
+	 */
+	public function process_overdue( int $tenant_id = 0 ): int {
+		$today  = gmdate( 'Y-m-d' );
+		$sql    = 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . '
+			 WHERE status IN (%s,%s) AND due_date < %s';
+		$params = [ self::INSTALLMENT_DUE, self::INSTALLMENT_OVERDUE, $today ];
+		if ( $tenant_id > 0 ) {
+			$sql     .= ' AND tenant_id = %d';
+			$params[] = $tenant_id;
+		}
+		$rows = $this->db->results( $sql . ' LIMIT 200', ...$params );
 
 		$penalty_rate = (float) igbz()->settings()->get( 'bnpl.penalty_percent_per_day', 0 );
 		$processed    = 0;
@@ -543,9 +559,17 @@ final class BnplService {
 				[ 'id' => $installment_id ]
 			);
 
-			// Auto-collect when the wallet can cover it.
-			if ( igbz()->settings()->bool( 'bnpl.auto_collect', true ) ) {
-				$this->pay_installment_from_wallet( $installment_id );
+			// Phase 33: auto-collect with a bounded retry — an empty wallet is retried on every
+			// sweep until the cap, then dunning stops and the default path takes over. The sweep
+			// never hammers one instalment forever.
+			if ( igbz()->settings()->bool( 'bnpl.auto_collect', true )
+				&& (int) ( $row['collection_attempts'] ?? 0 ) < $this->max_collect_attempts()
+				&& ! $this->pay_installment_from_wallet( $installment_id ) ) {
+				$this->db->update(
+					'bnpl_installments',
+					[ 'collection_attempts' => (int) ( $row['collection_attempts'] ?? 0 ) + 1 ],
+					[ 'id' => $installment_id ]
+				);
 			}
 
 			if ( $days_late >= (int) igbz()->settings()->get( 'bnpl.default_after_days', 60 ) ) {
@@ -563,17 +587,23 @@ final class BnplService {
 		return $processed;
 	}
 
-	/** Send reminders a configurable number of days before the due date. */
-	public function send_reminders(): int {
+	/**
+	 * Send reminders a configurable number of days before the due date.
+	 *
+	 * @param int $tenant_id Phase 25: scope the sweep to one tenant; 0 keeps the legacy global scan.
+	 */
+	public function send_reminders( int $tenant_id = 0 ): int {
 		$lead   = (int) igbz()->settings()->get( 'bnpl.reminder_days_before', 3 );
 		$target = gmdate( 'Y-m-d', time() + $lead * DAY_IN_SECONDS );
 
-		$rows = $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . '
-			 WHERE status = %s AND due_date = %s AND reminder_sent_at IS NULL LIMIT 200',
-			self::INSTALLMENT_DUE,
-			$target
-		);
+		$sql    = 'SELECT * FROM ' . $this->db->table( 'bnpl_installments' ) . '
+			 WHERE status = %s AND due_date = %s AND reminder_sent_at IS NULL';
+		$params = [ self::INSTALLMENT_DUE, $target ];
+		if ( $tenant_id > 0 ) {
+			$sql     .= ' AND tenant_id = %d';
+			$params[] = $tenant_id;
+		}
+		$rows = $this->db->results( $sql . ' LIMIT 200', ...$params );
 
 		foreach ( $rows as $row ) {
 			do_action( 'igbz_bnpl_reminder_due', (int) $row['id'], (int) $row['user_id'], (float) $row['amount'], (string) $row['due_date'] );
@@ -581,6 +611,92 @@ final class BnplService {
 		}
 
 		return count( $rows );
+	}
+
+	/** Phase 33: how many times the dunning sweep may retry auto-collecting one instalment. */
+	public function max_collect_attempts(): int {
+		return max( 1, (int) igbz()->settings()->get( 'bnpl.max_collect_attempts', 5 ) );
+	}
+
+	/**
+	 * Phase 33 — the provider-callback surface, wired to the durable webhook inbox (phase 29).
+	 *
+	 * The verdict arrives signed and deduplicated by the inbox; this method only applies it.
+	 * `paid` marks the instalment through the same conditional path as wallet auto-collect, so a
+	 * callback and a collect racing on one instalment can never double-settle it. `unknown` is
+	 * reported back honestly so the inbox retries later instead of guessing.
+	 *
+	 * @param array<string,mixed> $payload installment_id (or contract_id+sequence), verdict, payment_ref.
+	 * @return string 'done'|'unknown'
+	 */
+	public function apply_provider_notification( array $payload ): string {
+		$installment_id = (int) ( $payload['installment_id'] ?? 0 );
+		if ( 0 === $installment_id && ! empty( $payload['contract_id'] ) ) {
+			$row = $this->db->row(
+				'SELECT id FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE contract_id = %d AND sequence = %d',
+				(int) $payload['contract_id'],
+				(int) ( $payload['sequence'] ?? 0 )
+			);
+			$installment_id = (int) ( $row['id'] ?? 0 );
+		}
+		if ( $installment_id <= 0 ) {
+			return 'done'; // Malformed — acknowledge so the provider stops re-delivering.
+		}
+
+		$verdict = (string) ( $payload['verdict'] ?? $payload['status'] ?? '' );
+		if ( 'unknown' === $verdict || '' === $verdict ) {
+			return 'unknown';
+		}
+		if ( 'paid' === $verdict ) {
+			$this->mark_installment_paid( $installment_id, (string) ( $payload['payment_ref'] ?? '' ) );
+			return 'done';
+		}
+
+		// failed/cancelled: nothing moves without a human or dunning decision — just acknowledge.
+		$this->logger->info( 'bnpl', 'Provider reported a non-paid instalment', [ 'installment_id' => $installment_id, 'verdict' => $verdict ] );
+		return 'done';
+	}
+
+	/**
+	 * Phase 33 — BNPL reconciliation: every instalment must reconcile against its contract.
+	 *
+	 * Two checks: (a) a contract whose instalments are all closed but whose status never flipped
+	 * is settled now (same code path as the normal flow); (b) the paid-so-far plus outstanding
+	 * must equal the contract's total payable, else the contract is counted as a mismatch for the
+	 * operator. Nothing is silently adjusted.
+	 *
+	 * @return array{settled:int,mismatches:int,scanned:int}
+	 */
+	public function reconcile(): array {
+		$report = [ 'settled' => 0, 'mismatches' => 0, 'scanned' => 0 ];
+
+		$contracts = $this->db->results(
+			'SELECT * FROM ' . $this->db->table( 'bnpl_contracts' ) . ' WHERE status IN (%s,%s) ORDER BY id ASC LIMIT 500',
+			self::STATUS_ACTIVE,
+			self::STATUS_SETTLED
+		);
+
+		foreach ( $contracts as $contract ) {
+			++$report['scanned'];
+			$contract_id = (int) $contract['id'];
+
+			if ( self::STATUS_ACTIVE === (string) $contract['status'] && $this->maybe_settle_contract( $contract_id ) ) {
+				++$report['settled'];
+				$this->logger->warning( 'bnpl', 'Contract settled by reconciliation', [ 'contract_id' => $contract_id ] );
+			}
+
+			$paid_sum = (float) $this->db->scalar(
+				'SELECT COALESCE(SUM(amount + penalty),0) FROM ' . $this->db->table( 'bnpl_installments' ) . ' WHERE contract_id = %d AND status = %s',
+				$contract_id,
+				self::INSTALLMENT_PAID
+			);
+			$total = (float) $contract['total_payable'];
+			if ( abs( $paid_sum + $this->outstanding( $contract_id ) - $total ) > 0.01 ) {
+				++$report['mismatches'];
+				$this->logger->error( 'bnpl', 'Contract amounts do not reconcile', [ 'contract_id' => $contract_id ] );
+			}
+		}
+		return $report;
 	}
 
 	// -------------------------------------------------------------- admin

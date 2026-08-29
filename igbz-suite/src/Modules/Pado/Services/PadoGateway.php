@@ -65,9 +65,19 @@ final class PadoGateway {
 		if ( ! $this->configured() || ! wp_http_validate_url( $url ) || 'https' !== strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) ) ) {
 			return [ 'ok' => false, 'body' => '', 'error' => 'نشانی دریافت قالب معتبر نیست.' ];
 		}
+
+		// Credential policy: the bearer only ever travels to the configured Pado host. A zip
+		// URL anywhere else (or a redirected attacker host) gets the artifact, never the key.
+		$headers       = [];
+		$endpoint_host = strtolower( (string) wp_parse_url( igbz()->settings()->string( 'pado.endpoint', '' ), PHP_URL_HOST ) );
+		if ( '' !== $endpoint_host && strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) ) === $endpoint_host ) {
+			$headers['Authorization'] = 'Bearer ' . igbz()->settings()->string( 'pado.api_key', '' );
+		}
+
 		$response = $this->http->get( esc_url_raw( $url ), [
-			'headers' => [ 'Authorization' => 'Bearer ' . igbz()->settings()->string( 'pado.api_key', '' ) ],
+			'headers' => $headers,
 			'channel' => 'pado', 'timeout' => 120, 'retries' => 1,
+			'max_bytes' => 64 * 1024 * 1024,
 		] );
 		return $response->ok() ? [ 'ok' => true, 'body' => $response->body, 'error' => '' ] : [ 'ok' => false, 'body' => '', 'error' => $response->error_message() ];
 	}

@@ -100,8 +100,8 @@ final class ApprovalRequestService {
 	 *
 	 * @param callable(array):bool|null $executor If non-null and $status==approved, run after updating the row.
 	 */
-	public function decide( int $id, string $status, int $decided_by, string $note = '', ?callable $executor = null ): bool {
-		$row = $this->get( $id );
+	public function decide( int $id, string $status, int $decided_by, string $note = '', ?callable $executor = null, ?int $tenant_id = null ): bool {
+		$row = $this->get( $id, $tenant_id );
 		if ( ! $row || self::STATUS_PENDING !== $row['status'] ) {
 			return false;
 		}

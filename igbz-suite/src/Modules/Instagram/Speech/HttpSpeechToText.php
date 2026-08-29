@@ -88,7 +88,12 @@ final class HttpSpeechToText implements SpeechToTextInterface {
 
 		// Deliberately not routed through Http::post(): that helper JSON-encodes or passes the
 		// body straight through and the multipart Content-Type must carry the exact boundary
-		// used to build the body, so the request is assembled here in full.
+		// used to build the body, so the request is assembled here in full. The SSRF gate the
+		// wrapper would apply still has to run, though.
+		if ( ! \IGBZ\Suite\Support\UrlGuard::is_safe( $this->endpoint() ) ) {
+			return TranscriptionResult::failure( 'Blocked by the SSRF guard.', self::ID );
+		}
+
 		$response = wp_remote_post(
 			$this->endpoint(),
 			[

@@ -49,12 +49,12 @@ final class BasalamAdapter implements MarketplaceAdapterInterface {
 		);
 		$body = $response->json();
 		if ( ! $response->ok() ) {
-			return [ 'ok' => false, 'remote_id' => '', 'message' => (string) ( $body['message'] ?? $body['error'] ?? 'basalam_failed' ) ];
+			return [ 'ok' => false, 'remote_id' => '', 'message' => (string) ( $body['message'] ?? $body['error'] ?? 'basalam_failed' ), 'http_status' => $response->status, 'retry_after' => $this->retry_after_of( $response ) ];
 		}
 		$remote = (string) ( $body['id'] ?? $body['product_id'] ?? $body['data']['id'] ?? '' );
 		return '' !== $remote
-			? [ 'ok' => true, 'remote_id' => $remote, 'message' => '' ]
-			: [ 'ok' => false, 'remote_id' => '', 'message' => __( 'Basalam did not return a product id.', 'igbz-suite' ) ];
+			? [ 'ok' => true, 'remote_id' => $remote, 'message' => '', 'http_status' => $response->status, 'retry_after' => 0 ]
+			: [ 'ok' => false, 'remote_id' => '', 'message' => __( 'Basalam did not return a product id.', 'igbz-suite' ), 'http_status' => $response->status, 'retry_after' => 0 ];
 	}
 
 	public function update_price_stock( string $remote_id, float $price_irt, int $stock ): array {
@@ -71,8 +71,19 @@ final class BasalamAdapter implements MarketplaceAdapterInterface {
 			]
 		);
 		return $response->ok()
-			? [ 'ok' => true, 'message' => '' ]
-			: [ 'ok' => false, 'message' => $response->error_message() ];
+			? [ 'ok' => true, 'message' => '', 'http_status' => $response->status, 'retry_after' => 0 ]
+			: [ 'ok' => false, 'message' => $response->error_message(), 'http_status' => $response->status, 'retry_after' => $this->retry_after_of( $response ) ];
+	}
+
+	/** The Retry-After the marketplace asked for, in seconds (0 when it did not). */
+	private function retry_after_of( \IGBZ\Suite\Support\HttpResponse $response ): int {
+		foreach ( $response->headers as $name => $value ) {
+			if ( 'retry-after' === strtolower( (string) $name ) ) {
+				$seconds = (int) ( is_array( $value ) ? ( $value[0] ?? 0 ) : $value );
+				return max( 0, min( $seconds, 3600 ) );
+			}
+		}
+		return 0;
 	}
 
 	/** Publish Instagram-made content (post/story) to Basalam when enabled. */

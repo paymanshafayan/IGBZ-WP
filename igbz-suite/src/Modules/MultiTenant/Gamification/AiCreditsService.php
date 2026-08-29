@@ -24,8 +24,9 @@ final class AiCreditsService {
 
 	public function balance( int $user_id ): float {
 		return (float) $this->db->scalar(
-			'SELECT COALESCE(SUM(delta), 0) FROM ' . $this->db->table( 'ig_ai_credit_ledger' ) . ' WHERE user_id = %d',
-			$user_id
+			'SELECT COALESCE(SUM(delta), 0) FROM ' . $this->db->table( 'ig_ai_credit_ledger' ) . ' WHERE user_id = %d AND tenant_id = %d',
+			$user_id,
+			igbz()->tenancy()->id()
 		);
 	}
 
@@ -57,10 +58,11 @@ final class AiCreditsService {
 
 	public function ledger( int $user_id, float $delta, string $reason, string $reference, array $meta = [] ): bool {
 		$existing = (int) $this->db->scalar(
-			'SELECT COUNT(*) FROM ' . $this->db->table( 'ig_ai_credit_ledger' ) . ' WHERE user_id = %d AND reason = %s AND reference = %s',
+			'SELECT COUNT(*) FROM ' . $this->db->table( 'ig_ai_credit_ledger' ) . ' WHERE user_id = %d AND reason = %s AND reference = %s AND tenant_id = %d',
 			$user_id,
 			$reason,
-			$reference
+			$reference,
+			igbz()->tenancy()->id()
 		);
 		if ( $existing > 0 ) {
 			return false;

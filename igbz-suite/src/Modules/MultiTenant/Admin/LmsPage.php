@@ -719,16 +719,19 @@ final class LmsPage {
 		if ( isset( $_GET['delete_quiz'] ) ) {
 			$quiz_id = (int) $_GET['delete_quiz'];
 			$db      = igbz()->db();
-			// The attempts go too. Keeping them would leave scores pointing at a quiz nobody can
-			// read, and they are the one thing a deleted quiz's results screen is built from.
-			$db->delete( 'quiz_attempts', [ 'quiz_id' => $quiz_id ] );
-			$db->delete( 'quizzes', [ 'id' => $quiz_id ] );
-			View::notice( __( 'Quiz deleted.', 'igbz-suite' ) );
+			// Ownership first: the delete doubles as the tenant check, so a quiz id from another
+			// tenant simply does not exist for us. Attempts go only after the quiz we own is gone.
+			if ( $db->delete( 'quizzes', [ 'id' => $quiz_id, 'tenant_id' => igbz()->tenancy()->id() ] ) ) {
+				$db->delete( 'quiz_attempts', [ 'quiz_id' => $quiz_id, 'tenant_id' => igbz()->tenancy()->id() ] );
+				View::notice( __( 'Quiz deleted.', 'igbz-suite' ) );
+			} else {
+				View::notice( __( 'That quiz does not exist here.', 'igbz-suite' ), 'error' );
+			}
 		}
 		if ( isset( $_GET['revoke'] ) ) {
 			$enrollment_id = (int) $_GET['revoke'];
 			$db            = igbz()->db();
-			$row           = $db->row( 'SELECT course_id, user_id FROM ' . $db->table( 'enrollments' ) . ' WHERE id = %d', $enrollment_id );
+			$row           = $db->row( 'SELECT course_id, user_id FROM ' . $db->table( 'enrollments' ) . ' WHERE id = %d AND tenant_id = %d', $enrollment_id, igbz()->tenancy()->id() );
 			if ( $row && $this->lms()->unenroll( (int) $row['course_id'], (int) $row['user_id'] ) ) {
 				View::notice( __( 'Access revoked.', 'igbz-suite' ) );
 			} else {

@@ -49,16 +49,17 @@ final class MarketplaceService {
 	// ------------------------------------------------------------ link registry
 
 	/** @return array<string,mixed>|null */
-	public function link( int $product_id, string $channel ): ?array {
+	public function link( int $product_id, string $channel, int $tenant_id ): ?array {
 		return $this->db->row(
-			'SELECT * FROM ' . $this->db->table( 'marketplace_links' ) . ' WHERE product_id = %d AND channel = %s',
+			'SELECT * FROM ' . $this->db->table( 'marketplace_links' ) . ' WHERE product_id = %d AND channel = %s AND tenant_id = %d',
 			$product_id,
-			$channel
+			$channel,
+			$tenant_id
 		);
 	}
 
 	public function save_link( int $product_id, string $channel, string $external_id, int $tenant_id = 0, string $status = 'synced', string $message = '' ): int {
-		$existing = $this->link( $product_id, $channel );
+		$existing = $this->link( $product_id, $channel, $tenant_id );
 		$data     = [
 			'tenant_id'      => $tenant_id,
 			'product_id'     => $product_id,
@@ -76,17 +77,23 @@ final class MarketplaceService {
 		return $this->db->insert( 'marketplace_links', $data );
 	}
 
-	/** @return array<int,array<string,mixed>> */
+	/**
+	 * @return array<int,array<string,mixed>>
+	 *
+	 * Phase 20: bounded list. One store links each product to a handful of channels, so 5000
+	 * rows is far above any realistic store while still keeping the query from ever being
+	 * unbounded.
+	 */
 	public function links( int $tenant_id = 0, string $channel = '' ): array {
 		if ( '' !== $channel ) {
 			return $this->db->results(
-				'SELECT * FROM ' . $this->db->table( 'marketplace_links' ) . ' WHERE tenant_id = %d AND channel = %s ORDER BY id DESC',
+				'SELECT * FROM ' . $this->db->table( 'marketplace_links' ) . ' WHERE tenant_id = %d AND channel = %s ORDER BY id DESC LIMIT 5000',
 				$tenant_id,
 				$channel
 			);
 		}
 		return $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'marketplace_links' ) . ' WHERE tenant_id = %d ORDER BY id DESC',
+			'SELECT * FROM ' . $this->db->table( 'marketplace_links' ) . ' WHERE tenant_id = %d ORDER BY id DESC LIMIT 5000',
 			$tenant_id
 		);
 	}

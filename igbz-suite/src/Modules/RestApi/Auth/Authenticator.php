@@ -154,8 +154,8 @@ final class Authenticator {
 			);
 		}
 
-		if ( ! $this->within_rate_limit( $result['jti'] ) ) {
-			$this->logger->warning( 'api', 'Rate limit hit', [ 'user_id' => $result['user_id'] ] );
+		if ( ! $this->within_rate_limit( $result['jti'], (int) ( $result['tenant_id'] ?? 0 ) ) ) {
+			$this->logger->warning( 'api', 'Rate limit hit', [ 'user_id' => $result['user_id'], 'tenant_id' => (int) ( $result['tenant_id'] ?? 0 ) ] );
 			return new \WP_Error(
 				'igbz_rate_limited',
 				__( 'Too many requests. Please slow down.', 'igbz-suite' ),
@@ -175,18 +175,35 @@ final class Authenticator {
 		};
 	}
 
-	private function within_rate_limit( string $jti ): bool {
+	/**
+	 * Two independent buckets: one per token (one loud device cannot spend another session's
+	 * budget) and one per tenant per minute (noisy neighbour — a store that spins up many
+	 * devices still cannot drown the shared infrastructure; every other store keeps its own
+	 * budget). Both keys carry the minute and the tenant so they can never collide across
+	 * stores or across time.
+	 */
+	private function within_rate_limit( string $jti, int $tenant_id ): bool {
+		$minute = gmdate( 'YmdHi' );
+
 		$max = igbz()->settings()->int( 'api.rate_limit_per_minute', 120 );
-		if ( $max <= 0 ) {
-			return true;
+		if ( $max > 0 ) {
+			$key  = 'igbz_api_rl_' . $tenant_id . '_' . md5( $jti . '|' . $minute );
+			$hits = (int) get_transient( $key );
+			if ( $hits >= $max ) {
+				return false;
+			}
+			set_transient( $key, $hits + 1, MINUTE_IN_SECONDS + 5 );
 		}
 
-		$key  = 'igbz_api_rl_' . md5( $jti . '|' . gmdate( 'YmdHi' ) );
-		$hits = (int) get_transient( $key );
-		if ( $hits >= $max ) {
-			return false;
+		$tenant_max = igbz()->settings()->int( 'api.tenant_rate_limit_per_minute', 600 );
+		if ( $tenant_max > 0 && $tenant_id > 0 ) {
+			$key  = 'igbz_api_rl_tenant_' . $tenant_id . '_' . $minute;
+			$hits = (int) get_transient( $key );
+			if ( $hits >= $tenant_max ) {
+				return false;
+			}
+			set_transient( $key, $hits + 1, MINUTE_IN_SECONDS + 5 );
 		}
-		set_transient( $key, $hits + 1, MINUTE_IN_SECONDS + 5 );
 
 		return true;
 	}

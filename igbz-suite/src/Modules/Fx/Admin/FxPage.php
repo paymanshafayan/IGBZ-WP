@@ -99,7 +99,7 @@ final class FxPage {
 
 	private function render_prices(): void {
 		$db   = igbz()->db();
-		$rows = $db->results( 'SELECT * FROM ' . $db->table( 'fx_prices' ) . ' ORDER BY id' );
+		$rows = $db->results( 'SELECT * FROM ' . $db->table( 'fx_prices' ) . ' ORDER BY id LIMIT 500' ); // Phase 20: bounded catalog list.
 
 		echo '<h2>' . esc_html__( 'Prices', 'igbz-suite' ) . '</h2>';
 		if ( ! $rows ) {
@@ -345,8 +345,9 @@ final class FxPage {
 			}
 
 			$bill = igbz()->db()->row(
-				'SELECT * FROM ' . igbz()->db()->table( 'fx_bills' ) . ' WHERE id = %d',
-				$bill_id
+				'SELECT * FROM ' . igbz()->db()->table( 'fx_bills' ) . ' WHERE id = %d AND tenant_id = %d',
+				$bill_id,
+				(int) igbz()->tenancy()->id()
 			);
 			if ( ! $bill ) {
 				View::notice( __( 'Bill not found.', 'igbz-suite' ), 'error' );

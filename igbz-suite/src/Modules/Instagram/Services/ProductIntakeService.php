@@ -100,7 +100,7 @@ final class ProductIntakeService {
 
 	/** @return array<string,mixed>|null */
 	public function get( int $id ): ?array {
-		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_intake' ) . ' WHERE id = %d', $id );
+		return $this->db->row( 'SELECT * FROM ' . $this->db->table( 'ig_intake' ) . ' WHERE id = %d AND tenant_id = %d', $id, igbz()->tenancy()->id() );
 	}
 
 	/** @return array<string,mixed>|null */
@@ -182,7 +182,7 @@ final class ProductIntakeService {
 	}
 
 	public function delete( int $id ): bool {
-		return $this->db->delete( 'ig_intake', [ 'id' => $id ] ) > 0;
+		return $this->db->delete( 'ig_intake', [ 'id' => $id, 'tenant_id' => igbz()->tenancy()->id() ] ) > 0;
 	}
 
 	public function fail( int $id, string $error ): void {
@@ -1032,6 +1032,12 @@ final class ProductIntakeService {
 			require_once ABSPATH . 'wp-admin/includes/file.php';
 			require_once ABSPATH . 'wp-admin/includes/media.php';
 			require_once ABSPATH . 'wp-admin/includes/image.php';
+		}
+
+		// Phase 10: intake assets are user-supplied URLs — the most SSRF-prone input we fetch.
+		if ( ! \IGBZ\Suite\Support\UrlGuard::is_safe( (string) $url ) ) {
+			$this->logger->log( \IGBZ\Suite\Support\Logger::WARNING, 'security', 'Intake asset download blocked by URL guard', [ 'intake_id' => $intake_id ] );
+			return [ 'url' => '', 'attachment_id' => 0 ];
 		}
 
 		$temp = download_url( $url, 60 );

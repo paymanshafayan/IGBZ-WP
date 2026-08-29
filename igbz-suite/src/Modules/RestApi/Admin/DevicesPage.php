@@ -8,6 +8,7 @@ use IGBZ\Suite\Modules\RestApi\Push\FcmService;
 use IGBZ\Suite\Modules\RestApi\Push\GoogleAuth;
 use IGBZ\Suite\Modules\RestApi\Push\NotificationService;
 use IGBZ\Suite\Support\Admin\Menu;
+use IGBZ\Suite\Support\TenantScope;
 use IGBZ\Suite\Support\Admin\View;
 use IGBZ\Suite\Support\Capabilities;
 
@@ -230,9 +231,9 @@ final class DevicesPage {
 		submit_button( __( 'Send notification', 'igbz-suite' ) );
 		echo '</form>';
 
-		$last = get_transient( 'igbz_push_last_result_' . get_current_user_id() );
+		$last = get_transient( TenantScope::cache_key( 'igbz_push_last_result_' . get_current_user_id() ) );
 		if ( is_array( $last ) ) {
-			delete_transient( 'igbz_push_last_result_' . get_current_user_id() );
+			delete_transient( TenantScope::cache_key( 'igbz_push_last_result_' . get_current_user_id() ) );
 			echo '<h2>' . esc_html__( 'Last send', 'igbz-suite' ) . '</h2>';
 			printf(
 				'<p>%s</p>',
@@ -440,7 +441,7 @@ final class DevicesPage {
 			$audience
 		);
 
-		set_transient( 'igbz_push_last_result_' . get_current_user_id(), $result, 120 );
+		set_transient( TenantScope::cache_key( 'igbz_push_last_result_' . get_current_user_id() ), $result, 120 );
 
 		View::notice(
 			$result['ok']

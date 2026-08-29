@@ -35,7 +35,7 @@ final class AffiliatePage {
 
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
 		$affiliate_id = isset( $_GET['affiliate'] ) ? (int) $_GET['affiliate'] : 0;
-		$tenant_id    = isset( $_GET['tenant_id'] ) ? (int) $_GET['tenant_id'] : 0;
+		$tenant_id    = \IGBZ\Suite\Support\TenantScope::page_tenant_id( isset( $_GET['tenant_id'] ) ? (int) $_GET['tenant_id'] : null );
 		$paged        = isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1;
 		// phpcs:enable
 
@@ -311,7 +311,7 @@ final class AffiliatePage {
 			}
 			$affiliate = $this->affiliate()->enroll(
 				$user_id,
-				isset( $_POST['tenant_id'] ) ? (int) $_POST['tenant_id'] : 0,
+				\IGBZ\Suite\Support\TenantScope::page_tenant_id( isset( $_POST['tenant_id'] ) ? (int) $_POST['tenant_id'] : null ),
 				isset( $_POST['parent_id'] ) ? (int) $_POST['parent_id'] : 0
 			);
 			View::notice(

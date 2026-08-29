@@ -574,7 +574,8 @@ final class PadoPage {
 			'approved' === $decision ? ApprovalRequestService::STATUS_APPROVED : ApprovalRequestService::STATUS_REJECTED,
 			get_current_user_id(),
 			$note,
-			$executor
+			$executor,
+			$scope
 		);
 
 		$args = [ 'tab' => $tab, 'astatus' => $astatus ];

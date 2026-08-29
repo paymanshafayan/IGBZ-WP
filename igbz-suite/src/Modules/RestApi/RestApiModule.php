@@ -13,6 +13,7 @@ use IGBZ\Suite\Modules\RestApi\Controllers\DeviceController;
 use IGBZ\Suite\Modules\RestApi\Controllers\FxController;
 use IGBZ\Suite\Modules\RestApi\Controllers\ProductIntakeController;
 use IGBZ\Suite\Modules\RestApi\Controllers\StoreAdminController;
+use IGBZ\Suite\Modules\RestApi\Controllers\WebhookController;
 use IGBZ\Suite\Modules\RestApi\Controllers\VipAdminController;
 use IGBZ\Suite\Modules\RestApi\Controllers\VipController;
 use IGBZ\Suite\Modules\RestApi\Push\DeviceRepository;
@@ -20,6 +21,7 @@ use IGBZ\Suite\Modules\RestApi\Push\FcmService;
 use IGBZ\Suite\Modules\RestApi\Push\GoogleAuth;
 use IGBZ\Suite\Modules\RestApi\Push\NotificationService;
 use IGBZ\Suite\Support\Cron;
+use IGBZ\Suite\Support\Jobs\JobQueue;
 use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
@@ -75,6 +77,10 @@ final class RestApiModule implements ModuleInterface {
 
 		add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );
 
+		// Phase 26: the daily prune runs as a queued job — leased and retried like everything
+		// else, instead of blocking the shared daily cron request.
+		$this->register_queue_handlers( $plugin->get( 'jobs' ) );
+
 		// A password change must not leave a stolen phone signed in.
 		add_action( 'after_password_reset', [ $this, 'on_password_reset' ], 10, 1 );
 		add_action( 'profile_update', [ $this, 'on_profile_update' ], 10, 2 );
@@ -88,6 +94,10 @@ final class RestApiModule implements ModuleInterface {
 		$plugin->bind( 'api.tokens', static fn ( Plugin $c ) => new TokenService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'api.auth', static fn ( Plugin $c ) => new Authenticator( $c->get( 'api.tokens' ), $c->logger() ) );
 		$plugin->bind( 'api.devices', static fn ( Plugin $c ) => new DeviceRepository( $c->db() ) );
+		$plugin->bind(
+			'api.biometric',
+			static fn ( Plugin $c ) => new \IGBZ\Suite\Support\BiometricGate( $c->get( 'api.devices' ), $c->logger() )
+		);
 		$plugin->bind( 'api.google_auth', static fn ( Plugin $c ) => new GoogleAuth( $c->http(), $c->logger() ) );
 		$plugin->bind(
 			'api.push',
@@ -116,6 +126,7 @@ final class RestApiModule implements ModuleInterface {
 			new AccountController(),
 			new DeviceController( $plugin->get( 'api.devices' ), $plugin->get( 'api.notifications' ) ),
 			new StoreAdminController(),
+			new WebhookController( $plugin->get( 'webhooks.inbox' ) ),
 		];
 
 		// Product registration lives in the Instagram module — it is what owns the assistant, the
@@ -166,23 +177,31 @@ final class RestApiModule implements ModuleInterface {
 	// ------------------------------------------------------------- runtime
 
 	public function run_daily(): void {
-		$plugin = igbz();
+		// Phase 26: the prune runs as a queued job; the daily slot key absorbs duplicate beats.
+		igbz()->get( 'jobs' )->enqueue( 'api.prune', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
+	}
 
-		/** @var TokenService $tokens */
-		$tokens  = $plugin->get( 'api.tokens' );
-		$deleted = $tokens->prune_expired();
+	/** Phase 26: handler wiring for the queued API prune. */
+	public function register_queue_handlers( JobQueue $jobs ): void {
+		$jobs->register( 'api.prune', static function (): void {
+			$plugin = igbz();
 
-		/** @var DeviceRepository $devices */
-		$devices = $plugin->get( 'api.devices' );
-		$stale   = $devices->prune_stale( max( 30, $plugin->settings()->int( 'api.device_retention_days', 180 ) ) );
+			/** @var TokenService $tokens */
+			$tokens  = $plugin->get( 'api.tokens' );
+			$deleted = $tokens->prune_expired();
 
-		if ( $deleted > 0 || $stale > 0 ) {
-			$plugin->logger()->info(
-				'api',
-				'Daily API housekeeping',
-				[ 'tokens_pruned' => $deleted, 'devices_pruned' => $stale ]
-			);
-		}
+			/** @var DeviceRepository $devices */
+			$devices = $plugin->get( 'api.devices' );
+			$stale   = $devices->prune_stale( max( 30, $plugin->settings()->int( 'api.device_retention_days', 180 ) ) );
+
+			if ( $deleted > 0 || $stale > 0 ) {
+				$plugin->logger()->info(
+					'api',
+					'Daily API housekeeping',
+					[ 'tokens_pruned' => $deleted, 'devices_pruned' => $stale ]
+				);
+			}
+		} );
 	}
 
 	/**

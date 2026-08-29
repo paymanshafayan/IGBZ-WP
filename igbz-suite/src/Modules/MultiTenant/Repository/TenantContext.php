@@ -64,11 +64,20 @@ final class TenantContext {
 
 		$mode = (string) igbz()->settings()->get( 'general.tenant_resolution', 'domain' );
 
+		// Phase 17: the two branches that SERVE a storefront to a visitor only ever resolve a
+		// routable tenant — active, or a trial that has not expired. A suspended, closed or
+		// pending store must stop answering on its URL the moment its status flips, on the
+		// domain branch and on the path branch alike. The user/default fallbacks below stay
+		// unfiltered on purpose: they are the admin-side context, where an owner must still
+		// see a pending store.
 		if ( 'domain' === $mode || 'hybrid' === $mode ) {
 			$host = isset( $_SERVER['HTTP_HOST'] ) ? strtolower( sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) ) : '';
 			$host = preg_replace( '/:\d+$/', '', $host );
 			if ( $host ) {
-				$this->current = $repo->find_by_domain( $host );
+				$candidate = $repo->find_by_domain( $host );
+				if ( $candidate && $candidate->is_active() ) {
+					$this->current = $candidate;
+				}
 			}
 		}
 
@@ -79,7 +88,10 @@ final class TenantContext {
 			$base     = trim( igbz()->settings()->string( 'general.tenant_path_base', 'store' ), '/' );
 			$slug     = ( $segments && $segments[0] === $base ) ? ( $segments[1] ?? '' ) : ( $segments[0] ?? '' );
 			if ( '' !== $slug ) {
-				$this->current = $repo->find_by_slug( sanitize_title( $slug ) );
+				$candidate = $repo->find_by_slug( sanitize_title( $slug ) );
+				if ( $candidate && $candidate->is_active() ) {
+					$this->current = $candidate;
+				}
 			}
 		}
 

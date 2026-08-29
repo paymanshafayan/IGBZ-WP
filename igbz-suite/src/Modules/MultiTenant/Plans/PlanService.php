@@ -18,6 +18,7 @@ final class PlanService {
 	public const STATUS_PAST_DUE  = 'past_due';
 	public const STATUS_CANCELLED = 'cancelled';
 	public const STATUS_EXPIRED   = 'expired';
+	public const STATUS_SUSPENDED = 'suspended';
 
 	public function __construct( private Db $db, private WalletService $wallet, private Logger $logger ) {}
 
@@ -145,6 +146,108 @@ final class PlanService {
 		return $id;
 	}
 
+	/**
+	 * Phase 32 — manual suspension. The subscription (and the tenant) freezes but loses nothing:
+	 * reactivate() puts it back on its remaining time. Conditional status flip — only a live
+	 * subscription can be suspended, so two concurrent suspensions cannot double-fire the hooks.
+	 */
+	public function suspend( int $subscription_id, string $reason = '' ): bool {
+		$changed = $this->db->query(
+			'UPDATE ' . $this->db->table( 'subscriptions' ) . '
+			 SET status = %s, updated_at = %s
+			 WHERE id = %d AND status IN (%s,%s,%s)',
+			self::STATUS_SUSPENDED,
+			current_time( 'mysql', true ),
+			$subscription_id,
+			self::STATUS_ACTIVE,
+			self::STATUS_TRIALING,
+			self::STATUS_PAST_DUE
+		);
+		if ( ! $changed ) {
+			return false;
+		}
+
+		$sub = $this->db->row( 'SELECT tenant_id FROM ' . $this->db->table( 'subscriptions' ) . ' WHERE id = %d', $subscription_id );
+		if ( $sub ) {
+			( new \IGBZ\Suite\Modules\MultiTenant\Repository\TenantRepository( $this->db ) )
+				->set_status( (int) $sub['tenant_id'], \IGBZ\Suite\Modules\MultiTenant\Repository\Tenant::STATUS_SUSPENDED );
+		}
+		$this->logger->warning( 'plans', 'Subscription suspended', [ 'subscription_id' => $subscription_id, 'reason' => mb_substr( $reason, 0, 255 ) ] );
+		do_action( 'igbz_subscription_suspended', $subscription_id );
+		return true;
+	}
+
+	/**
+	 * Phase 32 — bring a suspended subscription back. If its period already lapsed during the
+	 * suspension it returns to `past_due` (the renewal sweep picks it up), otherwise `active`.
+	 */
+	public function reactivate( int $subscription_id ): bool {
+		$sub = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'subscriptions' ) . ' WHERE id = %d', $subscription_id );
+		if ( ! $sub || self::STATUS_SUSPENDED !== (string) $sub['status'] ) {
+			return false;
+		}
+
+		$ends   = strtotime( (string) $sub['ends_at'] );
+		$status = ( false !== $ends && $ends > time() ) ? self::STATUS_ACTIVE : self::STATUS_PAST_DUE;
+
+		$this->db->update(
+			'subscriptions',
+			[ 'status' => $status, 'updated_at' => current_time( 'mysql', true ) ],
+			[ 'id' => $subscription_id, 'status' => self::STATUS_SUSPENDED ]
+		);
+
+		( new \IGBZ\Suite\Modules\MultiTenant\Repository\TenantRepository( $this->db ) )
+			->set_status( (int) $sub['tenant_id'], \IGBZ\Suite\Modules\MultiTenant\Repository\Tenant::STATUS_ACTIVE );
+
+		$this->logger->info( 'plans', 'Subscription reactivated', [ 'subscription_id' => $subscription_id, 'status' => $status ] );
+		do_action( 'igbz_subscription_reactivated', $subscription_id );
+		return true;
+	}
+
+	/** Grace window for `past_due` subscriptions before expiry (days). */
+	public function grace_days(): int {
+		return max( 0, (int) igbz()->settings()->int( 'plans.grace_days', 7 ) );
+	}
+
+	/**
+	 * Phase 32 — the grace sweep. A `past_due` subscription may keep serving until
+	 * `ends_at + grace_days`; beyond that it expires and the tenant suspends. Bounded so the
+	 * daily queue job can continue round by round like the renewal sweep.
+	 */
+	public function expire_past_grace( int $limit = 100 ): int {
+		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $this->grace_days() * DAY_IN_SECONDS );
+
+		$due = $this->db->results(
+			'SELECT id, tenant_id FROM ' . $this->db->table( 'subscriptions' ) . '
+			 WHERE status = %s AND ends_at IS NOT NULL AND ends_at <= %s
+			 ORDER BY id ASC LIMIT %d',
+			self::STATUS_PAST_DUE,
+			$cutoff,
+			$limit
+		);
+
+		$expired = 0;
+		foreach ( $due as $row ) {
+			$changed = $this->db->query(
+				'UPDATE ' . $this->db->table( 'subscriptions' ) . '
+				 SET status = %s, updated_at = %s WHERE id = %d AND status = %s',
+				self::STATUS_EXPIRED,
+				current_time( 'mysql', true ),
+				(int) $row['id'],
+				self::STATUS_PAST_DUE
+			);
+			if ( ! $changed ) {
+				continue;
+			}
+			( new \IGBZ\Suite\Modules\MultiTenant\Repository\TenantRepository( $this->db ) )
+				->set_status( (int) $row['tenant_id'], \IGBZ\Suite\Modules\MultiTenant\Repository\Tenant::STATUS_SUSPENDED );
+			$this->logger->warning( 'plans', 'Subscription expired after grace', [ 'subscription_id' => (int) $row['id'] ] );
+			do_action( 'igbz_subscription_expired', (int) $row['id'], (int) $row['tenant_id'] );
+			++$expired;
+		}
+		return $expired;
+	}
+
 	public function cancel( int $subscription_id, bool $immediately = false ): bool {
 		$now  = current_time( 'mysql', true );
 		$data = [ 'auto_renew' => 0, 'cancelled_at' => $now, 'updated_at' => $now ];
@@ -162,7 +265,7 @@ final class PlanService {
 	 * Idempotent per (subscription, period) via the ledger reference code.
 	 */
 	public function renew( int $subscription_id ): bool {
-		$sub = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'subscriptions' ) . ' WHERE id = %d', $subscription_id );
+		$sub = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'subscriptions' ) . ' WHERE id = %d AND tenant_id = %d', $subscription_id, igbz()->tenancy()->id() );
 		if ( ! $sub ) {
 			return false;
 		}

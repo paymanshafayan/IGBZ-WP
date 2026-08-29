@@ -315,10 +315,10 @@ final class Phases2Test extends TestCase {
 		$labels = new LabelPrintingService( $this->db );
 		$gid    = $labels->create_group( 1, 5, 'Morning run', 'express' );
 		$this->assert_true( $gid > 0, 'group created' );
-		$items = $labels->group_shipments( $gid );
+		$items = $labels->group_shipments( $gid, 1 );
 		$this->assert_same( 2, count( $items ), 'both shipments attached' );
 		$this->assert_contains( 'IGBZ-', (string) $items[0]['barcode'], 'barcode generated' );
-		$html = $labels->render_labels( $gid );
+		$html = $labels->render_labels( $gid, 1 );
 		$this->assert_contains( 'Delivery PIN', $html, 'label shows the customer PIN section' );
 	}
 

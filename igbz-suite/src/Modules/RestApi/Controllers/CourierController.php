@@ -137,7 +137,11 @@ final class CourierController extends BaseController {
 	}
 
 	public function chat_get( \WP_REST_Request $request ): \WP_REST_Response {
-		return $this->ok( [ 'items' => $this->courier()->chat( (int) $request->get_param( 'id' ) ) ] );
+		$courier = $this->courier_or_error();
+		if ( ! $courier ) {
+			return $this->fail( 'not_a_courier', __( 'Not a courier.', 'igbz-suite' ), 403 );
+		}
+		return $this->ok( [ 'items' => $this->courier()->chat( (int) $request->get_param( 'id' ), (int) $courier['id'] ) ] );
 	}
 
 	public function chat_send( \WP_REST_Request $request ): \WP_REST_Response {
@@ -149,28 +153,44 @@ final class CourierController extends BaseController {
 			(int) $request->get_param( 'id' ),
 			'courier',
 			sanitize_textarea_field( (string) $request->get_param( 'body' ) ),
-			(int) $courier['tenant_id']
+			(int) $courier['tenant_id'],
+			(int) $courier['id']
 		);
 		return $this->ok( [ 'ok' => true, 'message_id' => $id ], 201 );
 	}
 
 	public function shipment_status( \WP_REST_Request $request ): \WP_REST_Response {
 		$row = igbz()->db()->row(
-			'SELECT status, tracking_code, updated_at FROM ' . igbz()->db()->table( 'ig_shipments' ) . ' WHERE id = %d',
-			(int) $request->get_param( 'id' )
+			'SELECT status, tracking_code, updated_at FROM ' . igbz()->db()->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d',
+			(int) $request->get_param( 'id' ),
+			igbz()->tenancy()->id()
 		);
+		// The tracking code is the customer's bearer proof for a shipment they do not own by user id.
+		if ( $row && ! hash_equals( (string) $row['tracking_code'], (string) $request->get_param( 'tracking_code' ) ) ) {
+			$row = null;
+		}
 		return $row ? $this->ok( $row ) : $this->fail( 'not_found', __( 'Shipment not found.', 'igbz-suite' ), 404 );
 	}
 
 	public function shipment_tracking( \WP_REST_Request $request ): \WP_REST_Response {
-		return $this->ok( [ 'items' => $this->courier()->tracking( (int) $request->get_param( 'id' ) ) ] );
+		$row = igbz()->db()->row(
+			'SELECT id, tracking_code FROM ' . igbz()->db()->table( 'ig_shipments' ) . ' WHERE id = %d AND tenant_id = %d',
+			(int) $request->get_param( 'id' ),
+			igbz()->tenancy()->id()
+		);
+		// Same bearer rule as the status endpoint: no tracking code, no live GPS trail.
+		if ( ! $row || ! hash_equals( (string) $row['tracking_code'], (string) $request->get_param( 'tracking_code' ) ) ) {
+			return $this->fail( 'not_found', __( 'Shipment not found.', 'igbz-suite' ), 404 );
+		}
+		return $this->ok( [ 'items' => $this->courier()->tracking( (int) $row['id'] ) ] );
 	}
 
 	public function cod_app_pay( \WP_REST_Request $request ): \WP_REST_Response {
 		$barcode = (string) $request->get_param( 'shipment_barcode' );
 		$shipment = igbz()->db()->row(
-			'SELECT * FROM ' . igbz()->db()->table( 'ig_shipments' ) . ' WHERE barcode = %s LIMIT 1',
-			$barcode
+			'SELECT * FROM ' . igbz()->db()->table( 'ig_shipments' ) . ' WHERE barcode = %s AND tenant_id = %d LIMIT 1',
+			$barcode,
+			igbz()->tenancy()->id()
 		);
 		if ( ! $shipment ) {
 			return $this->fail( 'not_found', __( 'Shipment not found.', 'igbz-suite' ), 404 );

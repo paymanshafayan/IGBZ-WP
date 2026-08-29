@@ -31,8 +31,16 @@ final class WalletService {
 	public const REASON_ADJUSTMENT  = 'manual_adjustment';
 	public const REASON_IG_REWARD   = 'instagram_reward';
 
+	/** Phase 28 — the reservation lifecycle. */
+	public const REASON_RESERVE         = 'reserve';
+	public const REASON_RESERVE_RELEASE = 'reserve_release';
+	public const REASON_RESERVE_SETTLE  = 'reserve_settlement';
+
 	public const DIRECTION_CREDIT = 'credit';
 	public const DIRECTION_DEBIT  = 'debit';
+
+	/** Phase 28: a record-only entry (zero amount) — currently the settlement mark. */
+	public const DIRECTION_MARK = 'mark';
 
 	public function __construct( private Db $db, private Logger $logger ) {}
 
@@ -57,6 +65,69 @@ final class WalletService {
 		);
 		$this->write_balance( $user_id, $tenant_id, $sum );
 		return round( $sum, 4 );
+	}
+
+	/**
+	 * Phase 28 — the balance invariant for one wallet: the cached balance must equal the ledger
+	 * sum. The ledger is the source of truth; the balance row only exists so reads are O(1).
+	 */
+	public function check_invariant( int $user_id, int $tenant_id = 0 ): bool {
+		$cached = $this->db->scalar(
+			'SELECT balance FROM ' . $this->db->table( 'wallet_balances' ) . ' WHERE user_id = %d AND tenant_id = %d',
+			$user_id,
+			$tenant_id
+		);
+		if ( null === $cached ) {
+			return true; // No cache row yet — nothing can have drifted.
+		}
+		$sum = (float) $this->db->scalar(
+			'SELECT COALESCE(SUM(amount),0) FROM ' . $this->db->table( 'wallet_ledger' ) . ' WHERE user_id = %d AND tenant_id = %d',
+			$user_id,
+			$tenant_id
+		);
+		return abs( (float) $cached - round( $sum, 4 ) ) <= 0.0001;
+	}
+
+	/**
+	 * Phase 28 — reconciliation: bounded keyset walk over every cached balance, comparing it
+	 * against the ledger and repairing drift. Safe to run daily; it never touches a wallet that
+	 * is already consistent.
+	 *
+	 * @return array{checked:int,repaired:int}
+	 */
+	public function reconcile_all( int $batch = 200 ): array {
+		$checked  = 0;
+		$repaired = 0;
+		$after    = 0;
+
+		do {
+			$rows = $this->db->results(
+				'SELECT * FROM ' . $this->db->table( 'wallet_balances' ) . ' WHERE id > %d ORDER BY id ASC LIMIT %d',
+				$after,
+				$batch
+			);
+			foreach ( $rows as $row ) {
+				++$checked;
+				$user_id   = (int) $row['user_id'];
+				$tenant_id = (int) $row['tenant_id'];
+				$sum       = round(
+					(float) $this->db->scalar(
+						'SELECT COALESCE(SUM(amount),0) FROM ' . $this->db->table( 'wallet_ledger' ) . ' WHERE user_id = %d AND tenant_id = %d',
+						$user_id,
+						$tenant_id
+					),
+					4
+				);
+				if ( abs( (float) $row['balance'] - $sum ) > 0.0001 ) {
+					$this->write_balance( $user_id, $tenant_id, $sum );
+					++$repaired;
+					$this->logger->warning( 'wallet', 'balance drift repaired by reconciliation', [ 'user_id' => $user_id, 'tenant_id' => $tenant_id, 'cached' => (float) $row['balance'], 'ledger' => $sum ] );
+				}
+			}
+			$after = $rows ? (int) end( $rows )['id'] : 0;
+		} while ( $rows && $after > 0 );
+
+		return [ 'checked' => $checked, 'repaired' => $repaired ];
 	}
 
 	/**
@@ -100,7 +171,99 @@ final class WalletService {
 		return $this->debit( $user_id, $amount, $reason, $reference_code, [], $tenant_id )->success;
 	}
 
-	/** @param array<string,mixed> $meta */
+	/**
+	 * Phase 28 — reserve funds: a plain debit under the `reserve` reason moves the amount out of
+	 * the available balance so concurrent payment flows cannot double-spend it. Idempotent on
+	 * the reference code, like every other ledger operation.
+	 */
+	public function reserve( int $user_id, float $amount, string $reference_code, int $tenant_id = 0, string $note = '' ): WalletResult {
+		return $this->debit( $user_id, $amount, self::REASON_RESERVE, $reference_code, [], $tenant_id, 0, $note );
+	}
+
+	/**
+	 * Phase 28 — release a reservation: the reserved amount comes back. A reservation can be
+	 * consumed exactly once (release OR settle); the ledger itself enforces it — the release is
+	 * idempotent on the reference code, and a settled reservation refuses to be released.
+	 */
+	public function release_reserve( int $user_id, string $reference_code, int $tenant_id = 0 ): WalletResult {
+		$reservation = $this->find_entry( $user_id, $tenant_id, self::REASON_RESERVE, $reference_code );
+		if ( ! $reservation ) {
+			return WalletResult::failure( 'unknown_reservation', __( 'No such reservation.', 'igbz-suite' ) );
+		}
+		if ( $this->find_entry( $user_id, $tenant_id, self::REASON_RESERVE_SETTLE, $reference_code ) ) {
+			return WalletResult::failure( 'already_settled', __( 'This reservation was already settled.', 'igbz-suite' ) );
+		}
+		return $this->credit( $user_id, abs( (float) $reservation['amount'] ), self::REASON_RESERVE_RELEASE, $reference_code, [], $tenant_id );
+	}
+
+	/**
+	 * Phase 28 — settle a reservation: the reserved money was consumed (an order finalized, a
+	 * payout executed). The reservation debit already moved the funds, so settlement writes a
+	 * zero-amount `mark` entry that permanently records the reservation as consumed — releasing
+	 * it afterwards is refused. The mark is idempotent on the reference code.
+	 */
+	public function settle_reserve( int $user_id, string $reference_code, int $tenant_id = 0 ): WalletResult {
+		$reservation = $this->find_entry( $user_id, $tenant_id, self::REASON_RESERVE, $reference_code );
+		if ( ! $reservation ) {
+			return WalletResult::failure( 'unknown_reservation', __( 'No such reservation.', 'igbz-suite' ) );
+		}
+		if ( $this->find_entry( $user_id, $tenant_id, self::REASON_RESERVE_RELEASE, $reference_code ) ) {
+			return WalletResult::failure( 'already_released', __( 'This reservation was already released.', 'igbz-suite' ) );
+		}
+		return $this->post( $user_id, 0.0, self::REASON_RESERVE_SETTLE, $reference_code, [], $tenant_id, 0, '', false, true );
+	}
+
+	/**
+	 * Phase 28 — refund against an earlier debit. Refund entries carry the reference convention
+	 * `refund:{original_ref}:{refund_ref}`, and the sum of refunds against one original can
+	 * never exceed that original's amount — over-refunding is refused before anything is posted.
+	 * Each refund stays idempotent on its own full reference code.
+	 */
+	public function refund( int $user_id, string $original_reference_code, float $amount, string $refund_reference_code, int $tenant_id = 0, int $order_id = 0 ): WalletResult {
+		if ( $amount <= 0 ) {
+			return WalletResult::failure( 'zero_amount', __( 'Amount must be greater than zero.', 'igbz-suite' ) );
+		}
+		$original = $this->db->row(
+			'SELECT id, amount FROM ' . $this->db->table( 'wallet_ledger' ) . '
+			 WHERE user_id = %d AND tenant_id = %d AND reference_code = %s AND amount < 0
+			 ORDER BY id ASC LIMIT 1',
+			$user_id,
+			$tenant_id,
+			$original_reference_code
+		);
+		if ( ! $original ) {
+			return WalletResult::failure( 'unknown_original', __( 'No such debit to refund against.', 'igbz-suite' ) );
+		}
+
+		$prefix = 'refund:' . $original_reference_code . ':';
+
+		// A replayed refund must report as a duplicate — idempotency first, guards after.
+		$existing = $this->find_entry( $user_id, $tenant_id, self::REASON_REFUND, $prefix . $refund_reference_code );
+		if ( $existing ) {
+			return WalletResult::duplicate( (int) $existing['id'], (float) $existing['balance_after'] );
+		}
+		$refunded = abs(
+			(float) $this->db->scalar(
+				'SELECT COALESCE(SUM(amount),0) FROM ' . $this->db->table( 'wallet_ledger' ) . '
+				 WHERE user_id = %d AND tenant_id = %d AND reason = %s AND reference_code LIKE %s',
+				$user_id,
+				$tenant_id,
+				self::REASON_REFUND,
+				esc_like( $prefix ) . '%'
+			)
+		);
+		if ( $refunded + $amount > abs( (float) $original['amount'] ) + 0.0001 ) {
+			return WalletResult::failure( 'over_refund', __( 'Refund exceeds the original debit.', 'igbz-suite' ) );
+		}
+
+		return $this->credit( $user_id, $amount, self::REASON_REFUND, $prefix . $refund_reference_code, [ 'original_reference' => $original_reference_code ], $tenant_id, $order_id );
+	}
+
+	/**
+	 * @param array<string,mixed> $meta
+	 * @param bool $record_only Phase 28: write a zero-amount `mark` entry (the settlement mark) —
+	 *                          the only path that may post zero.
+	 */
 	private function post(
 		int $user_id,
 		float $signed_amount,
@@ -110,12 +273,13 @@ final class WalletService {
 		int $tenant_id,
 		int $order_id,
 		string $note,
-		bool $enforce_funds
+		bool $enforce_funds,
+		bool $record_only = false
 	): WalletResult {
 		if ( $user_id <= 0 ) {
 			return WalletResult::failure( 'invalid_user', __( 'Invalid wallet owner.', 'igbz-suite' ) );
 		}
-		if ( abs( $signed_amount ) < 0.0001 ) {
+		if ( ! $record_only && abs( $signed_amount ) < 0.0001 ) {
 			return WalletResult::failure( 'zero_amount', __( 'Amount must be greater than zero.', 'igbz-suite' ) );
 		}
 		if ( '' === $reference_code ) {
@@ -134,7 +298,7 @@ final class WalletService {
 
 		try {
 			return $this->db->transaction(
-				function () use ( $user_id, $tenant_id, $signed_amount, $reason, $reference_code, $meta, $order_id, $note, $enforce_funds ) {
+				function () use ( $user_id, $tenant_id, $signed_amount, $reason, $reference_code, $meta, $order_id, $note, $enforce_funds, $record_only ) {
 					$table = $this->db->table( 'wallet_balances' );
 
 					// FOR UPDATE is MySQL-only row locking. SQLite has no such clause and the
@@ -155,10 +319,10 @@ final class WalletService {
 						);
 					}
 					$current = (float) $current;
-					$after   = round( $current + $signed_amount, 4 );
+					$after   = $record_only ? round( $current, 4 ) : round( $current + $signed_amount, 4 );
 
 					$allow_negative = igbz()->settings()->bool( 'wallet.allow_negative', false );
-					if ( $enforce_funds && ! $allow_negative && $after < -0.0001 ) {
+					if ( ! $record_only && $enforce_funds && ! $allow_negative && $after < -0.0001 ) {
 						return WalletResult::failure(
 							'insufficient_funds',
 							__( 'Insufficient wallet balance.', 'igbz-suite' ),
@@ -175,7 +339,9 @@ final class WalletService {
 							'amount'         => $signed_amount,
 							'balance_after'  => $after,
 							'currency'       => $currency,
-							'direction'      => $signed_amount >= 0 ? self::DIRECTION_CREDIT : self::DIRECTION_DEBIT,
+							'direction'      => $record_only
+								? self::DIRECTION_MARK
+								: ( $signed_amount >= 0 ? self::DIRECTION_CREDIT : self::DIRECTION_DEBIT ),
 							'reason'         => $reason,
 							'reference_code' => $reference_code,
 							'order_id'       => $order_id,
@@ -219,7 +385,7 @@ final class WalletService {
 	/** @return array<string,mixed>|null */
 	private function find_entry( int $user_id, int $tenant_id, string $reason, string $reference_code ): ?array {
 		return $this->db->row(
-			'SELECT id, balance_after FROM ' . $this->db->table( 'wallet_ledger' ) . '
+			'SELECT id, amount, balance_after FROM ' . $this->db->table( 'wallet_ledger' ) . '
 			 WHERE user_id = %d AND tenant_id = %d AND reason = %s AND reference_code = %s',
 			$user_id,
 			$tenant_id,

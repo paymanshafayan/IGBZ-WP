@@ -191,7 +191,7 @@ final class LmsDb extends wpdb {
 
 	private static function which( string $sql ): string {
 		// Longest first: lesson_progress also contains lessons' prefix in some statements.
-		$names = [ 'lesson_progress', 'quiz_attempts', 'enrollments', 'quizzes', 'courses', 'lessons' ];
+		$names = [ 'lesson_progress', 'quiz_attempts', 'enrollments', 'quizzes', 'courses', 'lessons', 'tenants' ];
 
 		foreach ( $names as $name ) {
 			if ( str_contains( $sql, 'igbz_' . $name ) ) {
@@ -257,7 +257,7 @@ final class LmsDb extends wpdb {
 		}
 
 		if ( 'enrollments' === $table && str_contains( $sql, 'course_id = ' ) && str_contains( $sql, 'user_id = ' ) ) {
-			$rows = $this->matching( $table, $sql, [ 'course_id', 'user_id' ] );
+			$rows = $this->matching( $table, $sql, [ 'course_id', 'user_id', 'tenant_id' ] );
 			return $rows[0] ?? null;
 		}
 
@@ -284,11 +284,23 @@ final class LmsDb extends wpdb {
 		}
 
 		if ( 'courses' === $table && str_contains( $sql, 'product_id = ' ) ) {
-			$rows = $this->matching( $table, $sql, [ 'product_id' ] );
+			$rows = $this->matching( $table, $sql, [ 'product_id', 'tenant_id' ] );
 			return $rows[0] ?? null;
 		}
 
-		return $this->tables[ $table ][ self::int_of( 'id', $sql ) ] ?? null;
+		// Phase 07: id lookups carry the tenant boundary too; honour it when present.
+		$id = self::int_of( 'id', $sql );
+		foreach ( $this->tables[ $table ] ?? [] as $row ) {
+			if ( (int) $row['id'] !== $id ) {
+				continue;
+			}
+			$tenant = self::value_of( 'tenant_id', $sql );
+			if ( null !== $tenant && (string) ( $row['tenant_id'] ?? '' ) !== $tenant ) {
+				return null;
+			}
+			return $row;
+		}
+		return null;
 	}
 
 	public function get_results( string $sql, $output = null ) {
@@ -503,6 +515,11 @@ final class LmsTest extends TestCase {
 
 		$this->db        = new LmsDb();
 		$GLOBALS['wpdb'] = $this->db;
+
+		// Phase 07 seeds live in tenant 1; object reads now enforce the boundary, so the test
+		// request has to sit inside the same tenant.
+		igbz()->tenancy()->force( 1 );
+		$this->db->seed( 'tenants', [ 'id' => 1, 'slug' => 'test', 'name' => 'Test', 'owner_user_id' => 1, 'status' => 'active', 'plan_id' => 0, 'currency' => 'IRT', 'locale' => 'fa' ] );
 
 		// Every LMS setting the service reads, pinned so a changed default cannot move a test.
 		$settings->set_many(
