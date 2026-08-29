@@ -552,6 +552,19 @@ final class PadoPage {
 				return $ops->run( 0 !== (int) ( $request['id'] ?? 0 ) ? $request : $ops_row );
 			};
 		}
+
+		// Phase 59 — publishing, campaigns and policy changes ride the same contract.
+		$content_ops = [
+			'ig_publish_viral', 'ig_publish_trust', 'ig_publish_lifestyle', 'ig_publish_campaign',
+			'campaign_send', 'policy_change',
+		];
+		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], $content_ops, true ) ) {
+			$cops     = igbz()->get( 'pado.content_ops' );
+			$cops_row = $row;
+			$executor = static function ( array $request ) use ( $cops, $cops_row ): bool {
+				return $cops->run( 0 !== (int) ( $request['id'] ?? 0 ) ? $request : $cops_row );
+			};
+		}
 		$row = $this->approvals->get( $id, $scope );
 		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], [ 'theme_apply', 'theme_rollback' ], true ) ) {
 			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );

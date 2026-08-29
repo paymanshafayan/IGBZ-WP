@@ -85,6 +85,7 @@ $cases = [
 	'DeepInfraAdapterTest',
 	'PermissionQueueTest',
 	'SensitiveOpsTest',
+	'ContentOpsTest',
 ];
 
 foreach ( $cases as $case ) {

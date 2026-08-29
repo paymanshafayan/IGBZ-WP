@@ -121,6 +121,18 @@ final class PadoModule implements ModuleInterface {
 				$c->get( 'payments' )
 			)
 		);
+		// Phase 59 — publishing, campaigns and policy changes on the same queue.
+		$plugin->bind(
+			'pado.content_ops',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\ContentOperationsService => new \IGBZ\Suite\Modules\Pado\Services\ContentOperationsService(
+				$c->db(),
+				$c->logger(),
+				$c->get( 'pado.approvals' ),
+				$c->get( 'ig.content_publish' ),
+				$c->get( 'vip.messages' ),
+				$c->settings()
+			)
+		);
 		$plugin->bind(
 			'pado.ai.deepinfra',
 			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter => new \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter(

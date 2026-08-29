@@ -2121,3 +2121,38 @@ production، نه تزئین.
 ۵. **سکرت‌های کارفرما** (`DEEPINFRA_API_KEY`، `ZERNIO_API_KEY`) فقط در CI معتبرند؛
    در محیط ایجنت پدیدار نیستند (بررسی و ثبت صادقانه؛ مصرف در CI نیازمند workflow —
    بک‌لاگ).
+
+### ۱۱.۱۵ فاز ۵۹ — انتشار، کمپین و سیاست روی صف — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+۱. **سرویس** (`ContentOperationsService`، بایند `pado.content_ops`؛ سازنده: db،
+   logger، approvals، ig.content_publish، vip.messages، settings):
+   - `request_publish`: سه دستهٔ محتوایی دسته‌ای تا ۵۰ ردیف (kind
+     `ig_publish_viral|trust|lifestyle`، سطح متوسط)؛ دستهٔ فروش/کمپین فقط
+     تک‌ردیفی با reason الزامی (`ig_publish_campaign`، سطح بالا)؛ انتشار فوری یا
+     زمان‌بندی (when آینده)؛ کلید idempotency = `publish:{kind}:{h(ids|when)}`.
+   - `request_campaign_send`: پیام به اعضای فعال VIP با سقف ۲۰۰ گیرنده؛ فهرست
+     گیرندگان در executor خوانده می‌شود نه در payload؛ کلید `camp:{h(title|body)}`.
+   - `request_policy_change`: لیست بستهٔ `pado.deepinfra.enabled` (bool) و
+     `pado.deepinfra.daily_token_budget` (int، ۰..۱م)؛ old_value در payload؛ سطح
+     بحرانی؛ کلید `policy:{key}:{h(new)}`.
+   - `run()`: هش payload → سه executor با «نتیجهٔ قابل اثبات» (`record_outcome`
+     در metadata ردیف فقط در حالت claimed). انتشار: توقف در اولین رد؛ محتوای
+     رفته‌شده برگشت‌ناپذیر است (صادقانه). کمپین: توقف در اولین شکست؛ پیام‌های
+     رسیده باقی می‌مانند. سیاست: بازخوانی + جبران به old.
+   - درزهای محافظت‌شده: `load_recipients/publish_now/schedule/thread_for_user/
+     send_message/get_policy/set_policy`؛ برای تست، `ContentPublishService` و
+     `VipMessageService` از final باز شدند (تغییر یک‌کلمه‌ای، الگوی جلسه).
+۲. **UI:** PadoPage شش kind جدید را در `handle_decide` به `pado.content_ops->run()`
+   می‌سپارد (همان قرارداد claim/complete فاز ۵۷).
+۳. **تست:** `ContentOpsTest` ۱۲ سناریو (دسته‌ای، زمان‌بندی، کمپین فروش الزام
+   reason/تک‌ردیفی، توقف در رد، idempotency، دستکاری، ارسال به اعضا، توقف در شکست،
+   سقف ۲۰۰، سیاست با old روی رکورد، جبران سیاست، کلید/دسته/سقف نامعتبر). مجموعه
+   **۱۴۵۲۷/۷۳** · لینت **۵۰۰۴/۰**.
+۴. **تأیید زنده:** دود ۱۶گامی `/?igbz_content_smoke=1` همه‌سبز (زمان‌بندی واقعی
+   ig_content، رد صادقانهٔ انتشار بدون اتصال با outcome، ارسال واقعی به دو عضو
+   فعال، سیاست واقعی با بازگشت از مسیر صف) + ویژوال کرومیوم
+   (`visual-testing/phase-59/`). اجرای مجدد دود روی idempotency درست خورد.
+۵. **تحقیق (قاعدهٔ ۱۰):** سطح‌بندی HITL بر اساس برگشت‌ناپذیری/بردِ پرتو — تأیید
+   دسته‌ای فقط برای اعمال برگشت‌پذیر (۱۰–۵۰تایی)، یک‌به‌یک برای پول/تعهد عمومی،
+   فقط‌انسان برای سیاست؛ و الزام «اعمال فقط همان payload تصویب‌شده + ثبت آنچه
+   واقعاً اجرا شد» — هر سه در طراحی (سقف اختیار، هش payload، outcome) لحاظ شد.
