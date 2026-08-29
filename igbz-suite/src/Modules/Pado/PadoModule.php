@@ -107,5 +107,19 @@ final class PadoModule implements ModuleInterface {
 		$plugin->bind( 'pado.gateway', static fn ( Plugin $c ) => new PadoGateway( $c->http(), $c->logger() ) );
 		$plugin->bind( 'pado.validator', static fn () => new ThemeValidator() );
 		$plugin->bind( 'pado.themes', static fn ( Plugin $c ) => new ThemeService( $c->db() ) );
+
+		// Phase 56 — the versioned inference plane: toolbox allowlist + the sole
+		// version-one provider. Activation flags default to off (ADR-0004 §4).
+		$plugin->bind( 'pado.ai.toolbox', static fn (): \IGBZ\Suite\Modules\Pado\Ai\AiToolbox => new \IGBZ\Suite\Modules\Pado\Ai\AiToolbox() );
+		$plugin->bind(
+			'pado.ai.deepinfra',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter => new \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter(
+				$c->http(),
+				$c->db(),
+				$c->logger(),
+				$c->settings(),
+				$c->get( 'pado.ai.toolbox' )
+				)
+		);
 	}
 }

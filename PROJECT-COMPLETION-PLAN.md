@@ -1653,11 +1653,30 @@ analytics پروفایل متصل از طریق همان لولهٔ Zernio (فر
 
 ### ۲۳.۱۰ موج هفت — پادو
 
-#### فاز ۵۶ — adapter مستقل DeepInfra، schema و ابزار
+#### فاز ۵۶ — adapter مستقل DeepInfra، schema و ابزار — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 قرارداد نسخه‌دار `AiProviderInterface`/`DeepInfraAdapter`، اجرای درخواست از حساب مستقل
 فروشگاه بدون ذخیرهٔ کلید در IGBZ، تفکیک داده از دستور، allowlist ابزار، بودجه، timeout،
 ثبت هزینه و ممنوعیت اجرای کد تولیدی. فعال‌سازی مشروط به benchmark فارسی و صلاحیت جغرافیایی.
+
+**نتیجهٔ محقق‌شده:** قرارداد نسخه‌دار (`CONTRACT_VERSION=1`) + `AiRequest`/`AiResult`
+(فلگ `executed` همیشه false) + `AiToolbox` (allowlist چهار ابزارِ فقط‌خواندنی/درافتیِ v1 با
+JSON Schema و اعتبارسنج آرگومان در بک‌اند) + `DeepInfraAdapter` روی endpoint رسمی
+سازگار با OpenAI (تحقیق فاز: `api.deepinfra.com/v1/openai/chat/completions`، پاسخ
+`usage.estimated_cost` دارد). **کلید فقط زمان اجرا:** از حساب مستقل فروشگاه در درخواست
+می‌آید، دقیقاً یک فراخوانی HTTPS، هرگز در گزینه/لاگ/دفتر ذخیره نمی‌شود (تست‌شده).
+**سه گیت فعال‌سازی** (فعال‌سازی مدیر + قبولی benchmark فارسی + صلاحیت جغرافیایی) همگی
+پیش‌فرض خاموش؛ بدون هر سه = `provider_disabled` صادقانه. **تفکیک داده/دستور:** system فقط
+از Playbook؛ پیام داده فقط user/assistant — قاچاق نقش system پیش از هر ترافیک رد می‌شود.
+**ابزار:** فقط نام‌های مجازِ Playbook ∩ allowlist به مدل عرضه می‌شود؛ tool call برگشتی با
+نامِ خارج از allowlist یا آرگومانِ خارج از schema حذف می‌شود. **بودجه:** سقف
+`max_tokens` (≤۴۰۹۶) + سقف توکن روزانهٔ tenant (`pado.deepinfra.daily_token_budget`) از
+دفتر `ig_ai_credit_ledger` (ردیف‌های `ai_usage` با delta=0 و meta مدل/توکن/هزینه؛ dedupe
+روی reference)؛ timeout مشبک ۵–۱۲۰. endpoint فقط HTTPS؛ لیست مدل پین‌شده (پیش‌فرض سه
+مدل ADR-0004 §4، قابل تصویب عملیاتی). تست `DeepInfraAdapterTest` با ۱۳ سناریو: مجموعه
+**۱۴۲۷۰/۷۰** · لینت ۳۱۷/۰ · دود زندهٔ ۷گامی + تست ویژوال کرومیوم
+(`visual-testing/phase-56/`). فعال‌سازی واقعی منتظر تأمین حساب DeepInfra و تأیید
+benchmark از کارفرما است (بک‌لاگ ثبت‌شده).
 
 #### فاز ۵۷ — صف مجوز اتمیک
 

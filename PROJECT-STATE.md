@@ -2033,3 +2033,34 @@ production، نه تزئین.
    واقعی ۲۰۰ (فهرست قرعه‌کشی، verify بازمشتق، insights، رقبا). **تست ویژوال (قاعدهٔ ۱۲):**
    کرومیوم واقعی — پیشخوان سالم (سرریز ۰، خطای JS ۰) + fetch زندهٔ REST از مرورگر؛
    اسکرین‌شات در `visual-testing/phase-55/` (بینایی این جلسه خاموش؛ بازبینی DOM/CSS طبق §۸).
+
+### ۱۱.۱۲ فاز ۵۶ — adapter مستقل DeepInfra، قرارداد نسخه‌دار و ابزار — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+۱. **قرارداد نسخه‌دار** (`Modules/Pado/Ai/AiProviderInterface.php`): `CONTRACT_VERSION=1`
+   + `provider()`/`contract_version()`/`run()`؛ درvariants در خود قرارداد: کلید فقط
+   زمانِ اجرا، خروجی داده است نه برنامه، جدا بودن صفحهٔ داده/دستور.
+۲. **DeepInfraAdapter** (بایند `pado.ai.deepinfra`): endpoint پیش‌فرض رسمی
+   `https://api.deepinfra.com/v1/openai/chat/completions` (تحقیق فاز؛ سازگار با OpenAI؛
+   usage شامل estimated_cost)؛ سه گیت `pado.deepinfra.enabled|benchmark_passed|
+   geo_eligible` همگی پیش‌فرض خاموش؛ لیست مدل پین‌شده (پیش‌فرض ADR-0004 §4)؛
+   max_tokens ≤ 4096؛ timeout ۵–۱۲۰؛ فقط HTTPS؛ retries=0.
+۳. **کلید زمانِ اجرا:** `AiRequest->api_key` از حساب مستقل فروشگاه؛ فقط در هدر همان یک
+   فراخوانی؛ `to_log_context()` عمداً بدون کلید؛ تست‌ها اثبات می‌کنند کلید به گزینه/کوئری/
+   دفتر نمی‌رسد.
+۴. **تفکیک داده/دستور:** system فقط از `AiRequest->system` (Playbook)؛ پیام‌های داده فقط
+   user/assistant — نقش system/tool در داده = `data_role_forbidden` قبل از هر ترافیک.
+۵. **ابزار** (`AiToolbox`، بایند `pado.ai.toolbox`): چهار ابزار v1 فقط‌خواندنی/درافتی
+   (product_search/insight_read/competitor_read/content_draft) با JSON Schema؛ ارسال فقط
+   اشتراکِ Playbook∩allowlist؛ tool call برگشتی فقط با نام مجاز + آرگومان معتبر
+   (`valid_args`: نوع/الزامی/additionalProperties=false) عبور می‌کند.
+۶. **هزینه/بودجه:** ردیف `ai_usage` در `ig_ai_credit_ledger` (delta=0 — حسابداری، نه
+   تغییر اعتبار؛ meta: مدل/توکن‌ها/estimated_cost؛ dedupe روی reference)؛ سقف روزانهٔ
+   tenant از جمع meta امروز، پیش از فراخوانی چک می‌شود (`daily_budget_exhausted`).
+۷. **ممنوعیت اجرا:** هیچ eval/include/exec؛ خروجی (متن یا tool call) فقط داده؛
+   `AiResult->executed` همیشه false و تست `generated_output_is_never_executed` با
+   payload مخرب PHP اثبات می‌کند دست‌نخورده برمی‌گردد.
+۸. **تست:** `DeepInfraAdapterTest` ۱۳ سناریو. مجموعه **۱۴۲۷۰/۷۰** · لینت ۳۱۷/۰ ·
+   INVENTORY همگام. **تأیید زنده:** دود `/?igbz_ai_smoke=1` (کانتینر/گیت‌ها/تفکیک/
+   مدل/رسیدن صادقانه تا سیم) همه‌سبز + تست ویژوال کرومیوم مرکز پادو
+   (`visual-testing/phase-56/`). فعال‌سازی واقعی = منتظر حساب DeepInfra + تأیید
+   benchmark کارفرما (بک‌لاگ ثبت‌شده در PLAN §۲۳.۷ و هندآف).

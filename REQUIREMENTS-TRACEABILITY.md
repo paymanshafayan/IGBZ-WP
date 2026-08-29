@@ -366,12 +366,12 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| PAD-001 | adapter ساختاریافتهٔ DeepInfra با حساب مستقل فروشگاه | ADR-0004؛ DESIGN-PADO §۲۲ | PadoGateway قدیمی | شکاف: `AiProviderInterface`، adapter و قرارداد عمومی کد ندارند |
+| PAD-001 | adapter ساختاریافتهٔ DeepInfra با حساب مستقل فروشگاه | ADR-0004؛ DESIGN-PADO §۲۲؛ DESIGN-LEGAL-AUTH §۷.۷.۵۶ | AiProviderInterface v1 + DeepInfraAdapter + AiToolbox؛ DeepInfraAdapterTest ۱۳ سناریو؛ دود زنده | ✅ فاز ۵۶ (کد/گیت‌ها/بودجه/هزینه). فعال‌سازی واقعی منتظر حساب DeepInfra + تأیید benchmark کارفرما |
 | PAD-002 | صف مجوز اتمیک و دقیقاً یک‌بار | ADR-0004؛ منبع HITL | ApprovalRequestService | شکاف بحرانی race؛ فقط مسیر قالب سیم‌کشی واقعی دارد |
 | PAD-003 | عملیات حساس همگی از صف عبور کنند | ADR-0004؛ PADO | labelها در PadoPage | شکاف: قیمت/refund/حذف/کمپین/انتشار اجراکننده ندارند |
 | PAD-004 | قالب امن، preview و live tenant-scoped | ADR-0001/0003/0004؛ PADO §۱۸–۲۲ | ThemeValidator/Service | سه خروجی پذیرفته شد؛ اعتبارسنج/preview/Multisite و خط لولهٔ بازبینی PHP شکاف بحرانی‌اند |
 | PAD-005 | چهار Playbook، حافظه، KPI و حلقهٔ یادگیری | ADR-0004؛ Growth prompt | طراحی سندی | شکاف: schema/version/provenance و یادگیری از فروش/Insight/campaign کد ندارد |
-| PAD-006 | دفاع در برابر تزریق، ابزار، هزینه و نشت secret | ADR-0004؛ OWASP Agentic | کنترل محدود | ابزار allowlist، بودجه، benchmark فارسی، منع نگهداشت credential و آزمون خصمانه هنوز کد ندارد |
+| PAD-006 | دفاع در برابر تزریق، ابزار، هزینه و نشت secret | ADR-0004؛ OWASP Agentic | allowlist ابزار + اعتبارسنج آرگومان + بودجه روزانه + کلید فقط زمانِ اجرا + تفکیک داده/دستور + گیت benchmark/جغرافیا (۵۶) | ✅ لایهٔ provider (۵۶)؛ آزمون خصمانهٔ کامل فاز ۶۴ باقی است |
 
 ### ۶.۱۰ API، تجربه و عملیات
 

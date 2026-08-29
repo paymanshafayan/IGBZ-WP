@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 237,
-    "source_php_sha256": "369bff7b2aa845ff826a3de1eaba69d7823ad19439e9f8bcece0b257c8552d04",
+    "source_php_count": 242,
+    "source_php_sha256": "6acca96e9ba8c4cbbf18b3f7567a5f0591944e529067be65929be2f162b6695b",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -224,6 +224,11 @@
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletResult.php",
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletService.php",
       "igbz-suite/src/Modules/Pado/Admin/PadoPage.php",
+      "igbz-suite/src/Modules/Pado/Ai/AiProviderInterface.php",
+      "igbz-suite/src/Modules/Pado/Ai/AiRequest.php",
+      "igbz-suite/src/Modules/Pado/Ai/AiResult.php",
+      "igbz-suite/src/Modules/Pado/Ai/AiToolbox.php",
+      "igbz-suite/src/Modules/Pado/Ai/DeepInfraAdapter.php",
       "igbz-suite/src/Modules/Pado/PadoModule.php",
       "igbz-suite/src/Modules/Pado/Services/ApprovalRequestService.php",
       "igbz-suite/src/Modules/Pado/Services/PadoGateway.php",
@@ -295,11 +300,11 @@
       "Hub": 11,
       "Instagram": 39,
       "MultiTenant": 102,
-      "Pado": 6,
+      "Pado": 11,
       "RestApi": 27
     },
     "support_php_count": 32,
-    "all_plugin_php_count": 311
+    "all_plugin_php_count": 317
   },
   "database": {
     "version": 43,
@@ -807,7 +812,7 @@
     "action_scheduler_calls_in_source": 0
   },
   "provider_candidates": {
-    "count": 42,
+    "count": 44,
     "files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Fx/Contracts/FxPayoutAdapterInterface.php",
@@ -850,13 +855,15 @@
       "igbz-suite/src/Modules/MultiTenant/Translation/HttpTranslationAdapter.php",
       "igbz-suite/src/Modules/MultiTenant/Translation/TranslatorAdapterInterface.php",
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletGateway.php",
+      "igbz-suite/src/Modules/Pado/Ai/AiProviderInterface.php",
+      "igbz-suite/src/Modules/Pado/Ai/DeepInfraAdapter.php",
       "igbz-suite/src/Modules/Pado/Services/PadoGateway.php"
     ],
     "note": "Filename-based candidate inventory only; the active provider list is a Phase 02 decision and providers must not be aggregated into one implementation phase."
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 72,
+    "php_file_count": 73,
     "php_files": [
       "igbz-suite/tests/AffiliateHardenTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
@@ -870,6 +877,7 @@
       "igbz-suite/tests/CronScheduleTest.php",
       "igbz-suite/tests/CryptoTest.php",
       "igbz-suite/tests/DailyJobsTest.php",
+      "igbz-suite/tests/DeepInfraAdapterTest.php",
       "igbz-suite/tests/DomainLifecycleTest.php",
       "igbz-suite/tests/DomainOrderTest.php",
       "igbz-suite/tests/DomainRegistrationTest.php",
@@ -931,7 +939,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 69,
+    "main_case_count": 70,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -1001,7 +1009,8 @@
       "ProductRegistrationTest",
       "ContentPublishTest",
       "VipChannelTest",
-      "GrowthIntelTest"
+      "GrowthIntelTest",
+      "DeepInfraAdapterTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,
