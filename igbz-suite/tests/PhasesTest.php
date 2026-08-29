@@ -267,7 +267,10 @@ final class PhasesTest extends TestCase {
 		$this->assert_true( $id > 0, 'shipment created' );
 
 		$this->assert_false( $svc->mark_delivered( $id, '0000' ), 'wrong PIN is rejected' );
-		$this->assert_true( $svc->mark_delivered( $id, '1234' ), 'correct PIN confirms delivery' );
+		// Phase 43: delivery is legal only from at_destination, so walk the machine.
+		global $wpdb;
+		$wpdb->update( $wpdb->prefix . 'igbz_ig_shipments', [ 'status' => 'at_destination' ], [ 'id' => $id ] );
+		$this->assert_true( $svc->mark_delivered( $id, '1234' ), 'correct PIN confirms delivery from at_destination' );
 	}
 
 	public function test_vod_signed_url_is_expiring_and_ip_bound(): void {

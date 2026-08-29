@@ -33,6 +33,11 @@ final class CourierService {
 		if ( ! $courier ) {
 			return false;
 		}
+		// Phase 43: only a draft can be handed to a courier.
+		$row = $this->db->row( 'SELECT status FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d', $shipment_id );
+		if ( ! $row || ! LogisticsService::can_transition( (string) $row['status'], LogisticsService::STATUS_ASSIGNED ) ) {
+			return false;
+		}
 		$this->db->update(
 			'ig_shipments',
 			[
@@ -112,11 +117,15 @@ final class CourierService {
 	/** 'Arrived at destination' — open the shipment page (sequential flow). */
 	public function arrived( int $shipment_id, int $courier_id ): bool {
 		$row = $this->db->row(
-			'SELECT id FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
+			'SELECT id, status FROM ' . $this->db->table( 'ig_shipments' ) . ' WHERE id = %d AND courier_id = %d',
 			$shipment_id,
 			$courier_id
 		);
 		if ( ! $row ) {
+			return false;
+		}
+		// Phase 43: arriving requires having been on the way (or assigned).
+		if ( ! LogisticsService::can_transition( (string) $row['status'], LogisticsService::STATUS_AT_DESTINATION ) ) {
 			return false;
 		}
 		$this->db->update(
@@ -139,6 +148,10 @@ final class CourierService {
 		}
 		if ( '' !== (string) $shipment['delivery_pin'] && ! hash_equals( (string) $shipment['delivery_pin'], $pin ) ) {
 			return [ 'ok' => false, 'error' => 'wrong_pin' ];
+		}
+		// Phase 43: delivery is legal only from at_destination.
+		if ( ! LogisticsService::can_transition( (string) $shipment['status'], LogisticsService::STATUS_DELIVERED ) ) {
+			return [ 'ok' => false, 'error' => 'bad_state' ];
 		}
 
 		$this->db->update(
