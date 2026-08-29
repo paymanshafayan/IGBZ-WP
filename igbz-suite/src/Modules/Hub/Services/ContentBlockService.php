@@ -143,7 +143,7 @@ final class ContentBlockService {
 					'page_key'   => 'instagram',
 					'menu_title' => __( 'Instagram assistant', 'igbz-suite' ),
 					'title'      => __( 'Content and DM funnels on autopilot', 'igbz-suite' ),
-					'summary'    => __( 'Manus researches your niche, designs the graphics and reels, writes the caption and publishes at your peak hours. ManyChat turns every comment into a direct message with the link.', 'igbz-suite' ),
+					'summary'    => __( 'The store publishes through its single social provider (Zernio official OAuth): posts, inbox and analytics from one place. Comment-to-DM answers land in the rebuilt inbox flow.', 'igbz-suite' ),
 					'bullets'    => [
 						__( 'Trend research and graphics', 'igbz-suite' ),
 						__( 'Reels with captions and hashtags', 'igbz-suite' ),

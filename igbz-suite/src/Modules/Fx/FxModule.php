@@ -11,19 +11,6 @@ use IGBZ\Suite\Support\ModuleInterface;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Plugin;
 
-/**
- * FX payment gateway — the foreign-currency intermediary.
- *
- * Store admins without a foreign card top up a USD credit wallet with Rials
- * (existing Iranian gateways, +fx.fee_percent on top of the USD amount, per
- * the client's rule). The actual Manus/ManyChat bills are paid by the
- * operator's payout adapter. The module never queues a task: it only gates a
- * tenant's own credit at dispatch time.
- *
- * Off by default; `multitenant` must be enabled for the Rial top-ups, and
- * `instagram` for the Manus meter.
- */
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -31,12 +18,12 @@ defined( 'ABSPATH' ) || exit;
  *
  * Store admins without a foreign card top up a USD credit wallet with Rials
  * (existing Iranian gateways, +fx.fee_percent on top of the USD amount, per
- * the client's rule). The actual Manus/ManyChat bills are paid by the
- * operator's payout adapter. The module never queues a task: it only gates a
- * tenant's own credit at dispatch time.
+ * the client's rule). The provider bills are paid by the operator's payout
+ * adapter. The module never queues a task: it only gates a tenant's own
+ * credit at dispatch time.
  *
  * Off by default; `multitenant` must be enabled for the Rial top-ups, and
- * `instagram` for the Manus meter.
+ * `instagram` for the social meter.
  */
 final class FxModule implements ModuleInterface {
 
@@ -55,7 +42,7 @@ final class FxModule implements ModuleInterface {
 	}
 
 	public function description(): string {
-		return __( 'Foreign-currency intermediary: Rial top-ups for a USD credit wallet, automatic payout adapter, and per-task credit gating for Manus.', 'igbz-suite' );
+		return __( 'Foreign-currency intermediary: Rial top-ups for a USD credit wallet, automatic payout adapter, and per-task credit gating for social work.', 'igbz-suite' );
 	}
 
 	public function register( Plugin $plugin ): void {

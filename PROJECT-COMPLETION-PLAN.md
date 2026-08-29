@@ -1514,11 +1514,27 @@ profile-scoped رمزنگاری‌شده دریافت می‌کند و کلید 
 در فهرست `TenantOffboarding` نیز ثبت شد. آداپتر واقعی پشت قرارداد `ZernioAdapterInterface`
 است و تأیید زندهٔ اندپوینت‌ها به فاز `PV-ZERNIO-*` موکول است. تست `ZernioConnectTest` با ۵
 سناریو. تست ۲۵۲۹/۶۷ · لینت ۳۲۶/۰. جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۴۹`.
-#### فاز ۵۰ — مهاجرت به تنها provider اجتماعی
+#### فاز ۵۰ — مهاجرت به تنها provider اجتماعی — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 ساخت adapter رسمی Zernio و migration کنترل‌شدهٔ داده؛ حذف Manus، ChatPlace، ManyChat و
 fallbackهای اجتماعی از container، تنظیمات، endpoint، UI و Runbook؛ افزودن گارد معماری و
 آزمون برای جلوگیری از ورود کانال Instagram مبتنی بر session در Agent Reach.
+
+**نتیجهٔ محقق‌شده:** `ZernioClient` (همهٔ مسیرها از طریق تنظیمات `zernio.*` قابل جابجایی
+هستند؛ دو صفحهٔ کلید — profile با کلید مرکزی، social با کلید scoped خودش + `Idempotency-Key`)
+پشت `ZernioAdapterInterface` قرار گرفت و `ZernioSocialService` روی قرارداد
+`SocialProvider` (تنها پیاده‌سازی مجاز: `zernio`، گارد `SocialProviders` کلیدهای ممنوعه را
+`social_provider_not_allowed` رد می‌کند) resolve می‌شود. `SocialMigrationService` هر ساعت
+(`ig.social.migrate`، حد ۲۰) دو مرحلهٔ روزن‌ماننده را جلو می‌برد — ensure profile با کلید
+مرکزی، سپس stamping `legacy_deprecated_at` بر حساب‌های قدیمی؛ تکرار مرحلهٔ تمام‌شده
+`already_done` می‌گیرد و مستأجر به‌محض تمام‌شدن هر دو مرحله از فهرست due خارج می‌شود
+(نیمه‌کاره‌ها — حتی با کلید مرکزی خالی — در فهرست می‌مانند تا round بعد). UI صفحهٔ حساب
+دکمهٔ «مهاجرت حساب‌های قدیمی» + فهرست روزن نشان می‌دهد و Runbook مرحلهٔ v38 را دارد. حذف:
+۲۴ فایل کلاینت/سرویس قدیمی، ۶ فایل تست، کلیدهای secret و تنظیمات و مسیرهای وب‌هوک قدیمی
+و دکمه‌های UI و سطرهای Runbook. گارد معماری (`SocialArchitectureGuardTest`) شناسه‌های
+معماریِ حذف‌شده — نام‌های کلاس، bindingهای container، پیشوند کلیدهای secret، نشانه‌های
+کانال session — را در کل `src/` نگه می‌دارد تا بازگشت هر بخشِ قدیمی تست را می‌شکند.
+تست ۱۳۰۷۳/۶۴ · لینت ۲۹۶/۰. جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۰`.
 
 #### فاز ۵۱ — Inbox و comment-to-DM با Zernio
 

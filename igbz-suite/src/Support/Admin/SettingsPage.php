@@ -6,9 +6,6 @@ use IGBZ\Suite\Support\Crypto;
 use IGBZ\Suite\Support\Logger;
 use IGBZ\Suite\Support\Modules;
 use IGBZ\Suite\Support\Settings;
-use IGBZ\Suite\Modules\Instagram\Messaging\ConfigurableDmGateway;
-use IGBZ\Suite\Modules\Instagram\Messaging\ManyChatGateway;
-use IGBZ\Suite\Modules\Instagram\Webhooks\ManyChatWebhook;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -56,11 +53,7 @@ final class SettingsPage {
 			$tabs['marketplace'] = __( 'Marketplace', 'igbz-suite' );
 		}
 		if ( Modules::enabled( Modules::INSTAGRAM ) ) {
-			$tabs['manus']    = __( 'Manus', 'igbz-suite' );
-			$tabs['manychat'] = __( 'ManyChat', 'igbz-suite' );
 			$tabs['zernio']   = __( 'Zernio', 'igbz-suite' );
-			$tabs['dm']       = __( 'Direct messages', 'igbz-suite' );
-			$tabs['intake']   = __( 'Product registration', 'igbz-suite' );
 			$tabs['vip']      = __( 'VIP channel', 'igbz-suite' );
 		}
 		if ( Modules::enabled( Modules::HUB ) ) {
@@ -349,264 +342,23 @@ final class SettingsPage {
 					[ 'key' => 'marketplace.cache_ttl', 'label' => __( 'Feed cache TTL (seconds)', 'igbz-suite' ), 'type' => 'number', 'min' => 0, 'max' => 86400 ],
 				];
 
-			case 'manus':
-				return [
-					[ 'key' => 'manus.api_key', 'label' => __( 'Shared Manus API key (free trial)', 'igbz-suite' ), 'type' => 'password', 'help' => __( 'Only used by accounts set to the free trial. Accounts on their own keys never touch it, so tasks are billed to the tenant.', 'igbz-suite' ) ],
-					[
-						'key'     => 'manus.agent_profile',
-						'label'   => __( 'Agent profile', 'igbz-suite' ),
-						'type'    => 'select',
-						'options' => [
-							'manus-1.6'      => 'manus-1.6',
-							'manus-1.6-lite' => 'manus-1.6-lite',
-							'manus-1.6-max'  => 'manus-1.6-max',
-						],
-					],
-					[ 'key' => 'manus.project_id', 'label' => __( 'Manus project id', 'igbz-suite' ), 'help' => __( 'Optional. Groups every task the plugin creates.', 'igbz-suite' ) ],
-					[ 'key' => 'manus.locale', 'label' => __( 'Task locale', 'igbz-suite' ), 'placeholder' => 'fa-IR' ],
-					[ 'key' => 'manus.content_language', 'label' => __( 'Caption language', 'igbz-suite' ), 'placeholder' => 'Persian (Farsi)' ],
-					[ 'key' => 'manus.auto_generate', 'label' => __( 'Generate content automatically', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'Niche research, graphics and reels are produced by Manus without manual briefs.', 'igbz-suite' ) ],
-					[ 'key' => 'manus.auto_schedule', 'label' => __( 'Auto schedule at peak hours', 'igbz-suite' ), 'type' => 'checkbox' ],
-					[ 'key' => 'instagram.autopublish', 'label' => __( 'Publish without manual approval', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'Off means each piece waits in the queue until someone approves it.', 'igbz-suite' ) ],
-					[ 'key' => 'manus.collect_insights', 'label' => __( 'Collect engagement insights', 'igbz-suite' ), 'type' => 'checkbox' ],
-					[ 'key' => 'manus.default_peak_hours', 'label' => __( 'Fallback peak hours', 'igbz-suite' ), 'help' => __( 'Comma separated HH:MM values, used until enough insights exist.', 'igbz-suite' ) ],
-					[ 'key' => 'manus.min_gap_minutes', 'label' => __( 'Minimum gap between posts (minutes)', 'igbz-suite' ), 'type' => 'number', 'min' => 0, 'max' => 1440 ],
-					[ 'key' => 'manus.reel_seconds', 'label' => __( 'Target reel length (seconds)', 'igbz-suite' ), 'type' => 'number', 'min' => 5, 'max' => 90 ],
-					[ 'key' => 'manus.weekly_slots', 'label' => __( 'Posts to plan per week', 'igbz-suite' ), 'type' => 'number', 'min' => 1, 'max' => 42, 'help' => __( 'How many pieces the auto planner queues for each account every week.', 'igbz-suite' ) ],
-					[ 'key' => 'manus.poll_interval', 'label' => __( 'Task poll interval (seconds)', 'igbz-suite' ), 'type' => 'number', 'min' => 60, 'max' => 3600 ],
-					[ 'key' => 'manus.account_concurrency', 'label' => __( 'Concurrent Manus tasks per account', 'igbz-suite' ), 'type' => 'number', 'min' => 0, 'max' => 20, 'help' => __( 'Optional ceiling on how many tasks one account may have in flight. Leave at 0 to let accounts on their own API keys use the capacity they pay for; trial accounts are always limited to what is left of their free quota.', 'igbz-suite' ) ],
-					[ 'key' => 'trial.enabled', 'label' => __( 'Offer the free trial', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'Lets a new account borrow the shared keys above for a limited time.', 'igbz-suite' ) ],
-					[ 'key' => 'trial.days', 'label' => __( 'Trial length (days)', 'igbz-suite' ), 'type' => 'number', 'min' => 1, 'max' => 365 ],
-					[ 'key' => 'trial.task_quota', 'label' => __( 'Trial task quota', 'igbz-suite' ), 'type' => 'number', 'min' => 0, 'max' => 10000, 'help' => __( 'Manus tasks one trial account may run in total, ever. The default of 1 makes the trial a single sample request, after which the account must add its own keys. 0 means unlimited and only the expiry date applies.', 'igbz-suite' ) ],
-				];
-
-			case 'manychat':
-				return [
-					[ 'key' => 'manychat.api_key', 'label' => __( 'Shared ManyChat API key (free trial)', 'igbz-suite' ), 'type' => 'password', 'help' => __( 'Settings &rarr; API in ManyChat, Pro required. A ManyChat key drives one page only, so this is the trial page; every other account needs its own key.', 'igbz-suite' ) ],
-					
-					[ 'key' => 'manychat.async_reply', 'label' => __( 'Reply asynchronously', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'ManyChat waits about 10 seconds. With this on the webhook answers instantly and the link is pushed back with setCustomField + sendFlow.', 'igbz-suite' ) ],
-					[ 'key' => 'manychat.link_field_name', 'label' => __( 'Custom field for the link', 'igbz-suite' ), 'placeholder' => 'igbz_link' ],
-					[ 'key' => 'manychat.coupon_field_name', 'label' => __( 'Custom field for the coupon', 'igbz-suite' ), 'placeholder' => 'igbz_coupon' ],
-					[ 'key' => 'manychat.default_flow_ns', 'label' => __( 'Default flow namespace', 'igbz-suite' ), 'placeholder' => 'content20180221085508_278589' ],
-					[ 'key' => 'manychat.button_label', 'label' => __( 'Button label', 'igbz-suite' ) ],
-					[ 'key' => 'manychat.duplicate_message', 'label' => __( 'Message on a repeat request', 'igbz-suite' ), 'type' => 'textarea' ],
-					[ 'key' => 'instagram.unique_coupons', 'label' => __( 'Issue a unique coupon per subscriber', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'A single-use WooCommerce coupon is generated for each person the funnel answers.', 'igbz-suite' ) ],
-					[ 'key' => 'instagram.coupon_ttl_days', 'label' => __( 'Coupon lifetime (days)', 'igbz-suite' ), 'type' => 'number', 'min' => 1, 'max' => 365 ],
-					[
-						'key'   => 'manychat.webhook_url',
-						'label' => __( 'Webhook URL', 'igbz-suite' ),
-						'type'  => 'readonly',
-					],
-				];
-
 			case 'zernio':
 				return [
-					[ 'key' => 'zernio.central_api_key', 'label' => __( 'Central Zernio API key', 'igbz-suite' ), 'type' => 'password', 'help' => __( 'The one IGBZ payment account key (ADR-0004). It only ever provisions profiles; stores receive profile-scoped keys and never see this one.', 'igbz-suite' ) ],
-					[ 'key' => 'zernio.base_url', 'label' => __( 'Zernio API base URL', 'igbz-suite' ), 'placeholder' => 'https://api.zernio.com' ],
-					[ 'key' => 'zernio.profiles_path', 'label' => __( 'Profiles path', 'igbz-suite' ), 'placeholder' => '/v1/profiles' ],
-					[ 'key' => 'zernio.profile_keys_path', 'label' => __( 'Profile keys path', 'igbz-suite' ), 'placeholder' => '/v1/profiles' ],
-					[ 'key' => 'zernio.auth_scheme', 'label' => __( 'Auth scheme', 'igbz-suite' ), 'placeholder' => 'Bearer' ],
+					[ 'key' => 'zernio.central_api_key', 'label' => __( 'Central Zernio API key', 'igbz-suite' ), 'type' => 'password', 'help' => __( 'The one IGBZ payment account key (ADR-0004). It only ever provisions store profiles; each store receives its own profile-scoped key and never sees this one.', 'igbz-suite' ) ],
+					[ 'key' => 'zernio.base_url', 'label' => __( 'API base URL', 'igbz-suite' ), 'placeholder' => 'https://zernio.com/api/v1', 'help' => __( 'Everything below is a path under this base, so a proxy or staging host changes one field.', 'igbz-suite' ) ],
+					[ 'key' => 'zernio.timeout', 'label' => __( 'Request timeout (seconds)', 'igbz-suite' ), 'type' => 'number', 'min' => 5, 'max' => 300 ],
+					[ 'key' => 'zernio.profiles_path', 'label' => __( 'Profiles path', 'igbz-suite' ), 'placeholder' => '/profiles' ],
+					[ 'key' => 'zernio.api_keys_path', 'label' => __( 'API keys path (scoped key issue/revoke)', 'igbz-suite' ), 'placeholder' => '/api-keys' ],
+					[ 'key' => 'zernio.connect_path', 'label' => __( 'Instagram connect path (official OAuth)', 'igbz-suite' ), 'placeholder' => '/connect/instagram' ],
+					[ 'key' => 'zernio.accounts_path', 'label' => __( 'Accounts path', 'igbz-suite' ), 'placeholder' => '/accounts' ],
+					[ 'key' => 'zernio.posts_path', 'label' => __( 'Posts path (publish + status + retry)', 'igbz-suite' ), 'placeholder' => '/posts' ],
+					[ 'key' => 'zernio.dm_path', 'label' => __( 'Direct messages path', 'igbz-suite' ), 'placeholder' => '/messages' ],
+					[ 'key' => 'zernio.story_reply_path', 'label' => __( 'Story reply path', 'igbz-suite' ), 'placeholder' => '/messages/story-reply' ],
+					[ 'key' => 'zernio.inbox_path', 'label' => __( 'Inbox path (conversations, comments, mentions, reviews)', 'igbz-suite' ), 'placeholder' => '/inbox' ],
+					[ 'key' => 'zernio.analytics_path', 'label' => __( 'Analytics path', 'igbz-suite' ), 'placeholder' => '/analytics' ],
+					[ 'key' => 'zernio.audio_path', 'label' => __( 'Trending audio path', 'igbz-suite' ), 'placeholder' => '/audio/trending', 'help' => __( 'Reserved for the catalog voice flow (phase 53); live semantics are verified in the PV-ZERNIO phase.', 'igbz-suite' ) ],
 				];
 
-			case 'dm':
-				return [
-					[
-						'key'     => 'dm.provider',
-						'label'   => __( 'Preferred provider', 'igbz-suite' ),
-						'type'    => 'select',
-						'options' => [
-							ManyChatGateway::ID       => __( 'ManyChat', 'igbz-suite' ),
-							ConfigurableDmGateway::ID => __( 'Custom endpoint', 'igbz-suite' ),
-						],
-						'help'    => __( 'The first choice for every message. When the preferred provider cannot handle a particular kind of message, any other configured provider that can is used instead — so paid video can be delivered elsewhere while funnels stay on ManyChat.', 'igbz-suite' ),
-					],
-					[
-						'key'   => 'dm.capabilities_summary',
-						'label' => __( 'What can be delivered now', 'igbz-suite' ),
-						'type'  => 'readonly',
-						'help'  => __( 'ManyChat cannot send video or share a post to Instagram — the channel has no such message type. Paid video therefore needs a custom endpoint below, otherwise those deliveries will be refused rather than attempted.', 'igbz-suite' ),
-					],
-					[
-						'key'         => 'dm.custom.title',
-						'label'       => __( 'Custom provider name', 'igbz-suite' ),
-						'placeholder' => __( 'Custom endpoint', 'igbz-suite' ),
-						'help'        => __( 'Shown in logs and on delivery screens so failures name a real vendor.', 'igbz-suite' ),
-					],
-					[
-						'key'         => 'dm.custom.endpoint',
-						'label'       => __( 'Endpoint URL', 'igbz-suite' ),
-						'placeholder' => 'https://api.example.com/v1/messages',
-						'help'        => __( 'Leave empty to disable the custom provider. This must be the vendor\'s documented send endpoint, not their website.', 'igbz-suite' ),
-					],
-					[
-						'key'   => 'dm.custom.api_key',
-						'label' => __( 'API key', 'igbz-suite' ),
-						'type'  => 'password',
-					],
-					[
-						'key'         => 'dm.custom.auth_header',
-						'label'       => __( 'Auth header', 'igbz-suite' ),
-						'placeholder' => 'Authorization',
-					],
-					[
-						'key'         => 'dm.custom.auth_scheme',
-						'label'       => __( 'Auth scheme', 'igbz-suite' ),
-						'placeholder' => 'Bearer',
-						'help'        => __( 'Prefixed to the key, so it is sent as "Bearer abc123". Clear this when the vendor wants the bare key.', 'igbz-suite' ),
-					],
-					[
-						'key'     => 'dm.custom.method',
-						'label'   => __( 'HTTP method', 'igbz-suite' ),
-						'type'    => 'select',
-						'options' => [
-							'POST' => 'POST',
-							'PUT'  => 'PUT',
-						],
-					],
-					[
-						'key'         => 'dm.custom.capabilities',
-						'label'       => __( 'Supported message kinds', 'igbz-suite' ),
-						'placeholder' => 'text,image,video,media_share,flow',
-						'help'        => __( 'Comma separated, from: text, image, video, media_share, flow. Only claim what the vendor really supports — anything listed here will be sent to them, and anything omitted is routed elsewhere or refused. "media_share" means the vendor can attach one of your own published posts; "flow" means it can run a named automation.', 'igbz-suite' ),
-					],
-					[
-						'key'         => 'dm.custom.body_template',
-						'label'       => __( 'Request body template', 'igbz-suite' ),
-						'type'        => 'textarea',
-						'placeholder' => ConfigurableDmGateway::DEFAULT_TEMPLATE,
-						'help'        => __( 'JSON matching the vendor\'s documented request. Placeholders are replaced with real values: {{subscriber_id}}, {{text}}, {{url}}, {{caption}}, {{media_ref}}, {{flow_ref}}, {{capability}}, {{account_id}}, {{ig_user_id}}, {{ig_username}}, {{button_label}}, {{button_url}}. Fields whose placeholder has no value for a given message are removed, so one template can serve every message kind.', 'igbz-suite' ),
-					],
-					[
-						'key'         => 'dm.custom.message_id_path',
-						'label'       => __( 'Message ID path in the response', 'igbz-suite' ),
-						'placeholder' => 'data.message_id',
-						'help'        => __( 'Dotted path to the sent message identifier, recorded against the delivery. Optional.', 'igbz-suite' ),
-					],
-					[
-						'key'   => 'dm.custom.timeout',
-						'label' => __( 'Timeout (seconds)', 'igbz-suite' ),
-						'type'  => 'number',
-						'min'   => 5,
-						'max'   => 120,
-					],
-				];
-
-			case 'intake':
-				return [
-					[
-						'key'   => 'intake.enabled',
-						'label' => __( 'Enable registration from the app', 'igbz-suite' ),
-						'type'  => 'checkbox',
-						'help'  => __( 'Shopkeepers photograph a product in the app and the assistant does the rest. No product is ever created through the WooCommerce admin.', 'igbz-suite' ),
-					],
-					[
-						'key'         => 'intake.sku_prefix',
-						'label'       => __( 'SKU prefix', 'igbz-suite' ),
-						'placeholder' => 'IGBZ',
-						'help'        => __( 'Warehouse SKUs look like IGBZ-4F2K. This is the inventory code on invoices and packing lists — customers never see it.', 'igbz-suite' ),
-					],
-					[
-						'key'   => 'intake.code_digits',
-						'label' => __( 'Customer code length', 'igbz-suite' ),
-						'type'  => 'number',
-						'min'   => 4,
-						'max'   => 12,
-						'help'  => __( 'The number customers comment to get the purchase link is the product ID, padded to this many digits — product 47 becomes 0047. Digits are used because they are easy to type on a Persian keyboard. Four is the minimum: shorter codes get typed under posts by accident and would send links to people who never asked.', 'igbz-suite' ),
-					],
-					[
-						'key'   => 'intake.quality_threshold',
-						'label' => __( 'Minimum photo score', 'igbz-suite' ),
-						'type'  => 'number',
-						'min'   => 0,
-						'max'   => 100,
-						'help'  => __( 'Photos scoring below this are sent back with the reasons so the shopkeeper can retake them. Raise it for a stricter catalogue, lower it if too many honest photos are being refused.', 'igbz-suite' ),
-					],
-					[
-						'key'     => 'intake.product_status',
-						'label'   => __( 'New products are', 'igbz-suite' ),
-						'type'    => 'select',
-						'options' => [
-							'publish' => __( 'Published immediately', 'igbz-suite' ),
-							'draft'   => __( 'Saved as drafts for review', 'igbz-suite' ),
-							'pending' => __( 'Submitted for review', 'igbz-suite' ),
-						],
-					],
-					[
-						'key'   => 'intake.image_style',
-						'label' => __( 'Product image style', 'igbz-suite' ),
-						'type'  => 'textarea',
-						'help'  => __( 'Describes the background and lighting the assistant places every product on. The product itself is never altered.', 'igbz-suite' ),
-					],
-					[
-						'key'   => 'intake.funnel_reply',
-						'label' => __( 'Direct message text', 'igbz-suite' ),
-						'type'  => 'textarea',
-						'help'  => __( 'Sent when somebody comments a product code. Use {link} for the purchase link and {coupon} for a coupon. Leave empty for the default.', 'igbz-suite' ),
-					],
-					[
-						'key'   => 'intake.funnel_per_user_limit',
-						'label' => __( 'Deliveries per person per product', 'igbz-suite' ),
-						'type'  => 'number',
-						'min'   => 1,
-						'max'   => 20,
-					],
-					[
-						'key'         => 'intake.languages',
-						'label'       => __( 'Translate listings into', 'igbz-suite' ),
-						'placeholder' => 'en, ar',
-						'help'        => __( 'Only needed when no multilingual plugin is installed. With Polylang or WPML active the language list is read from them and real translated products are created. Without one, translations are stored on the product and turned into real products the day you install a plugin.', 'igbz-suite' ),
-					],
-					[
-						'key'         => 'intake.default_language',
-						'label'       => __( 'Original language', 'igbz-suite' ),
-						'placeholder' => 'fa',
-						'help'        => __( 'Also only needed when no multilingual plugin is installed.', 'igbz-suite' ),
-					],
-					[
-						'key'   => 'stt.enabled',
-						'label' => __( 'Accept voice input', 'igbz-suite' ),
-						'type'  => 'checkbox',
-						'help'  => __( 'Shopkeepers can dictate the product description and the video brief instead of typing.', 'igbz-suite' ),
-					],
-					[
-						'key'     => 'stt.provider',
-						'label'   => __( 'Speech-to-text engine', 'igbz-suite' ),
-						'type'    => 'select',
-						'options' => [
-							'manus' => __( 'Manus (no setup, slower)', 'igbz-suite' ),
-							'http'  => __( 'Custom endpoint (Whisper or similar)', 'igbz-suite' ),
-						],
-						'help'    => __( 'Manus needs no configuration but answers in minutes rather than seconds because it runs as a task. A dedicated endpoint is near-instant. Whichever is chosen, Manus is the fallback if it fails.', 'igbz-suite' ),
-					],
-					[
-						'key'         => 'stt.endpoint',
-						'label'       => __( 'Endpoint URL', 'igbz-suite' ),
-						'placeholder' => 'https://api.openai.com/v1/audio/transcriptions',
-					],
-					[ 'key' => 'stt.api_key', 'label' => __( 'Endpoint API key', 'igbz-suite' ), 'type' => 'password' ],
-					[ 'key' => 'stt.model', 'label' => __( 'Model', 'igbz-suite' ), 'placeholder' => 'whisper-1' ],
-					[ 'key' => 'stt.language', 'label' => __( 'Spoken language', 'igbz-suite' ), 'placeholder' => 'fa' ],
-					[
-						'key'         => 'stt.file_field',
-						'label'       => __( 'Audio field name', 'igbz-suite' ),
-						'placeholder' => 'file',
-						'help'        => __( 'The multipart field the service expects the recording under. Whisper uses "file"; some services use "audio".', 'igbz-suite' ),
-					],
-					[ 'key' => 'stt.auth_header', 'label' => __( 'Authentication header', 'igbz-suite' ), 'placeholder' => 'Authorization' ],
-					[
-						'key'         => 'stt.auth_scheme',
-						'label'       => __( 'Authentication scheme', 'igbz-suite' ),
-						'placeholder' => 'Bearer',
-						'help'        => __( 'Leave empty to send the key on its own, which is what X-API-KEY style headers expect.', 'igbz-suite' ),
-					],
-					[
-						'key'         => 'stt.response_path',
-						'label'       => __( 'Transcript field', 'igbz-suite' ),
-						'placeholder' => 'text',
-						'help'        => __( 'Where the transcript sits in the reply, dotted for nested values. Leave empty and the usual field names are tried.', 'igbz-suite' ),
-					],
-					[ 'key' => 'stt.timeout', 'label' => __( 'Request timeout (seconds)', 'igbz-suite' ), 'type' => 'number', 'min' => 10, 'max' => 600 ],
-				];
 
 			case 'vip':
 				return [
@@ -938,90 +690,10 @@ final class SettingsPage {
 		return isset( $tabs[ $tab ] ) ? $tab : 'general';
 	}
 
-	/**
-	 * A plain-language answer to "can this install deliver a paid video right now?".
-	 *
-	 * Capability is read from the gateways themselves rather than restated here, so the screen
-	 * cannot drift away from what the code will actually do. ManyChat keys are per-account, so at
-	 * this level we can only report the kinds of message it is able to carry, not whether any one
-	 * account is connected.
-	 */
-	private function dm_capabilities_summary(): string {
-		$labels = [
-			'text'        => __( 'text', 'igbz-suite' ),
-			'image'       => __( 'image', 'igbz-suite' ),
-			'video'       => __( 'video', 'igbz-suite' ),
-			'media_share' => __( 'shared post', 'igbz-suite' ),
-			'flow'        => __( 'automation', 'igbz-suite' ),
-		];
-
-		$lines     = [];
-		$available = [];
-
-		// The gateways are bound by the Instagram module. This tab is only offered while that
-		// module is on, but a status line must never be the thing that takes the screen down.
-		$gateways = [];
-		foreach ( [ 'ig.dm_manychat', 'ig.dm_custom' ] as $service ) {
-			try {
-				$gateways[] = igbz()->get( $service );
-			} catch ( \Throwable $e ) {
-				unset( $e );
-			}
-		}
-
-		if ( ! $gateways ) {
-			return __( 'Messaging providers are unavailable because the Instagram module is not loaded.', 'igbz-suite' );
-		}
-
-		foreach ( $gateways as $gateway ) {
-			// Checked before capabilities are counted: a provider that declares video but has no
-			// endpoint delivers nothing, and must not suppress the warning below.
-			if ( $gateway instanceof ConfigurableDmGateway && ! $gateway->is_configured() ) {
-				$lines[] = sprintf(
-					/* translators: %s: provider name. */
-					__( '%s — no endpoint set, so it is not used.', 'igbz-suite' ),
-					$gateway->title()
-				);
-				continue;
-			}
-
-			$can = [];
-			foreach ( array_keys( $labels ) as $capability ) {
-				if ( $gateway->supports( $capability ) ) {
-					$can[]       = $labels[ $capability ];
-					$available[] = $capability;
-				}
-			}
-
-			$lines[] = sprintf(
-				/* translators: 1: provider name, 2: comma separated list of message kinds. */
-				__( '%1$s — %2$s.', 'igbz-suite' ),
-				$gateway->title(),
-				$can
-					/* translators: separator between items in a list, e.g. "text, image". */
-					? implode( __( ', ', 'igbz-suite' ), $can )
-					: __( 'nothing configured', 'igbz-suite' )
-			);
-		}
-
-		$missing = array_diff( [ 'video', 'media_share' ], $available );
-		if ( $missing ) {
-			$lines[] = __( 'Paid video cannot be delivered yet: no configured provider can send a video or share a post.', 'igbz-suite' );
-		}
-
-		return implode( ' ', $lines );
-	}
-
 	/** @param array<string,mixed> $field */
 	private function display_value( array $field ): mixed {
 		$key = (string) $field['key'];
 
-		if ( 'manychat.webhook_url' === $key ) {
-			return rest_url( ManyChatWebhook::NAMESPACE . '/manychat/comment' );
-		}
-		if ( 'dm.capabilities_summary' === $key ) {
-			return $this->dm_capabilities_summary();
-		}
 		if ( 'purge_on_uninstall' === $key ) {
 			return '1' === get_option( 'igbz_purge_on_uninstall', '0' );
 		}
@@ -1041,8 +713,8 @@ final class SettingsPage {
 				__( 'Tenants, wallet, subscription plans, BNPL, affiliate, LMS, payment gateways, OTP and marketplace feeds.', 'igbz-suite' ),
 			],
 			Modules::INSTAGRAM   => [
-				__( 'Instagram automation (Manus + ManyChat)', 'igbz-suite' ),
-				__( 'Content research and design through Manus, auto publishing at peak hours, and comment-to-DM funnels through ManyChat.', 'igbz-suite' ),
+				__( 'Instagram commerce (single social provider: Zernio)', 'igbz-suite' ),
+				__( 'Official OAuth connection per store, publishing, inbox and analytics through the one social provider — plus the VIP channel and the AI media studio.', 'igbz-suite' ),
 			],
 			Modules::HUB         => [
 				__( 'Master site hub', 'igbz-suite' ),

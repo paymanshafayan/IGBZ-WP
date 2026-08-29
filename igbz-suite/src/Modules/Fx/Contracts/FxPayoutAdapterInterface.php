@@ -6,14 +6,14 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Automatic foreign-currency payout.
  *
- * The provider pays the tenant's Manus/ManyChat bills on the operator's
+ * The provider pays the tenant's provider bills on the operator's
  * behalf (virtual card funded with USDT, an exchange, or anything else the
  * operator wires up). The adapter is deliberately vendor-agnostic, like the
  * PSP gateways: `igbz_register_fx_payout_providers` feeds the registry and
  * `fx.payout_provider` picks the active one.
  *
  * Reconciliation comes from the provider's own card/webhook events, not from
- * the Manus/ManyChat APIs — neither exposes a public "bill" endpoint.
+ * the social provider's APIs — none of them expose a public "bill" endpoint.
  */
 interface FxPayoutAdapterInterface {
 

@@ -306,7 +306,7 @@ final class StatusPage {
 			[
 				'label'  => __( 'HTTPS', 'igbz-suite' ),
 				'status' => is_ssl() || str_starts_with( (string) home_url(), 'https://' ) ? 'ok' : 'warn',
-				'detail' => __( 'ManyChat and Manus only call HTTPS callbacks.', 'igbz-suite' ),
+				'detail' => __( 'Provider webhooks only call HTTPS callbacks, so the public site must serve over HTTPS.', 'igbz-suite' ),
 			],
 		];
 

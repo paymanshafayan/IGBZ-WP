@@ -105,6 +105,7 @@ final class Schema {
 			'ig_glossary_terms',
 			'ig_intl_consents',
 			'ig_zernio_profiles',
+			'ig_social_migration',
 		];
 	}
 
@@ -529,6 +530,7 @@ final class Schema {
 			trial_started_at DATETIME NULL,
 			trial_expires_at DATETIME NULL,
 			trial_tasks_used INT NOT NULL DEFAULT 0,
+			legacy_deprecated_at DATETIME NULL,
 			timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Tehran',
 			niche VARCHAR(191) NOT NULL DEFAULT '',
 			brand_voice TEXT NULL,
@@ -1590,6 +1592,7 @@ final class Schema {
 			instagram_account_id VARCHAR(64) NOT NULL DEFAULT '',
 			status VARCHAR(16) NOT NULL DEFAULT 'pending',
 			key_enc TEXT NULL,
+			key_id VARCHAR(64) NOT NULL DEFAULT '',
 			key_version INT NOT NULL DEFAULT 0,
 			webhook_secret_enc TEXT NULL,
 			connected_at DATETIME NULL,
@@ -1598,6 +1601,25 @@ final class Schema {
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY tenant (tenant_id)
+		) {$charset};";
+
+		// Phase 50 (ADR-0004 §6): the controlled-migration ledger. One row per
+		// tenant per step; a finished step never re-runs and a pending step is
+		// retried by the hourly round. The legacy credentials themselves stay
+		// where they are (encrypted, stamped on ig_accounts) — erasure belongs
+		// to offboarding, not to migration.
+		$sql[] = "CREATE TABLE {$p}ig_social_migration (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			step VARCHAR(32) NOT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'pending',
+			detail VARCHAR(255) NOT NULL DEFAULT '',
+			payload_hash VARCHAR(64) NOT NULL DEFAULT '',
+			attempts INT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_step (tenant_id,step)
 		) {$charset};";
 
 		return $sql;

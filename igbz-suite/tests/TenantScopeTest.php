@@ -4,7 +4,6 @@ use IGBZ\Suite\Modules\MultiTenant\Bnpl\BnplService;
 use IGBZ\Suite\Modules\MultiTenant\Gamification\AiCreditsService;
 use IGBZ\Suite\Modules\MultiTenant\Lms\LmsService;
 use IGBZ\Suite\Modules\Fx\FxAccountsService;
-use IGBZ\Suite\Modules\Instagram\AiStudio\GiveawayService;
 use IGBZ\Suite\Modules\MultiTenant\Logistics\CourierService;
 use IGBZ\Suite\Modules\MultiTenant\Logistics\LogisticsService;
 use IGBZ\Suite\Modules\MultiTenant\Marketplace\MarketplaceService;
@@ -93,26 +92,20 @@ final class TenantScopeTest extends TestCase {
 		$this->marketplace_links_stay_inside_their_tenant();
 		$this->master_payment_hold_is_per_tenant();
 		$this->courier_chat_needs_an_owned_shipment();
-		$this->fx_and_giveaway_objects_stay_inside_their_tenant();
+		$this->fx_objects_stay_inside_their_tenant();
 	}
 
-	private function fx_and_giveaway_objects_stay_inside_their_tenant(): void {
+	private function fx_objects_stay_inside_their_tenant(): void {
 		$db = $this->scoped_db(
 			[
-				'tenants'      => self::TENANTS,
-				'fx_accounts'  => [ 8 => [ 'id' => 8, 'tenant_id' => 1, 'provider' => 'zernio', 'status' => 'active' ] ],
-				'ig_giveaways' => [ 4 => [ 'id' => 4, 'tenant_id' => 1, 'account_id' => 1, 'post_id' => 'p1', 'status' => 'open', 'title' => 'g' ] ],
+				'tenants'     => self::TENANTS,
+				'fx_accounts' => [ 8 => [ 'id' => 8, 'tenant_id' => 1, 'provider' => 'zernio', 'status' => 'active' ] ],
 			]
 		);
 		$fx = new FxAccountsService( $db );
 
 		$this->assert_true( null !== $this->in_tenant( 1, fn () => $fx->get( 8 ) ), 'fx account readable in own tenant' );
 		$this->assert_same( null, $this->in_tenant( 2, fn () => $fx->get( 8 ) ), 'fx account id from another tenant resolves to nothing' );
-
-		$giveaway = new GiveawayService( $db, new Logger( igbz()->settings() ) );
-		$foreign    = $this->in_tenant( 2, fn () => $giveaway->draw( 4 ) );
-		$this->assert_false( $foreign['ok'], 'giveaway draw refused outside its tenant' );
-		$this->assert_same( 'Giveaway not found.', (string) $foreign['message'], 'foreign giveaway reads as not found' );
 	}
 
 	private function lms_objects_stay_inside_their_tenant(): void {

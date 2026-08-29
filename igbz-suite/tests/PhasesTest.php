@@ -10,7 +10,6 @@ declare( strict_types=1 );
 use IGBZ\Suite\Modules\MultiTenant\Gamification\AiCreditsService;
 use IGBZ\Suite\Modules\MultiTenant\Lms\LmsVodService;
 use IGBZ\Suite\Modules\MultiTenant\Logistics\LogisticsService;
-use IGBZ\Suite\Modules\Instagram\AiStudio\GiveawayService;
 use IGBZ\Suite\Support\Db;
 
 /** In-memory double for the phase tables. */
@@ -213,7 +212,6 @@ final class PhasesTest extends TestCase {
 		$this->test_delivery_requires_the_pin();
 		$this->test_vod_signed_url_is_expiring_and_ip_bound();
 		$this->test_ai_credits_grant_is_idempotent_and_spend_is_capped();
-		$this->test_giveaway_draws_from_real_hits_once();
 	}
 
 	public function test_route_categorisation_follows_settings(): void {
@@ -315,24 +313,6 @@ final class PhasesTest extends TestCase {
 		$this->assert_same( 'insufficient', $over['error'], 'reason named' );
 	}
 
-	public function test_giveaway_draws_from_real_hits_once(): void {
-		$this->boot();
 
-		$this->phdb->seed( 'ig_funnels', [ 'id' => 1, 'ig_post_id' => '178-abc', 'tenant_id' => 1 ] );
-		foreach ( [ 's1', 's2', 's3' ] as $i => $sub ) {
-			$this->phdb->seed( 'ig_funnel_hits', [ 'funnel_id' => 1, 'manychat_subscriber_id' => $sub, 'ig_username' => 'user' . $i ] );
-		}
 
-		$svc = new GiveawayService( $this->db, new \IGBZ\Suite\Support\Logger( igbz()->settings() ) );
-		$created = $svc->create( 1, 0, '178-abc', 'Test giveaway' );
-		$this->assert_true( $created['ok'], 'giveaway created' );
-
-		$draw = $svc->draw( $created['giveaway_id'] );
-		$this->assert_true( $draw['ok'], 'draw succeeded' );
-		$this->assert_true( in_array( $draw['winner_subscriber'], [ 'user0', 'user1', 'user2' ], true ), 'winner is one of the real entries' );
-
-		$again = $svc->draw( $created['giveaway_id'] );
-		$this->assert_false( $again['ok'], 'a second draw is refused' );
-		$this->assert_contains( 'Already drawn', $again['message'], 'status named' );
-	}
 }

@@ -6,10 +6,10 @@ defined( 'ABSPATH' ) || exit;
 /**
  * The assistant, as the product-registration flow needs it.
  *
- * ManusService is a large class — accounts, content rows, publishing, insights — and the intake
- * pipeline uses a narrow slice of it: start one of six tasks, and read JSON out of the answer.
- * Naming that slice keeps the dependency honest, and it is what lets a different agent be dropped
- * in later without touching the state machine, which is the same promise
+ * The rebuilt product-registration agent (phase 52) is a focused class — it starts one of a few
+ * tasks and reads JSON out of the answer. Naming that slice keeps the dependency honest, and it
+ * is what lets a different agent be dropped in later without touching the state machine, which
+ * is the same promise
  * PublisherInterface / ContentGeneratorInterface already make for the content side.
  *
  * Every task-starting method returns the provider's task id, or '' when the job was refused. They

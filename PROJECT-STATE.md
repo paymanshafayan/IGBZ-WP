@@ -1763,3 +1763,38 @@ visual-testing/phase-02-adr-0004-pado-zernio.png
 visual-testing/design-instagram-pado-zernio.png
 visual-testing/prompt-instagram-growth-pado.png
 ```
+
+### ۱۱.۶ پلن فاز ۵۰ — مهاجرت به تنها provider اجتماعی (در جریان، مجوز کارفرما ۱۴۰۵/۰۶/۰۶ «شروع کن»)
+
+**هدف:** ساخت adapter رسمی Zernio برای تمام صفحهٔ اجتماعی، مهاجرت کنترل‌شدهٔ دادهٔ
+legacy، و حذف کامل Manus/ChatPlace/ManyChat و fallbackهای اجتماعی از container،
+تنظیمات، endpoint، UI و اسناد + گارد معماری علیه کانال session-based اینستاگرام (Agent Reach).
+مرجع: `ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md §۵-۷` و
+`DESIGN-INSTAGRAM-PADO-ZERNIO.md §۱،§۱۵`. تحقیق به‌روز (قاعدهٔ ۱۰) روی مستندات رسمی
+`docs.zernio.com` انجام شد: base `/api/v1`، profile به‌ازای هر مشتری، کلیدهای profile-scoped
+از `POST /api-keys` با `scope=profiles`، اتصال OAuth از `/connect/instagram?profileId=`،
+انتشار `POST /posts` با `Idempotency-Key`، inbox یکپارچه `/inbox/*`، analytics `/analytics`،
+وب‌هوک با امضا و dedupe رویداد.
+
+**بخش‌های اجرا:**
+1. `ZernioAdapterInterface`/`ZernioClient` — قرارداد کامل: profile، کلید (با key_id)،
+   اتصال OAuth، list accounts، انتشار/تطبیق/retry، دایرکت، پاسخ استوری، inbox، analytics،
+   audio ترند، health، حذف profile. همهٔ مسیرها config-driven با پیش‌فرض رسمی.
+2. اسکیمای v38 (۸۶ جدول): ستون `key_id` روی `ig_zernio_profiles`، ستون
+   `legacy_deprecated_at` روی `ig_accounts`، جدول `ig_social_migration` (دفترچهٔ
+   مهاجرت مستأجر-محور).
+3. `SocialMigrationService` + جاب `ig.social.migrate` (پخش‌بینی ساعتی به الگوی فاز ۲۵):
+   اطمینان از profile ← غیرفعال‌سازی اعتباری legacy با مهر زمان (کلیدها رمزنگاری‌شده
+   دست‌نخورده می‌مانند — حذف نهایی در offboarding) ← ثبت هر گام در دفترچه.
+   REST: `GET /igbz/v1/ig/social/status` + `POST /igbz/v1/ig/social/migrate` (ادمین).
+4. موج حذف: کلاینت‌ها/هوک‌ها/گیت‌وی‌های Manus، ManyChat، ChatPlace، fallback دایرکت
+   `dm.custom`، Speech به‌عنوان fallback Manus، و جریان‌های وابسته (scheduler، funnels،
+   subscribers، intake، insights، giveaways) + صفحات ادمین متناظر + کنترلر intake +
+   کلیدهای تنظیمات و تب‌های فرم. فلوهای بازمی‌سازند: ۵۱ (inbox/DM)، ۵۲ (ثبت محصول)،
+   ۵۳ (انتشار/صدا)، ۵۵ (giveaway/insights).
+5. `SocialProviders` (گارد معماری): تنها provider مجاز `zernio` است؛ هر ثبت/استفاده از
+   سایر channelها (از جمله session-based Agent Reach) استثناء می‌دهد.
+   `SocialArchitectureGuardTest`: پیمایش استاتیک src برای شناسه‌های integration ممنوع
+   (کلاس‌ها، bindingها، کلیدهای تنظیمات، مارکرهای session) + آزمون منفی runtime.
+6. به‌روزرسانی: DriftGuard (۸۶/۳۸)، offboarding، Fx metering (حذف شارژ legacy)،
+   StatusPage/PlansPage/READMEها/ماتریس ردیابی.

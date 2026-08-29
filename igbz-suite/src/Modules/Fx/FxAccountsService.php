@@ -6,9 +6,11 @@ use IGBZ\Suite\Support\Db;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Per-tenant foreign accounts (the ManyChat page per tenant, or the tenant's
- * own Manus account). Each row maps to a provider and a billing day; the
- * monthly bill is created from it and settled from the tenant's FX wallet.
+ * Per-tenant foreign accounts (the social provider account per tenant, or
+ * the tenant's own provider account). Each row maps to a provider and a
+ * billing day; the monthly bill is created from it and settled from the
+ * tenant's FX wallet. Phase 50: legacy providers no longer bill — the
+ * mapping machinery stays for the single provider's plan model.
  */
 final class FxAccountsService {
 

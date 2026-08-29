@@ -10,11 +10,12 @@ defined( 'ABSPATH' ) || exit;
  * description and, later, the video brief — and the engine that turns it into text is a moving
  * target: OpenAI Whisper, a self-hosted faster-whisper, or one of the Iranian providers, each
  * with its own field names and response shape. So the plugin never names one: it talks to this
- * interface, `HttpSpeechToText` covers every vendor that accepts a multipart upload and answers
- * with JSON, and `ManusSpeechToText` is the always-available fallback.
+ * interface, and the HTTP engine covers every vendor that accepts a multipart upload and
+ * answers with JSON. The rebuilt voice flow (phase 53) registers its engine(s) on this
+ * interface.
  *
  * Add another engine by implementing this interface and registering it on the
- * `igbz_speech_to_text_engines` filter; the one named by `stt.provider` wins.
+ * `igbz_speech_to_text_engines` filter.
  */
 interface SpeechToTextInterface {
 

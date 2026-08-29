@@ -18,10 +18,6 @@ final class Settings {
 
 	/** @var string[] Keys whose values are encrypted at rest. */
 	private const SECRETS = [
-		'manus.api_key',
-		'manus.webhook_token',
-		'manychat.api_key',
-		'manychat.webhook_token',
 		'payments.zarinpal.merchant_id',
 		'payments.idpay.api_key',
 		'payments.nextpay.api_key',
@@ -32,8 +28,6 @@ final class Settings {
 		'otp.smsir.api_key',
 		'lms.video_hmac_secret',
 		'hub.vip_link_secret',
-		'stt.api_key',
-		'dm.custom.api_key',
 		'pado.api_key',
 		// Phase 05 (API-KEYS.md §5 audit): the 22 password fields previously stored and
 		// re-rendered in plaintext. DriftGuardTest keeps this list in lockstep with the forms.

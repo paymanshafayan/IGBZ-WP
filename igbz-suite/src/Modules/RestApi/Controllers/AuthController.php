@@ -23,8 +23,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * Port note: the original advertised an "Instagram business login" option that Meta does not allow
  * for personal accounts, and it is impossible here anyway because the Graph API integration was
- * deliberately replaced by Manus and ManyChat. The advertised options are therefore phone OTP and
- * username/password only, driven by what is actually configured.
+ * deliberately replaced by the single social provider (Zernio official OAuth, phase 50). The
+ * advertised options are therefore phone OTP and username/password only, driven by what is
+ * actually configured.
  */
 final class AuthController extends BaseController {
 

@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  * Every Iranian exchange exposes roughly the same three operations — read a
  * price, place a buy order, request a withdrawal — behind different URLs and
  * auth conventions, so the whole adapter is configuration-driven (the same
- * approach as HttpSpeechToText): base URL, price/buy/withdraw paths, the JSON
+ * approach as the other config-driven HTTP adapters: base URL, price/buy/withdraw paths, the JSON
  * path to the price, and the auth header scheme. The defaults match Nobitex.
  *
  * The buy and withdraw requests are emitted with a `match`able reference in

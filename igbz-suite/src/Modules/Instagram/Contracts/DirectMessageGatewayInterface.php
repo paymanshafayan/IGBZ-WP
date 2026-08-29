@@ -7,16 +7,15 @@ defined( 'ABSPATH' ) || exit;
  * A service that can put a message into an Instagram subscriber's direct messages.
  *
  * This interface exists because the paid-post feature — the one the business runs on — depends on
- * a capability no single vendor reliably provides. ManyChat sends text and images to Instagram but
- * explicitly refuses video. ChatPlace's builder advertises video and a native "send a post from
- * the feed" action, but publishes no REST documentation. The plugin cannot wait for that to
- * settle, and it must never call graph.instagram.com itself: talking to Meta directly is outside
- * what this project is allowed to do, so every gateway here is a vendor that holds its own Meta
- * app and its own tokens.
+ * a capability no single vendor reliably provides. The plugin must never call graph.instagram.com
+ * itself: talking to Meta directly is outside what this project is allowed to do, so every
+ * gateway here is a vendor that holds its own Meta app and its own tokens. Phase 50 pins that
+ * vendor to the single social provider (Zernio official OAuth); the gateway rebuilt on it lands
+ * with the inbox (phase 51).
  *
- * Hence: capability is queried, not assumed. `supports()` lets the delivery service pick a gateway
- * that can actually do the job, and every send returns a DirectMessageResult that distinguishes
- * "this gateway can't" from "this failed". Adding a vendor is a new class plus a filter entry.
+ * Hence: capability is queried, not assumed. `supports()` lets the delivery service pick a
+ * gateway that can actually do the job, and every send returns a DirectMessageResult that
+ * distinguishes "this gateway can't" from "this failed".
  *
  * ## On the 24-hour window
  *

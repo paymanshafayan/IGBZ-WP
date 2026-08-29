@@ -11,7 +11,6 @@
 declare( strict_types = 1 );
 
 use IGBZ\Suite\Modules\Fx\FxModule;
-use IGBZ\Suite\Modules\Instagram\InstagramModule;
 use IGBZ\Suite\Modules\MultiTenant\MultiTenantModule;
 use IGBZ\Suite\Modules\RestApi\RestApiModule;
 use IGBZ\Suite\Support\Cron;
@@ -115,7 +114,6 @@ final class DailyJobsTest extends TestCase {
 		$this->api_prune_runs_both_cleanups_with_the_retention_floor();
 		$this->housekeeping_beat_enqueues_and_drains_the_body();
 		$this->fx_daily_beat_enqueues_three_jobs_and_settle_continues();
-		$this->insights_collect_gate_is_checked_at_run_time();
 		$this->continue_round_is_the_canonical_contract();
 	}
 
@@ -311,26 +309,6 @@ final class DailyJobsTest extends TestCase {
 			$this->assert_same( 1, $billing->bill_calls, 'the billing half runs once from its own job' );
 			$this->assert_same( 1, $spy->calls, 'the ramp card-funding runs from its own job' );
 			$this->assert_same( 0, count( $this->jobs( JobQueue::STATUS_PENDING ) ), 'the FX day drained completely' );
-		} );
-	}
-
-	private function insights_collect_gate_is_checked_at_run_time(): void {
-		$this->fresh();
-
-		$this->with_clean_container( function (): void {
-			$spy = new DailyCallSpy();
-			igbz()->bind( 'ig.insights', static fn () => $spy );
-			( new InstagramModule() )->register_queue_handlers( $this->queue );
-
-			igbz()->settings()->set( 'manus.collect_insights', false );
-			$this->queue->enqueue( 'ig.insights.collect', [], [ 'idempotency_key' => 'collect:off' ] );
-			$this->runner->run();
-			$this->assert_same( 0, $spy->calls, 'collection stays off when disabled at run time' );
-
-			igbz()->settings()->set( 'manus.collect_insights', true );
-			$this->queue->enqueue( 'ig.insights.collect', [], [ 'idempotency_key' => 'collect:on' ] );
-			$this->runner->run();
-			$this->assert_same( 1, $spy->calls, 'the gate opens when the setting is on at run time' );
 		} );
 	}
 

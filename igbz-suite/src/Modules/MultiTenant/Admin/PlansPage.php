@@ -236,7 +236,7 @@ final class PlansPage {
 			'affiliate'   => __( 'Affiliate programme', 'igbz-suite' ),
 			'lms'         => __( 'Courses', 'igbz-suite' ),
 			'instagram'   => __( 'Instagram automation', 'igbz-suite' ),
-			'manychat'    => __( 'ManyChat DM funnels', 'igbz-suite' ),
+			'social'      => __( 'Social (publishing + inbox via Zernio)', 'igbz-suite' ),
 			'marketplace' => __( 'Marketplace feeds', 'igbz-suite' ),
 			'api'         => __( 'Mobile API', 'igbz-suite' ),
 			'custom_domain' => __( 'Custom domain', 'igbz-suite' ),

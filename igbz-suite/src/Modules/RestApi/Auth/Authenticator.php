@@ -22,8 +22,10 @@ final class Authenticator {
 	 * @var string[]
 	 */
 	private const SELF_AUTHENTICATING_ROUTES = [
-		'/manychat/',
-		'/manus/',
+		// Phase 50: the legacy social-provider callback namespaces are gone with their
+		// controllers. The single provider's webhook (phase 51) lives under /zernio/ and
+		// self-authenticates with the per-profile HMAC, not a JWT.
+		'/zernio/',
 	];
 
 	private ?array $resolved = null;
@@ -74,13 +76,13 @@ final class Authenticator {
 	/**
 	 * Routes inside `igbz/v1` that carry their own shared-secret check and must not be touched here.
 	 *
-	 * The Manus and ManyChat webhooks live in this namespace but authenticate with a shared token
-	 * that may arrive as `Authorization: Bearer <token>` — the same header this class uses for JWT
-	 * access tokens. Without this exclusion the authenticator saw the webhook secret, failed to
-	 * validate it as a JWT and short-circuited the request with a 401 from
-	 * `rest_authentication_errors`, so the route's own `authorize()` never ran and every webhook
-	 * delivery was rejected. These endpoints are third-party callbacks: they are anonymous by
-	 * design and their permission_callback is the security boundary.
+	 * The single social provider's webhooks live in this namespace but authenticate with the
+	 * per-profile HMAC signature (phase 51) — not a JWT. Without this exclusion the
+	 * authenticator would try to validate the provider's credentials as a JWT, fail, and
+	 * short-circuit the request with a 401 from `rest_authentication_errors` before the
+	 * route's own `authorize()` could verify the signature. These endpoints are
+	 * third-party callbacks: they are anonymous by design and their permission_callback
+	 * (signature check + replay window + dedupe) is the security boundary.
 	 *
 	 * @param string $uri Request URI, which may be either /wp-json/<ns>/... or ?rest_route=/<ns>/...
 	 */

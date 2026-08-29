@@ -1335,6 +1335,55 @@ Playground معنا ندارد و رفتار ناشناس با تست واحد �
   تصمیم‌گیر بک‌اند و رد ادعاهای بیگانه، چرخش/لغو/اتصال مجددِ سالم نسخه‌ها، هویت وب‌هوک زمان‌دار و
   حذف کامل داده. آزمون زنده روی پلی‌گراند. تست ۲۵۲۹/۶۷ · لینت ۳۲۶/۰.
 
+### ۷.۷.۵۰ وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۰ ✅)
+
+فاز حذفی: تنها پرووایدر اجتماعی رسمی Zernio شد و معماری قدیمی (Manus، ManyChat،
+ChatPlace و fallbackهای اجتماعی) از کد بیرون رفت.
+
+- **آداپتر رسمی:** `ZernioClient` (بستهٔ `Instagram\Zernio`) همهٔ مسیرهای خود را از
+  تنظیمات `zernio.*` می‌خواند — `base_url` پیش‌فرض `https://zernio.com/api/v1`، هر مسیر
+  (`posts_path`، `inbox_comments_path`، `media_presign_path`، …) از تنظیم قابل جابجایی
+  است و اسکیمای احراز (`auth_scheme`، پیش‌فرض `Bearer`) هم از تنظیم می‌آید. هیچ معنای
+  اندپوینتی در کد اختراع نشده؛ هر فرم پاسخ واقعی که با سند متفاوت باشد در فاز
+  `PV-ZERNIO-*` با تنظیمات اصلاح می‌شود، نه با حدس در کد.
+- **دو صفحهٔ کلید (طبق ADR-0004 §۴):** روش‌های صفحهٔ profile (`create_profile`،
+  `get_connect_url`، `list_accounts`، `issue_profile_key`) با کلید مرکزی `zernio.api_key`
+  و روش‌های صفحهٔ social (`publish_post`، `retry_post`، `presign_media`، `get_inbox`)
+  با کلید scoped خودش؛ کلید خالی صفحهٔ social → `zernio_not_configured` بدون هیچ درخواست
+  شبکه. `publish_post` کلید پست را روی هر تلاش ثابت نگه می‌دارد و فقط وقتی فراخوانده‌گر
+  `idempotency_key` بدهد هدر `Idempotency-Key` می‌رود (اتوژن به‌جای حدس).
+- **قرارداد:** `ZernioSocialService` روی `SocialProvider::publish()` resolve می‌شود و
+  `ZernioSocialAdapter` آن را روی `ZernioClient` پیاده می‌کند. resolve سه‌مرحله‌ای: گارد
+  `SocialProviders` (رد `social_provider_not_allowed`) → نگاشت بک‌اند (رد `no_social_account`)
+  → کلید رمزگشایی‌شده (رد `zernio_not_configured`). `account_id` را فقط از `ig_zernio_profiles`
+  می‌گیرد — هرگز از ورودی فراخوانده.
+- **مهاجرت کنترل‌شده:** `SocialMigrationService` هر ساعت (`ig.social.migrate`، حد ۲۰
+  مستأجر) دو مرحلهٔ روزن‌ماننده را در `ig_social_migration` جلو می‌برد: `profile_ensured`
+  (ensure profile + کلید profile با کلید مرکزی؛ `already_provisioned` برای تکرار) و
+  `legacy_deprecated` (stamping `legacy_deprecated_at` روی حساب‌های فعال قدیمی). مستأجر
+  تنها به‌محض تمام‌شدن **هر دو** مرحله از فهرست due خارج می‌شود؛ pending/failed هر دو
+  مرحله او را در فهرست نگه می‌دارد — حتی تا وقتی کلید مرکزی خالی است. خروجی `run()`
+  (`ok`/`profile`/`legacy`/`error`) روی خط آدرس صفحهٔ حساب نمایش داده می‌شود.
+- **حذف کامل:** ۲۴ فایل (کلاینت‌ها Manus/ManyChat/ChatPlace، سرویس‌های funnel/insights/
+  scheduler/intake/publisher/subscribers/giveaway/credentials و webhookها و کنترلرهای
+  REST آن‌ها)، ۶ فایل تست قدیمی، کلیدهای secret `manus.*`/`manychat.*`/`chatplace.*`/
+  `stt.*`/`dm.*` از `Settings::SECRETS`، تنظیمات و فیلدهای فرم، مسیرهای وب‌هوک
+  `/manychat`/`/manus`/`/chatplace`، bindingهای container (`ig.manychat` و…)، دکمه‌های
+  نوارابزار و سطرهای Runbook. ستون‌های قدیمی اسکیمای `ig_accounts` تا پایان offboarding
+  به‌عنوان **داده** می‌مانند (نه یکپارچه‌سازی)؛ `migrate_to_v7` Activator با رشته‌های
+  درون‌خطی‌شده برای ارتقاء قدیمی‌ها سالم ماند.
+- **گارد معماری:** `SocialArchitectureGuardTest` کل `src/` را برای شناسه‌های معماریِ
+  حذف‌شده می‌شابد — نام‌های کلاس، bindingهای container، پیشوند کلیدهای secret، نشانه‌های
+  کانال session (`instagram_session`/`ig_session`/`agent_reach`) و مسیرهای وب‌هوک قدیمی —
+  و فهرست ممنوعهٔ `SocialProviders` را هم خودسنجی می‌کند. هدف‌گذاری روی شناسه است، نه
+  زیررشته: ستون‌های دادهٔ قدیمی (`manychat_subscriber_id` و…) خطای کاذب نمی‌سازند.
+- **صداقت:** هیچ پول/محتوایی تا `PV-ZERNIO-*` از این مسیر عبور نمی‌کند؛ تأیید زندهٔ
+  شکل‌های پاسخ (درگاه `apiKey`/`_id`/`data.*` و…) با تنظیمات اصلاح می‌شود.
+- **پوشش:** `ZernioSocialAdapterTest` (۸ سناریو: گارد، دو صفحهٔ کلید، صفر-HTTP بدون
+  تنظیم، فرم‌های پاسخِ مجاز، resolve facade و رد `not_connected`) و `SocialMigrationTest`
+  (۵ سناریو: موج اول، idempotency موج دوم، انتظار صادقانه بدون کلید مرکزی، خروج از فهرست
+  بعد از پایان، گزارش وضعیت). تست ۱۳۰۷۳/۶۴ · لینت ۲۹۶/۰.
+
 ---
 
 ## ۸. فازبندی پیاده‌سازی (پس از تأیید)

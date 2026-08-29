@@ -9,15 +9,15 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Per-task credit gate for the FX module.
  *
- * The client's hard constraint: FX must never queue a Manus task. The gate
+ * The client's hard constraint: FX must never queue a social task. The gate
  * only checks the tenant's own credit at dispatch time — enough credit and
  * the task goes out immediately, not enough and it is refused on the spot
  * with a "top up" message. There is no cross-tenant queue and no debt.
  *
  * The price comes from fx_prices (seeded, editable by the operator). A spent
- * task that Manus never accepted is refunded via release(), which returns the
- * exact amount that was debited (read back from the ledger) so a price change
- * in between cannot short-change the tenant.
+ * task the provider never accepted is refunded via release(), which returns
+ * the exact amount that was debited (read back from the ledger) so a price
+ * change in between cannot short-change the tenant.
  */
 final class FxMeter {
 
@@ -67,16 +67,16 @@ final class FxMeter {
 	}
 
 	/**
-	 * Charge for a delivered ManyChat DM. Uses its own (reason, reference)
+	 * Charge for a delivered direct message. Uses its own (reason, reference)
 	 * pair so it is idempotent per funnel hit: settle() is the single writer
 	 * of a delivery, and this runs once per transition into delivered = 1.
 	 */
-	public function charge_delivery( int $tenant_id, string $reference, string $service = 'manychat_dm' ): array {
+	public function charge_delivery( int $tenant_id, string $reference, string $service = 'dm_delivery' ): array {
 		return $this->consume( $tenant_id, $service, $reference );
 	}
 
 	/**
-	 * Refund a task Manus never accepted. Idempotent: the refund row uses its
+	 * Refund a task the provider never accepted. Idempotent: the refund row uses its
 	 * own (reason, reference) pair, so a double release credits once.
 	 */
 	public function release( int $tenant_id, string $service, string $reference ): void {

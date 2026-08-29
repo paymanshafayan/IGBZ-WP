@@ -46,12 +46,17 @@ final class HourlyBnplSpy {
 
 
 
-/** Records reconcile calls instead of calling the external collector. */
-final class HourlyInsightsSpy {
+
+/** Scripted distributed-round sizes for the migration continuation test. */
+final class HourlyMigrationSpy {
 	public int $calls = 0;
 
-	public function reconcile(): void {
+	/** @var array<int,int> Scripted return values, consumed in order (then 0). */
+	public array $returns = [];
+
+	public function run_distributed_round( int $limit = 20 ): int {
 		++$this->calls;
+		return (int) ( $this->returns ? array_shift( $this->returns ) : 0 );
 	}
 }
 
@@ -82,7 +87,7 @@ final class HourlyJobsTest extends TestCase {
 		$this->carts_sweep_enabled_flag_is_checked_at_run_time();
 		$this->scoped_sweeps_filter_sql_by_tenant();
 		$this->hourly_ig_and_hub_beats_enqueue_slot_keyed_jobs();
-		$this->insights_reconcile_gate_is_checked_at_run_time();
+		$this->migration_round_continues_while_full_and_stops_on_partial();
 	}
 
 	private function fresh(): void {
@@ -319,7 +324,7 @@ final class HourlyJobsTest extends TestCase {
 		$jobs  = $this->jobs();
 		$types = array_map( static fn ( array $j ) => (string) $j['job_type'], $jobs );
 		sort( $types );
-		$this->assert_same( [ 'hub.tick', 'ig.funnels.retry', 'ig.insights.reconcile' ], $types, 'one slot-keyed job per control-plane sweep, duplicates absorbed' );
+		$this->assert_same( [ 'hub.tick', 'ig.social.migrate' ], $types, 'one slot-keyed job per control-plane sweep, duplicates absorbed (phase 50: the legacy funnel/insight sweeps are gone)' );
 
 		foreach ( $jobs as $job ) {
 			$this->assert_true(
@@ -329,23 +334,36 @@ final class HourlyJobsTest extends TestCase {
 		}
 	}
 
-	private function insights_reconcile_gate_is_checked_at_run_time(): void {
+	private function migration_round_continues_while_full_and_stops_on_partial(): void {
 		$this->fresh();
 
 		$this->with_clean_container( function (): void {
-			$spy = new HourlyInsightsSpy();
-			igbz()->bind( 'ig.insights', static fn () => $spy );
+			$migration = new HourlyMigrationSpy();
+			$migration->returns = [ 20, 20, 5 ];
+			igbz()->bind( 'ig.social_migration', static fn () => $migration );
 			( new InstagramModule() )->register_queue_handlers( $this->queue );
 
-			igbz()->settings()->set( 'manus.collect_insights', false );
-			$this->queue->enqueue( 'ig.insights.reconcile', [], [ 'idempotency_key' => 'gate-off' ] );
-			$this->runner->run();
-			$this->assert_same( 0, $spy->calls, 'insights stay off when the setting is disabled at run time' );
+			$this->queue->enqueue( 'ig.social.migrate', [], [ 'idempotency_key' => 'mig-base' ] );
 
-			igbz()->settings()->set( 'manus.collect_insights', true );
-			$this->queue->enqueue( 'ig.insights.reconcile', [], [ 'idempotency_key' => 'gate-on' ] );
-			$this->runner->run();
-			$this->assert_same( 1, $spy->calls, 'the gate opens when the setting is on at run time' );
+			// One job per run, so each round is observable on its own.
+			// Round 0 comes back full (20/20): the canonical continuation contract re-queues round 1.
+			$this->runner->run( 1 );
+			$this->assert_same( 1, $migration->calls, 'the first round ran' );
+			$follow_ups = $this->jobs( JobQueue::STATUS_PENDING );
+			$this->assert_same( 1, count( $follow_ups ), 'a full round queues exactly one follow-up' );
+			$this->assert_true( str_contains( (string) $follow_ups[0]['idempotency_key'], ':r1' ), 'the follow-up carries the round-1 key' );
+
+			// Round 1 full again: round 2 queued. Round 2 partial (5/20): the wave ends.
+			$this->runner->run( 1 );
+			$this->assert_same( 2, $migration->calls, 'round 2 ran under its own key' );
+			$this->assert_true( str_contains( (string) $this->jobs( JobQueue::STATUS_PENDING )[0]['idempotency_key'], ':r2' ), 'the follow-up carries the round-2 key' );
+
+			$this->runner->run( 1 );
+			$this->assert_same( 3, $migration->calls, 'three rounds ran (full, full, partial)' );
+			$this->assert_same( 0, count( $this->jobs( JobQueue::STATUS_PENDING ) ), 'the migration wave drained completely' );
+			foreach ( $this->jobs() as $job ) {
+				$this->assert_same( 'done', (string) $job['status'], 'every migration round ends done' );
+			}
 		} );
 	}
 }

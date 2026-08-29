@@ -171,7 +171,7 @@ final class FxPage {
 			[
 				__( 'Top-ups (count / IRT / USD)', 'igbz-suite' ) => sprintf( '%d / %s / %s', $summary['topup_count'], number_format( $summary['topups_irt'], 0 ), number_format( $summary['topups_usd'], 2 ) ),
 				__( 'Top-up fees (USD)', 'igbz-suite' )   => number_format( $summary['fees_usd'], 2 ),
-				__( 'Manus task spend (USD)', 'igbz-suite' ) => number_format( $summary['task_spend_usd'], 2 ),
+				__( 'Social task spend (USD)', 'igbz-suite' ) => number_format( $summary['task_spend_usd'], 2 ),
 				__( 'Subscriptions (USD)', 'igbz-suite' ) => number_format( $summary['subscriptions_usd'], 2 ),
 				__( 'Refunds (USD)', 'igbz-suite' )       => number_format( $summary['refunds_usd'], 2 ),
 				__( 'Ramp purchases (IRT)', 'igbz-suite' ) => number_format( $summary['ramp_irt'], 0 ),
