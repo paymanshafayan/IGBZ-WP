@@ -176,6 +176,7 @@ final class MultiTenantModule implements ModuleInterface {
 		$plugin->bind( 'webpresence', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Domain\WebPresenceService( $c->db(), $c->get( 'http' ), $c->logger() ) );
 		$plugin->bind( 'master.payment', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\MasterPayment\MasterPaymentService( $c->db(), $c->logger() ) );
 $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\LogisticsService( $c->db(), $c->settings(), $c->logger() ) );
+		$plugin->bind( 'logistics.sync', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\ShippingSyncService( $c->db(), $c->settings(), $c->logger() ) );
 		$plugin->bind( 'marketplace.sync', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Marketplace\MarketplaceSyncService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'marketplace.mappings', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Marketplace\CategoryMappingService( $c->db() ) );
 		$plugin->bind( 'gamification', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Gamification\GamificationService( $c->db(), $c->logger() ) );

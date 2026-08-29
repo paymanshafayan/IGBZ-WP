@@ -75,6 +75,7 @@ $cases = [
 	'LmsVideoAccessTest',
 	'LogisticsStateMachineTest',
 	'CourierCodTest',
+	'ShippingSyncTest',
 ];
 
 foreach ( $cases as $case ) {
