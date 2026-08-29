@@ -2187,3 +2187,29 @@ production، نه تزئین.
    (`visual-testing/phase-60/`؛ بینایی خاموش — DOM + دو اسکرین‌شات). نکتهٔ
    صادقانه: `dir=rtl` در این دمو ست نمی‌شود (پکیج fa_IR نیست؛ rtl.css با locale
    راست‌چین بار می‌شود)؛ قرارداد RTL با تست واحد پوشش داده شده.
+
+### ۱۱.۱۷ فاز ۶۱ — artefact امضاشده و rollback واقعی قالب — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+۱. **سرویس** (`ThemeReleaseService`، بایند `pado.theme_releases`):
+   - `sign()`: SHA-256 فایل + `Crypto::hmac` با کلید سایت (token(32)، گزینهٔ
+     `igbz_theme_signing_key`) → metadata.artifact {sha256, signature, signed_at}.
+   - `verify()`: بازمحاسبه و `hash_equals`؛ خطاهای صریح unsigned_artifact /
+     signature_mismatch / artifact_missing.
+   - `snapshot_diff(url_a,url_b)` + `block_signature(html)`: امضای مرتب بلوک‌ها
+     (نشانگرهای `wp:`) و سرتیترهای h1–h3 فارسی؛ اسکریپت/استایل/ادمین‌بار حذف؛
+     درز محیطی `fetch()` برای تست.
+۲. **سیم‌کشی:** `ingest_zip` بلافاصله پس از ثبت امضا می‌کند؛ `install_preview` و
+   `activate_live` پیش از هر کاری `verify()` را صدا می‌زنند (پیام خطای فارسی با
+   واژهٔ «امضا»). ThemeRoutingTest سازگار شد (ردیف‌های seed با artefact امضاشدهٔ
+   واقعی روی فایل‌سیستم موقت؛ دابل get_var ستون انتخابی را برمی‌گرداند).
+۳. **تست:** `ThemeReleaseTest` ۹ سناریو (مهر و راستی‌آزمایی، ویرایش بعد از امضا،
+   بدون امضا، فایل غایب، چرخش کلید، رد پیش‌نمایش/فعال‌سازی روی دستکاری، امضای
+   بلوکی مرتب و پاک، گزارش diff). مجموعه **۱۴۶۶۹/۷۵** · لینت **۵۰۰۸/۰**.
+۴. **تأیید زنده:** دود ۱۰گامی همه‌سبز روی پلی‌گراند — ثبت با امضای خودکار،
+   راستی‌آزمایی، نصب پیش‌نمایش، فعال‌سازی tenant-scoped روی مستأجر واقعی
+   (tenants.theme)، rollback واقعی به twentytwentyfive، دستکاری بایتِ بسته ←
+   signature_mismatch و رد در هر دو مرز؛ سپس مقایسهٔ ساختاری روی HTML واقعی دو
+   حالت (۱۹ بلوک مشترک؛ حذف h2 والد) + ویژوال دو اسکرین‌شات
+   (`visual-testing/phase-61/`). یافتهٔ محیطی: FONTCONFIG_PATH هارنس
+   (fonts.conf با مسیرهای ناموجود) رندرر را می‌کراند — از اسکریپت این فاز حذف شد
+   و در گزارش ثبت شد.

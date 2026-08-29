@@ -61,12 +61,14 @@ final class ThemeDb extends wpdb {
 
 	public function get_var( string $sql ) {
 		$this->queries[] = $sql;
-		if ( str_contains( $sql, 'SELECT theme FROM' ) ) {
-			$rows = $this->rows_for( $sql );
-			return $rows ? (string) ( $rows[0]['theme'] ?? '' ) : null;
-		}
 		$rows = $this->rows_for( $sql );
-		return $rows ? (string) reset( $rows )['id'] : null;
+		if ( ! $rows ) { return null; }
+		// Phase 61: honour the actually selected column (e.g. metadata for the
+		// artefact signature check), falling back to the historical id behaviour.
+		if ( preg_match( '/SELECT\s+([a-z_]+)\s+FROM/i', $sql, $col ) ) {
+			return (string) ( $rows[0][ $col[1] ] ?? '' );
+		}
+		return (string) reset( $rows )['id'];
 	}
 
 	public function insert( string $table, array $data, $format = null ): int|bool {
@@ -156,6 +158,18 @@ final class ThemeRoutingTest extends TestCase {
 		$this->preview_slug_does_not_cross_a_tenant_boundary();
 	}
 
+	/** Since phase 61, activation re-verifies the artefact signature — seed one. */
+	private function sign_theme_row( ThemeDb $db, int $id ): void {
+		$zip = rtrim( sys_get_temp_dir(), '/' ) . '/igbz-p61-' . $id . '.zip';
+		$z = new ZipArchive();
+		$z->open( $zip, ZipArchive::CREATE | ZipArchive::OVERWRITE );
+		$z->addFromString( 'style.css', "/*\nTheme Name: Signed Control\n*/" );
+		$z->close();
+		$db->tables['themes'][ $id ]['zip_path'] = $zip;
+		$row = $db->tables['themes'][ $id ];
+		( new \IGBZ\Suite\Modules\Pado\Services\ThemeReleaseService( new \IGBZ\Suite\Support\Db(), igbz()->get( 'logger' ) ) )->sign( $row );
+	}
+
 	private function fresh_db(): ThemeDb {
 		$db                          = new ThemeDb();
 		$GLOBALS['wpdb']             = $db;
@@ -170,6 +184,7 @@ final class ThemeRoutingTest extends TestCase {
 	private function activation_is_tenant_state_not_a_global_switch(): void {
 		$db = $this->fresh_db();
 		$db->tables['themes'][11] = [ 'id' => 11, 'tenant_id' => 1, 'slug' => 'nanvaie-live', 'status' => 'preview' ];
+		$this->sign_theme_row( $db, 11 );
 		igbz()->tenancy()->force( 1 );
 
 		$service = new ThemeService( new Db() );

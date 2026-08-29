@@ -121,6 +121,15 @@ final class PadoModule implements ModuleInterface {
 				$c->get( 'payments' )
 			)
 		);
+		// Phase 61 — the signed-artefact release pipeline (sign / verify / diff).
+		$plugin->bind(
+			'pado.theme_releases',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\ThemeReleaseService => new \IGBZ\Suite\Modules\Pado\Services\ThemeReleaseService(
+				$c->db(),
+				$c->logger()
+			)
+		);
+
 		// Phase 59 — publishing, campaigns and policy changes on the same queue.
 		$plugin->bind(
 			'pado.content_ops',
