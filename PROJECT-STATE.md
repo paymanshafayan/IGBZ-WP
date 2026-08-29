@@ -2064,3 +2064,26 @@ production، نه تزئین.
    مدل/رسیدن صادقانه تا سیم) همه‌سبز + تست ویژوال کرومیوم مرکز پادو
    (`visual-testing/phase-56/`). فعال‌سازی واقعی = منتظر حساب DeepInfra + تأیید
    benchmark کارفرما (بک‌لاگ ثبت‌شده در PLAN §۲۳.۷ و هندآف).
+
+### ۱۱.۱۳ فاز ۵۷ — صف مجوز اتمیک — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+۱. **اسکیمای v44 (۹۵ جدول، بدون جدول جدید):** ستون‌های صف روی `igbz_approval_requests`
+   + UNIQUE `(tenant_id,kind,idempotency_key)` + ایندکس انقضا؛ `migrate_to_v43`-الگو:
+   dbDelta خالص؛ در دود زنده روی جدولِ مستقرِ قدیمی اثبات شد (ستون‌های ده‌گانه آمدند،
+   dbv=44).
+۲. **سرویس** (`ApprovalRequestService` ارتقایافته، بایند `pado.approvals` دست‌نخورده):
+   `enqueue()` با هش کانونی payload (ksort بازگشتی + نسخهٔ دستور)، idempotency
+   (کلید تکراری = همان ردیف + پرچم duplicate)، capability پین‌شده، expires_at اختیاری؛
+   `decide()` یک UPDATE شرطی (شرط status=pending + tenant) + گیت capability +
+   امتناع از پنجرهٔ گذشته؛ `claim()` فقط worker مثبت و فقط یکی (attempts++)؛
+   `complete()` فقط claimer؛ `cancel()` فقط درخواست‌گر در pending؛ `expire_due()`
+   (سقف ۵۰۰) در housekeeping روزانه؛ `verify_payload_integrity()` با hash_equals؛
+   `audit_trail()`.
+۳. **سازگاری:** `submit()` پوشش نازک enqueue؛ امضای `decide()` قدیمی حفظ شد (پارامتر
+   جدید آخر)؛ مسیر executor قدیمی از claim می‌گذرد؛ PadoPage اثبات capability را پاس
+   می‌کند (require MANAGE_PADO همان اثبات است).
+۴. **تست:** `PermissionQueueTest` ۱۲ سناریو (هش کانونی، idempotency، فلیپ واحد تصمیم،
+   capability، انقضا + جاروب idempotent، مالکیت claim، تکمیل فقط claimer + خطا،
+   legacy اتمیک، cancel، ممیزی مرتب، دستکاری payload، tenant scope). مجموعه
+   **۱۴۳۲۵/۷۱** · لینت ۳۱۸/۰. **تأیید زنده:** دود ۶گامی همه‌سبز + تست ویژوال کرومیوم
+   تب مجوزها (`visual-testing/phase-57/`).

@@ -119,6 +119,7 @@ final class Activator {
 			41 => [ self::class, 'migrate_to_v41' ],
 			42 => [ self::class, 'migrate_to_v42' ],
 			43 => [ self::class, 'migrate_to_v43' ],
+			44 => [ self::class, 'migrate_to_v44' ],
 		];
 	}
 
@@ -358,6 +359,16 @@ final class Activator {
 	 * Idempotent: install_tables() only creates what is missing.
 	 */
 	public static function migrate_to_v43(): void {
+		self::install_tables();
+	}
+
+	/**
+	 * v44 (phase 57): the approval queue becomes atomic — payload version/hash columns,
+	 * an idempotency key with a UNIQUE (tenant,kind,key), the capability the decider must
+	 * prove, an expiry stamp, claim/attempt columns for exactly-once execution and an
+	 * append-only audit trail. Pure dbDelta on `igbz_approval_requests`; no new tables.
+	 */
+	public static function migrate_to_v44(): void {
 		self::install_tables();
 	}
 

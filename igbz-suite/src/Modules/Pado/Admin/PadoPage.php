@@ -569,13 +569,16 @@ final class PadoPage {
 				}
 			}
 		}
+		// Phase 57: the page already required MANAGE_PADO above; that check is the proof
+		// the queue's capability gate asks for, so hand it through explicitly.
 		$ok = $this->approvals->decide(
 			$id,
 			'approved' === $decision ? ApprovalRequestService::STATUS_APPROVED : ApprovalRequestService::STATUS_REJECTED,
 			get_current_user_id(),
 			$note,
 			$executor,
-			$scope
+			$scope,
+			true
 		);
 
 		$args = [ 'tab' => $tab, 'astatus' => $astatus ];

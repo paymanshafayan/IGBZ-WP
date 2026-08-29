@@ -79,9 +79,9 @@ final class DriftGuardTest extends TestCase {
 		$found  = preg_match( "/define\(\s*'IGBZ_DB_VERSION',\s*(\d+)/", $source, $matches );
 		$this->assert_same( 1, $found, 'IGBZ_DB_VERSION define not found in igbz-suite.php' );
 		$this->assert_same(
-			43,
+			44,
 			(int) ( $matches[1] ?? 0 ),
-			'IGBZ_DB_VERSION drifted from the pinned baseline (43 / PHASE-01-INVENTORY.json database.version)'
+			'IGBZ_DB_VERSION drifted from the pinned baseline (44 / PHASE-01-INVENTORY.json database.version)'
 		);
 	}
 

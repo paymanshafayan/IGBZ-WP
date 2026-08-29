@@ -49,7 +49,7 @@
   },
   "code": {
     "source_php_count": 242,
-    "source_php_sha256": "6acca96e9ba8c4cbbf18b3f7567a5f0591944e529067be65929be2f162b6695b",
+    "source_php_sha256": "69dd55d0a0553206a69858d5b91fd589f6ecc270a26093b009cb2117a23e3a34",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -304,10 +304,10 @@
       "RestApi": 27
     },
     "support_php_count": 32,
-    "all_plugin_php_count": 317
+    "all_plugin_php_count": 318
   },
   "database": {
-    "version": 43,
+    "version": 44,
     "table_count": 95,
     "tables": [
       "tenants",
@@ -863,7 +863,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 73,
+    "php_file_count": 74,
     "php_files": [
       "igbz-suite/tests/AffiliateHardenTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
@@ -908,6 +908,7 @@
       "igbz-suite/tests/MoneyTest.php",
       "igbz-suite/tests/NationalIdVerifierTest.php",
       "igbz-suite/tests/OffboardingTest.php",
+      "igbz-suite/tests/PermissionQueueTest.php",
       "igbz-suite/tests/Phases2Test.php",
       "igbz-suite/tests/PhasesTest.php",
       "igbz-suite/tests/PlansLifecycleTest.php",
@@ -939,7 +940,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 70,
+    "main_case_count": 71,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -1010,7 +1011,8 @@
       "ContentPublishTest",
       "VipChannelTest",
       "GrowthIntelTest",
-      "DeepInfraAdapterTest"
+      "DeepInfraAdapterTest",
+      "PermissionQueueTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

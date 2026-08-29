@@ -94,6 +94,11 @@ final class Cron {
 		$settings = igbz()->settings();
 		igbz()->logger()->prune( $settings->int( 'log.retention_days', 30 ) );
 
+		// Phase 57: pending approval requests whose decision window passed expire honestly.
+		if ( igbz()->has( 'pado.approvals' ) ) {
+			igbz()->get( 'pado.approvals' )->expire_due();
+		}
+
 		// Phase 20: bounded batches — a grown-out table must not lock the site during
 		// housekeeping; whatever is left carries over to tomorrow's run.
 		$db = igbz()->db();

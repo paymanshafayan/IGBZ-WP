@@ -1678,9 +1678,24 @@ JSON Schema و اعتبارسنج آرگومان در بک‌اند) + `DeepInfr
 (`visual-testing/phase-56/`). فعال‌سازی واقعی منتظر تأمین حساب DeepInfra و تأیید
 benchmark از کارفرما است (بک‌لاگ ثبت‌شده).
 
-#### فاز ۵۷ — صف مجوز اتمیک
+#### فاز ۵۷ — صف مجوز اتمیک — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 claim، نسخه/hash payload، expiry، capability، تصمیم‌گیر، idempotency، cancellation و audit.
+
+**نتیجهٔ محقق‌شده:** جدول `igbz_approval_requests` (v44، بدون جدول جدید) به صف مجوز
+اتمیک ارتقا یافت — ستون‌های payload_version/payload_hash (هش کانونیِ مرتب‌سازی‌شده؛
+ترتیب کلیدها هرگز هش را عوض نمی‌کند)، idempotency_key + UNIQUE (tenant,kind,key)،
+capability (تصمیم‌گیر باید اثباتش را پاس کند)، expires_at، claimed_by/claimed_at/
+attempts/execution_error و audit (JSONL الحاقی). **هر گذار یک UPDATE شرطی است:**
+تصمیم pending→(approved/rejected/cancelled) — بازندهٔ مسابقه false می‌گیرد؛ claim
+approved→claimed فقط برای worker مثبت و فقط یکی؛ complete claimed→executed/failed فقط
+به‌دست خودِ claimer با نگهداشت دلیل خطا؛ انقضای pending→expired با جاروب روزانه
+(idempotent). مسیر executor قدیمی هم از دل claim می‌گذرد (یک‌بار‌اجرا حتی در legacy).
+cancel فقط توسط خودِ درخواست‌گر در حالت pending. `verify_payload_integrity` هش مهرشده
+را بازمحاسبه می‌کند (ردیف دستکاری‌شده فریاد می‌زند) و `audit_trail` کل زندگی ردیف را
+با بازیگران برمی‌گرداند. تست `PermissionQueueTest` با ۱۲ سناریو: مجموعه **۱۴۳۲۵/۷۱** ·
+لینت ۳۱۸/۰ · دود زندهٔ ۶گامی (شامل مهاجرت واقعی v44 روی جدول مستقر) + تست ویژوال
+کرومیوم تب مجوزها (`visual-testing/phase-57/`).
 
 #### فاز ۵۸ — عملیات حساس تجاری
 

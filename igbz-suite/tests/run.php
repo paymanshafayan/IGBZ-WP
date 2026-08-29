@@ -83,6 +83,7 @@ $cases = [
 	'VipChannelTest',
 	'GrowthIntelTest',
 	'DeepInfraAdapterTest',
+	'PermissionQueueTest',
 ];
 
 foreach ( $cases as $case ) {

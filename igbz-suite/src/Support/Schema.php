@@ -1559,19 +1559,31 @@ final class Schema {
 			title VARCHAR(255) NOT NULL DEFAULT '',
 			reason TEXT NULL,
 			payload LONGTEXT NULL,
+			payload_version INT NOT NULL DEFAULT 1,
+			payload_hash CHAR(64) NOT NULL DEFAULT '',
+			idempotency_key VARCHAR(191) NULL DEFAULT NULL,
+			capability VARCHAR(64) NOT NULL DEFAULT '',
+			expires_at DATETIME NULL,
 			impact VARCHAR(32) NOT NULL DEFAULT 'low',
 			requested_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			decided_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			status VARCHAR(16) NOT NULL DEFAULT 'pending',
 			decision_note TEXT NULL,
+			claimed_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			claimed_at DATETIME NULL,
+			attempts INT NOT NULL DEFAULT 0,
+			execution_error TEXT NULL,
+			audit LONGTEXT NULL,
 			metadata LONGTEXT NULL,
 			created_at DATETIME NOT NULL,
 			decided_at DATETIME NULL,
 			executed_at DATETIME NULL,
 			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_kind_idem (tenant_id,kind,idempotency_key),
 			KEY tenant_status (tenant_id,status,created_at),
 			KEY kind (kind),
-			KEY created_at (created_at)
+			KEY created_at (created_at),
+			KEY expiry (status,expires_at)
 		) {$charset};";
 
 		// Theme artefacts produced by Pado (or uploaded) and validated by
