@@ -28,8 +28,16 @@ interface FxPayoutAdapterInterface {
 	/**
 	 * Pay one bill. Implementations should be idempotent per bill id.
 	 *
+	 * Phase 36: when the charge was sent but the answer is unknown (a timeout
+	 * or transport failure after submission), return ok=false with
+	 * `state => 'pending'` — the bill then stays debited and pending instead
+	 * of being refunded, and reconcile() or the webhook settles the doubt.
+	 * Adapters MAY also implement
+	 * `query( array $bill ): array{state:string,reference:string}` with state
+	 * settled|failed|unknown; reconcile() uses it when present.
+	 *
 	 * @param array<string,mixed> $bill A row of fx_bills.
-	 * @return array{ok:bool,reference:string,error:string}
+	 * @return array{ok:bool,reference:string,error:string,state?:string}
 	 */
 	public function pay( array $bill ): array;
 

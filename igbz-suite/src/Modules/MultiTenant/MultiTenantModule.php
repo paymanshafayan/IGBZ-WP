@@ -523,7 +523,7 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		// duplicate beats. Bounded services carry the continuation contract inside the handler.
 		$jobs = igbz()->get( 'jobs' );
 		$slot = JobQueue::slot( DAY_IN_SECONDS );
-		foreach ( [ 'plans.renewals', 'affiliate.commissions', 'marketplace.flush', 'master.release', 'wallet.reconcile', 'master.reconcile', 'bnpl.reconcile' ] as $job_type ) {
+		foreach ( [ 'plans.renewals', 'affiliate.commissions', 'marketplace.flush', 'master.release', 'wallet.reconcile', 'master.reconcile', 'bnpl.reconcile', 'fx.billing.reconcile' ] as $job_type ) {
 			$jobs->enqueue( $job_type, [], [ 'idempotency_key' => $slot ] );
 		}
 	}
@@ -668,6 +668,10 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		$jobs->register( 'bnpl.reconcile', static function (): void {
 			// Phase 33: instalments must add up against their contracts; drift is reported, not hidden.
 			igbz()->get( 'bnpl' )->reconcile();
+		} );
+		$jobs->register( 'fx.billing.reconcile', static function (): void {
+			// Phase 36: pending payouts get a verdict or stay pending; nothing is guessed.
+			igbz()->get( 'fx.billing' )->reconcile();
 		} );
 		$jobs->register( 'webhooks.drain', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
 			// Phase 29: one batch per round; a full batch re-queues the next round.

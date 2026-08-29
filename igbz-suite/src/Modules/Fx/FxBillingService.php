@@ -27,6 +27,9 @@ final class FxBillingService {
 	public const STATUS_PAID     = 'paid';
 	public const STATUS_UNPAID   = 'unpaid';
 
+	/** Phase 36: the payout was sent and the provider's answer is not in yet. */
+	public const STATUS_PENDING  = 'pending';
+
 	/** @return array<int,array<string,mixed>> */
 	public function due_bills( int $limit = 50 ): array {
 		return $this->db->results(
@@ -94,6 +97,24 @@ final class FxBillingService {
 			return [ 'ok' => false, 'status' => self::STATUS_DUE, 'error' => 'no_payout_adapter' ];
 		}
 
+		// Phase 36 — human approval: a bill above the operator-set threshold is
+		// never auto-settled; the manual path (settle_bill_manually) stays the
+		// only way to pay it. Zero disables the gate.
+		$threshold = (float) $this->settings->float( 'fx.payout_approval_threshold_usd', 0 );
+		if ( $threshold > 0 && (float) $bill['amount_usd'] > $threshold ) {
+			$this->logger->warning( 'fx', 'Bill exceeds the payout approval threshold', [ 'bill_id' => (int) $bill['id'], 'amount_usd' => (float) $bill['amount_usd'], 'threshold' => $threshold ] );
+			return [ 'ok' => false, 'status' => self::STATUS_DUE, 'error' => 'requires_approval' ];
+		}
+
+		// Phase 36 — risk cap: what is already committed today (paid or still
+		// pending) plus this bill must stay within fx.payout_daily_cap_usd.
+		// Zero disables the cap.
+		$cap = (float) $this->settings->float( 'fx.payout_daily_cap_usd', 0 );
+		if ( $cap > 0 && $this->today_committed_usd() + (float) $bill['amount_usd'] > $cap ) {
+			$this->logger->warning( 'fx', 'Daily payout cap reached, bill held back', [ 'bill_id' => (int) $bill['id'], 'amount_usd' => (float) $bill['amount_usd'], 'committed_usd' => $this->today_committed_usd(), 'cap' => $cap ] );
+			return [ 'ok' => false, 'status' => self::STATUS_DUE, 'error' => 'daily_cap_reached' ];
+		}
+
 		$reference = 'bill:' . (int) $bill['id'];
 
 		$spend = $this->wallet->debit(
@@ -113,7 +134,28 @@ final class FxBillingService {
 			return [ 'ok' => false, 'status' => self::STATUS_UNPAID, 'error' => $spend['error'] ];
 		}
 
-		$result = $adapter->pay( $bill );
+		$result = null;
+		try {
+			$result = $adapter->pay( $bill );
+		} catch ( \Throwable $e ) {
+			$result = [ 'ok' => false, 'reference' => '', 'error' => $e->getMessage(), 'state' => 'pending' ];
+			$this->logger->error( 'fx', 'Payout adapter threw, outcome unknown', [ 'bill_id' => (int) $bill['id'], 'error' => $e->getMessage() ] );
+		}
+
+		// Phase 36 — unknown outcome: a transport failure after the charge was
+		// sent is NOT a failure. The bill goes `pending` with its debit kept;
+		// refunding now would pay twice when the provider did in fact charge.
+		// reconcile() and the provider webhook settle the doubt later.
+		if ( ! $result['ok'] && 'pending' === (string) ( $result['state'] ?? '' ) ) {
+			$this->db->update(
+				'fx_bills',
+				[ 'status' => self::STATUS_PENDING ],
+				[ 'id' => (int) $bill['id'] ]
+			);
+
+			return [ 'ok' => false, 'status' => self::STATUS_PENDING, 'error' => (string) $result['error'] ];
+		}
+
 		if ( ! $result['ok'] ) {
 			$this->wallet->credit(
 				(int) $bill['tenant_id'],
@@ -217,6 +259,118 @@ final class FxBillingService {
 			$this->settle_bill( $bill );
 		}
 		return count( $bills );
+	}
+
+	/**
+	 * Phase 36 — resolve a pending payout once the truth is known (provider
+	 * webhook or reconcile query). Exactly one outcome ever applies:
+	 *
+	 *  - ok  → the bill is paid, carrying the provider reference.
+	 *  - !ok → the wallet is refunded and the bill returns to `due`.
+	 *
+	 * Bills that are not pending are untouched, so a replayed webhook is inert.
+	 *
+	 * @return array{ok:bool,status:string,error:string}
+	 */
+	public function resolve_payout( array $bill, bool $ok, string $reference = '' ): array {
+		$fresh = $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'fx_bills' ) . ' WHERE id = %d',
+			(int) $bill['id']
+		);
+		if ( null === $fresh || self::STATUS_PENDING !== (string) $fresh['status'] ) {
+			return [ 'ok' => false, 'status' => null === $fresh ? 'missing' : (string) $fresh['status'], 'error' => 'not_pending' ];
+		}
+
+		if ( $ok ) {
+			$this->db->update(
+				'fx_bills',
+				[
+					'status'     => self::STATUS_PAID,
+					'paid_at'    => current_time( 'mysql', true ),
+					'payout_ref' => mb_substr( $reference, 0, 191 ),
+				],
+				[ 'id' => (int) $bill['id'] ]
+			);
+			$this->logger->info( 'fx', 'Pending payout confirmed', [ 'bill_id' => (int) $bill['id'], 'payout_ref' => $reference ] );
+
+			return [ 'ok' => true, 'status' => self::STATUS_PAID, 'error' => '' ];
+		}
+
+		$this->wallet->credit(
+			(int) $fresh['tenant_id'],
+			(float) $fresh['amount_usd'],
+			FxWalletService::REASON_REFUND,
+			'refund:bill:' . (int) $bill['id'],
+			[ 'bill_id' => (int) $bill['id'], 'outcome' => 'failed_after_pending' ]
+		);
+		$this->db->update(
+			'fx_bills',
+			[ 'status' => self::STATUS_DUE ],
+			[ 'id' => (int) $bill['id'] ]
+		);
+		$this->logger->warning( 'fx', 'Pending payout failed, wallet refunded', [ 'bill_id' => (int) $bill['id'] ] );
+
+		return [ 'ok' => false, 'status' => self::STATUS_DUE, 'error' => 'payout_failed' ];
+	}
+
+	/**
+	 * Phase 36 — daily reconciliation of pending payouts. Bills whose adapter
+	 * implements query() get a fresh verdict and are resolved through
+	 * resolve_payout(); the rest stay pending until a webhook arrives. Never
+	 * guesses: an unknown verdict keeps the bill pending and is only counted.
+	 *
+	 * @return array{scanned:int,resolved:int,refunded:int,unresolved:int}
+	 */
+	public function reconcile(): array {
+		$out     = [ 'scanned' => 0, 'resolved' => 0, 'refunded' => 0, 'unresolved' => 0 ];
+		$adapter = $this->payouts->active();
+
+		foreach ( $this->pending_bills() as $bill ) {
+			++$out['scanned'];
+
+			if ( null === $adapter || ! method_exists( $adapter, 'query' ) ) {
+				++$out['unresolved'];
+				continue;
+			}
+
+			$verdict = $adapter->query( $bill );
+			$state   = (string) ( $verdict['state'] ?? 'unknown' );
+
+			if ( 'settled' === $state ) {
+				$this->resolve_payout( $bill, true, (string) ( $verdict['reference'] ?? (string) ( $bill['payout_ref'] ?? '' ) ) );
+				++$out['resolved'];
+				continue;
+			}
+
+			if ( 'failed' === $state ) {
+				$this->resolve_payout( $bill, false );
+				++$out['resolved'];
+				++$out['refunded'];
+				continue;
+			}
+
+			++$out['unresolved'];
+		}
+
+		return $out;
+	}
+
+	/** @return array<int,array<string,mixed>> */
+	public function pending_bills( int $limit = 100 ): array {
+		return $this->db->results(
+			'SELECT * FROM ' . $this->db->table( 'fx_bills' ) . '\n\t\t\t WHERE status = %s ORDER BY id ASC LIMIT %d',
+			self::STATUS_PENDING,
+			$limit
+		);
+	}
+
+	/** USD already committed today: paid today plus everything still pending. */
+	public function today_committed_usd(): float {
+		$today = gmdate( 'Y-m-d' );
+
+		return (float) $this->db->scalar(
+			"SELECT COALESCE( SUM( amount_usd ), 0 ) FROM {$this->db->table( 'fx_bills' )} WHERE status = 'pending' OR ( status = 'paid' AND paid_at >= '{$today} 00:00:00' ) "
+		);
 	}
 
 	public function __construct(
