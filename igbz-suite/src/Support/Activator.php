@@ -106,6 +106,7 @@ final class Activator {
 			27 => [ self::class, 'migrate_to_v27' ],
 			28 => [ self::class, 'migrate_to_v28' ],
 			29 => [ self::class, 'migrate_to_v29' ],
+			30 => [ self::class, 'migrate_to_v30' ],
 		];
 	}
 
@@ -190,6 +191,15 @@ final class Activator {
 	 */
 	public static function migrate_to_v29(): void {
 		// Pure dbDelta work; see the ig_domain_quotes / ig_domain_orders tables.
+	}
+
+	/**
+	 * v30 (phase 38): domain registration evidence — `ig_domain_journal` records every
+	 * registration event (registered, failed, refunded, callback) per order, so a provider
+	 * failure is always explainable after the fact. Pure dbDelta work.
+	 */
+	public static function migrate_to_v30(): void {
+		// Pure dbDelta work; see the ig_domain_journal table.
 	}
 
 	/**

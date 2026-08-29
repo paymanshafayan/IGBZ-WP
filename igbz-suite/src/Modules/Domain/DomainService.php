@@ -1,6 +1,7 @@
 <?php
 namespace IGBZ\Suite\Modules\Domain;
 
+use IGBZ\Suite\Modules\Fx\FxWalletService;
 use IGBZ\Suite\Support\Db;
 use IGBZ\Suite\Support\Logger;
 use IGBZ\Suite\Support\Settings;
@@ -18,9 +19,13 @@ defined( 'ABSPATH' ) || exit;
  */
 final class DomainService {
 
-	public const ORDER_RESERVED = 'reserved';
-	public const ORDER_PAID     = 'paid';
-	public const ORDER_CANCELLED = 'cancelled';
+	public const ORDER_RESERVED   = 'reserved';
+	public const ORDER_PAID       = 'paid';
+	public const ORDER_REGISTERING = 'registering';
+	public const ORDER_REGISTERED = 'registered';
+	public const ORDER_FAILED     = 'failed';
+	public const ORDER_REFUNDED   = 'refunded';
+	public const ORDER_CANCELLED  = 'cancelled';
 
 	/** RFC-ish sanity check only — the provider answers the real availability question. */
 	public static function valid_domain_name( string $name ): bool {
@@ -217,10 +222,209 @@ final class DomainService {
 		return $ttl;
 	}
 
+	/**
+	 * Phase 38 — registration happens ONLY on a paid order. The order flips
+	 * paid → registering before the provider is asked (so a crash mid-call is
+	 * visible, not silent), then lands registered or failed. A failed
+	 * registration refunds the FX wallet idempotently and leaves a journal.
+	 *
+	 * @return array{ok:bool,status:string,error:string}
+	 */
+	public function register_paid( array $order ): array {
+		$fresh = $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'ig_domain_orders' ) . ' WHERE id = %d',
+			(int) $order['id']
+		);
+		if ( null === $fresh ) {
+			return [ 'ok' => false, 'status' => 'missing', 'error' => 'order_missing' ];
+		}
+		if ( self::ORDER_REGISTERED === (string) $fresh['status'] ) {
+			return [ 'ok' => true, 'status' => self::ORDER_REGISTERED, 'error' => '' ];
+		}
+		if ( self::ORDER_PAID !== (string) $fresh['status'] ) {
+			return [ 'ok' => false, 'status' => (string) $fresh['status'], 'error' => 'not_paid' ];
+		}
+
+		$adapter = $this->adapters->active();
+		if ( ! $adapter || ! $adapter->is_configured() ) {
+			return [ 'ok' => false, 'status' => self::ORDER_PAID, 'error' => 'no_domain_provider' ];
+		}
+
+		$this->db->update( 'ig_domain_orders', [ 'status' => self::ORDER_REGISTERING ], [ 'id' => (int) $fresh['id'] ] );
+		$this->record( $fresh, 'register_started', '' );
+
+		$result = null;
+		try {
+			$result = $adapter->register( $fresh );
+		} catch ( \Throwable $e ) {
+			$result = [ 'ok' => false, 'reference' => '', 'error' => $e->getMessage() ];
+		}
+
+		if ( $result['ok'] ) {
+			$this->db->update(
+				'ig_domain_orders',
+				[ 'status' => self::ORDER_REGISTERED, 'provider_ref' => mb_substr( (string) $result['reference'], 0, 191 ) ],
+				[ 'id' => (int) $fresh['id'] ]
+			);
+			$this->record( $fresh, 'registered', (string) $result['reference'] );
+			$this->logger->info( 'domain', 'Domain registered', [ 'order_id' => (int) $fresh['id'], 'reference' => (string) $result['reference'] ] );
+
+			return [ 'ok' => true, 'status' => self::ORDER_REGISTERED, 'error' => '' ];
+		}
+
+		$this->db->update( 'ig_domain_orders', [ 'status' => self::ORDER_FAILED ], [ 'id' => (int) $fresh['id'] ] );
+		$this->record( $fresh, 'register_failed', (string) $result['error'] );
+		$this->refund_order( $fresh );
+		$this->logger->error( 'domain', 'Domain registration failed, order refunded', [ 'order_id' => (int) $fresh['id'], 'error' => (string) $result['error'] ] );
+
+		return [ 'ok' => false, 'status' => self::ORDER_FAILED, 'error' => (string) $result['error'] ];
+	}
+
+	/**
+	 * Phase 38 — apply one provider verdict to a registering order (signed
+	 * callback and backup polling share this single path). Unknown changes
+	 * nothing. Replays on a settled order are inert.
+	 *
+	 * @return array{ok:bool,status:string,error:string}
+	 */
+	public function apply_provider_result( int $order_id, bool $ok, string $reference = '' ): array {
+		$fresh = $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'ig_domain_orders' ) . ' WHERE id = %d',
+			$order_id
+		);
+		if ( null === $fresh ) {
+			return [ 'ok' => false, 'status' => 'missing', 'error' => 'order_missing' ];
+		}
+
+		$status = (string) $fresh['status'];
+		if ( self::ORDER_REGISTERED === $status || self::ORDER_REFUNDED === $status ) {
+			return [ 'ok' => true, 'status' => $status, 'error' => '' ];
+		}
+		if ( self::ORDER_REGISTERING !== $status && self::ORDER_FAILED !== $status ) {
+			return [ 'ok' => false, 'status' => $status, 'error' => 'not_registering' ];
+		}
+
+		if ( $ok ) {
+			$this->db->update(
+				'ig_domain_orders',
+				[ 'status' => self::ORDER_REGISTERED, 'provider_ref' => mb_substr( $reference, 0, 191 ) ],
+				[ 'id' => $order_id ]
+			);
+			$this->record( $fresh, 'registered', $reference );
+			return [ 'ok' => true, 'status' => self::ORDER_REGISTERED, 'error' => '' ];
+		}
+
+		if ( self::ORDER_FAILED !== $status ) {
+			$this->db->update( 'ig_domain_orders', [ 'status' => self::ORDER_FAILED ], [ 'id' => $order_id ] );
+			$this->record( $fresh, 'register_failed', 'provider_verdict' );
+		}
+		$this->refund_order( $fresh );
+
+		return [ 'ok' => false, 'status' => self::ORDER_FAILED, 'error' => 'provider_verdict_failed' ];
+	}
+
+	/**
+	 * Phase 38 — verify a provider callback signature (HMAC-SHA256 over the
+	 * raw body with domain.webhook_secret). A callback that cannot be
+	 * verified is treated as never received.
+	 */
+	public function verify_callback( string $raw_body, string $signature ): bool {
+		$secret = (string) $this->settings->get( 'domain.webhook_secret', '' );
+		if ( '' === $secret || '' === $signature ) {
+			return false;
+		}
+
+		return hash_equals( hash_hmac( 'sha256', $raw_body, $secret ), strtolower( trim( $signature ) ) );
+	}
+
+	/**
+	 * Phase 38 — backup polling for orders stuck in `registering` longer than
+	 * the given age. The provider is asked through query(); a registered or
+	 * failed verdict is applied, unknown is counted and left alone.
+	 *
+	 * @return array{scanned:int,resolved:int,unresolved:int}
+	 */
+	public function poll_stuck( int $max_age_hours = 2 ): array {
+		$out     = [ 'scanned' => 0, 'resolved' => 0, 'unresolved' => 0 ];
+		$adapter = $this->adapters->active();
+
+		$rows = $this->db->results(
+			'SELECT * FROM ' . $this->db->table( 'ig_domain_orders' ) . "\n\t\t\t WHERE status = %s ORDER BY id ASC LIMIT %d",
+			self::ORDER_REGISTERING,
+			100
+		);
+		$cutoff = time() - max( 1, $max_age_hours ) * 3600;
+
+		foreach ( $rows as $order ) {
+			if ( strtotime( (string) ( $order['created_at'] ?? '' ) . ' UTC' ) > $cutoff ) {
+				continue; // Too young to be stuck.
+			}
+			++$out['scanned'];
+
+			if ( null === $adapter ) {
+				++$out['unresolved'];
+				continue;
+			}
+
+			$verdict = null;
+			try {
+				$verdict = $adapter->query( $order );
+			} catch ( \Throwable $e ) {
+				$verdict = [ 'state' => 'unknown', 'reference' => '', 'error' => $e->getMessage() ];
+			}
+
+			$state = (string) ( $verdict['state'] ?? 'unknown' );
+			if ( 'registered' === $state ) {
+				$this->apply_provider_result( (int) $order['id'], true, (string) ( $verdict['reference'] ?? '' ) );
+				++$out['resolved'];
+				continue;
+			}
+			if ( 'failed' === $state ) {
+				$this->apply_provider_result( (int) $order['id'], false );
+				++$out['resolved'];
+				continue;
+			}
+			++$out['unresolved'];
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Phase 38 — idempotent refund of a failed registration back to the FX
+	 * wallet; the journal records it once, the wallet credit's own
+	 * (reason, reference) idempotency makes a replay a no-op.
+	 */
+	public function refund_order( array $order ): void {
+		$this->wallet->credit(
+			(int) $order['tenant_id'],
+			(float) $order['amount'],
+			FxWalletService::REASON_REFUND,
+			'domain_refund:' . (int) $order['id'],
+			[ 'order_id' => (int) $order['id'] ]
+		);
+		$this->record( $order, 'refunded', (string) (float) $order['amount'] );
+	}
+
+	/** @param array<string,mixed> $order */
+	public function record( array $order, string $event, string $detail ): void {
+		$this->db->insert(
+			'ig_domain_journal',
+			[
+				'tenant_id'  => (int) ( $order['tenant_id'] ?? 0 ),
+				'order_id'   => (int) ( $order['id'] ?? 0 ),
+				'event'      => $event,
+				'detail'     => mb_substr( $detail, 0, 255 ),
+				'created_at' => gmdate( 'Y-m-d H:i:s' ),
+			]
+		);
+	}
+
 	public function __construct(
 		private Db $db,
 		private Settings $settings,
 		private DomainAdapterRegistry $adapters,
-		private Logger $logger
+		private Logger $logger,
+		private FxWalletService $wallet
 	) {}
 }

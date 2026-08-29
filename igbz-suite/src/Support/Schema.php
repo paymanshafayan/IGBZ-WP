@@ -84,6 +84,7 @@ final class Schema {
 			'ig_domains',
 			'ig_domain_quotes',
 			'ig_domain_orders',
+			'ig_domain_journal',
 			'ig_web_presence',
 			'ig_couriers',
 			'ig_label_groups',
@@ -1253,6 +1254,17 @@ final class Schema {
 			PRIMARY KEY  (id),
 			KEY tenant (tenant_id),
 			KEY name (name)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_domain_journal (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			order_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			event VARCHAR(32) NOT NULL DEFAULT '',
+			detail VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY order_event (order_id,event)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}ig_domain_quotes (

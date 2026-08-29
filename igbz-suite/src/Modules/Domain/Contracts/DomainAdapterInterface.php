@@ -47,4 +47,14 @@ interface DomainAdapterInterface {
 	 * @return array{ok:bool,reference:string,error:string}
 	 */
 	public function register( array $order ): array;
+
+	/**
+	 * Phase 38 backup polling: ask the provider for the verdict of an order
+	 * still marked `registering`. state is registered|failed|unknown; a
+	 * provider that cannot answer returns unknown and nothing is guessed.
+	 *
+	 * @param array<string,mixed> $order A row of ig_domain_orders.
+	 * @return array{state:string,reference:string,error:string}
+	 */
+	public function query( array $order ): array;
 }

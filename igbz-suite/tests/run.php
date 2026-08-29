@@ -68,6 +68,7 @@ $cases = [
 	'FxQuoteTest',
 	'FxBillingHardenTest',
 	'DomainOrderTest',
+	'DomainRegistrationTest',
 ];
 
 foreach ( $cases as $case ) {

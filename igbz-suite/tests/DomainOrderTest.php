@@ -157,6 +157,10 @@ final class StubDomainAdapter implements DomainAdapterInterface {
 		$this->registered[] = (int) $order['id'];
 		return [ 'ok' => true, 'reference' => 'reg:' . (int) $order['id'], 'error' => '' ];
 	}
+
+	public function query( array $order ): array {
+		return [ 'state' => 'unknown', 'reference' => '', 'error' => '' ];
+	}
 }
 
 final class DomainOrderTest extends TestCase {
@@ -181,7 +185,7 @@ final class DomainOrderTest extends TestCase {
 		$registry      = new DomainAdapterRegistry();
 		$registry->register( $this->adapter );
 
-		$this->service = new DomainService( $this->db, igbz()->settings(), $registry, new IGBZ\Suite\Support\Logger( igbz()->settings() ) );
+		$this->service = new DomainService( $this->db, igbz()->settings(), $registry, new IGBZ\Suite\Support\Logger( igbz()->settings() ), new IGBZ\Suite\Modules\Fx\FxWalletService( $this->db ) );
 	}
 
 	public function run(): void {
