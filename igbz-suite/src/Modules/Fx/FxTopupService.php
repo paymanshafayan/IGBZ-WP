@@ -33,20 +33,26 @@ final class FxTopupService {
 
 	/** @return array{ok:bool,payment_id:int,redirect_url:string,error:string,amount_irt:float,gross_usd:float,net_usd:float} */
 	public function start( int $tenant_id, int $user_id, float $usd_requested, string $gateway_id = '' ): array {
-		$quote = FxMath::quote(
-			$usd_requested,
-			(float) $this->settings->float( 'fx.fee_percent', 10 ),
-			$this->rates->current()
-		);
+		// Phase 35: lock FIRST, then price from the locked row. The previous order quoted from the
+		// live rate and locked afterwards — between those two reads the market could move and the
+		// buyer would pay a price no locked rate ever justified. Now the quoted price and the
+		// locked row are the same number by construction, and a missing rate refuses the top-up
+		// instead of pricing it at zero.
+		$rate_id = $this->rates->lock_rate();
+		$locked  = $rate_id > 0 ? $this->rates->locked_rate( $rate_id ) : null;
 
-		if ( $quote['amount_irt'] <= 0 ) {
+		if ( null === $locked || (float) $locked['rate_applied'] <= 0 ) {
 			return [
 				'ok' => false, 'payment_id' => 0, 'redirect_url' => '', 'error' => __( 'FX is not priced yet: set the exchange rate in IGBZ → Settings → FX payments.', 'igbz-suite' ),
 				'amount_irt' => 0, 'gross_usd' => 0, 'net_usd' => 0,
 			];
 		}
 
-		$rate_id = $this->rates->lock_rate();
+		$quote = FxMath::quote(
+			$usd_requested,
+			(float) $this->settings->float( 'fx.fee_percent', 10 ),
+			(float) $locked['rate_applied']
+		);
 
 		$result = $this->payments->start(
 			(float) $quote['amount_irt'],

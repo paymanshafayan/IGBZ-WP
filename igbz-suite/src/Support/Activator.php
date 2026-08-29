@@ -103,6 +103,8 @@ final class Activator {
 			24 => [ self::class, 'migrate_to_v24' ],
 			25 => [ self::class, 'migrate_to_v25' ],
 			26 => [ self::class, 'migrate_to_v26' ],
+			27 => [ self::class, 'migrate_to_v27' ],
+			28 => [ self::class, 'migrate_to_v28' ],
 		];
 	}
 
@@ -161,6 +163,23 @@ final class Activator {
 	 */
 	public static function migrate_to_v26(): void {
 		// Pure dbDelta work; see the ig_master_payments / ig_master_withdrawals tables.
+	}
+
+	/**
+	 * v27 (phase 33): `bnpl_installments.collection_attempts` — the bounded-retry counter that
+	 * stops the dunning sweep from hammering an empty wallet forever. Pure dbDelta work.
+	 */
+	public static function migrate_to_v27(): void {
+		// Pure dbDelta work; see the bnpl_installments table.
+	}
+
+	/**
+	 * v28 (phase 35): locked FX quotes carry their evidence — `spread_percent`, `rate_applied`
+	 * (the exact number the top-up was priced with) and `expires_at` (a quote is a promise with
+	 * a deadline, not forever). Pure dbDelta work.
+	 */
+	public static function migrate_to_v28(): void {
+		// Pure dbDelta work; see the fx_rates table.
 	}
 
 	/**

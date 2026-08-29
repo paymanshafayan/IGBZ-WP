@@ -128,6 +128,9 @@ final class MultiTenantModule implements ModuleInterface {
 
 		// Phase 29: provider payment notifications arrive in the durable inbox and are applied
 		// through the shared state machine — never directly, never in the request path.
+		$plugin->get( 'webhooks.inbox' )->register_source( 'bnpl', static function ( array $payload ): string {
+			return igbz()->get( 'bnpl' )->apply_provider_notification( $payload );
+		} );
 		$plugin->get( 'webhooks.inbox' )->register_source( 'psp', static function ( array $payload ): string {
 			$payment_id = (int) ( $payload['payment_id'] ?? 0 );
 			$verdict    = (string) ( $payload['status'] ?? '' );
@@ -520,7 +523,7 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		// duplicate beats. Bounded services carry the continuation contract inside the handler.
 		$jobs = igbz()->get( 'jobs' );
 		$slot = JobQueue::slot( DAY_IN_SECONDS );
-		foreach ( [ 'plans.renewals', 'affiliate.commissions', 'marketplace.flush', 'master.release', 'wallet.reconcile', 'master.reconcile' ] as $job_type ) {
+		foreach ( [ 'plans.renewals', 'affiliate.commissions', 'marketplace.flush', 'master.release', 'wallet.reconcile', 'master.reconcile', 'bnpl.reconcile' ] as $job_type ) {
 			$jobs->enqueue( $job_type, [], [ 'idempotency_key' => $slot ] );
 		}
 	}
@@ -661,6 +664,10 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 		$jobs->register( 'master.reconcile', static function (): void {
 			// Phase 31: released escrow must have its wallet credit; gaps are repaired and reported.
 			igbz()->get( 'master.payment' )->reconcile();
+		} );
+		$jobs->register( 'bnpl.reconcile', static function (): void {
+			// Phase 33: instalments must add up against their contracts; drift is reported, not hidden.
+			igbz()->get( 'bnpl' )->reconcile();
 		} );
 		$jobs->register( 'webhooks.drain', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
 			// Phase 29: one batch per round; a full batch re-queues the next round.

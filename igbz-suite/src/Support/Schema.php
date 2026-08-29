@@ -283,6 +283,7 @@ final class Schema {
 			status VARCHAR(20) NOT NULL DEFAULT 'due',
 			payment_ref VARCHAR(128) NOT NULL DEFAULT '',
 			reminder_sent_at DATETIME NULL,
+			collection_attempts INT UNSIGNED NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
 			UNIQUE KEY contract_seq (contract_id,sequence),
 			KEY due_status (due_date,status),
@@ -1003,8 +1004,11 @@ final class Schema {
 		$sql[] = "CREATE TABLE {$p}fx_rates (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			rate_irt_per_usd DECIMAL(18,4) NOT NULL DEFAULT 0,
+			spread_percent DECIMAL(8,4) NOT NULL DEFAULT 0,
+			rate_applied DECIMAL(18,4) NOT NULL DEFAULT 0,
 			source VARCHAR(16) NOT NULL DEFAULT 'manual',
 			captured_at DATETIME NOT NULL,
+			expires_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			KEY captured_at (captured_at)
 		) {$charset};";
