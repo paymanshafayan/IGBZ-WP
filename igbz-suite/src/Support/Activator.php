@@ -108,6 +108,7 @@ final class Activator {
 			29 => [ self::class, 'migrate_to_v29' ],
 			30 => [ self::class, 'migrate_to_v30' ],
 			31 => [ self::class, 'migrate_to_v31' ],
+			32 => [ self::class, 'migrate_to_v32' ],
 		];
 	}
 
@@ -209,6 +210,15 @@ final class Activator {
 	 */
 	public static function migrate_to_v31(): void {
 		// Pure dbDelta work; see the ig_domains table.
+	}
+
+	/**
+	 * v32 (phase 41): gamification — `ig_points_ledger` (an append-only, idempotent points
+	 * ledger with per-row expiry), `ig_point_rewards` (the catalogue) and
+	 * `ig_reward_redemptions` (idempotent per user + key). Pure dbDelta work.
+	 */
+	public static function migrate_to_v32(): void {
+		// Pure dbDelta work; see the ig_points_ledger / ig_point_rewards / ig_reward_redemptions tables.
 	}
 
 	/**

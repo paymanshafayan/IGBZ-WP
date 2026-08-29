@@ -199,6 +199,7 @@ $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\M
 			static fn ( Plugin $c ) => new BnplService( $c->db(), $c->get( 'wallet' ), $c->logger(), $c->get( 'bnpl.providers' ) )
 		);
 		$plugin->bind( 'affiliate', static fn ( Plugin $c ) => new AffiliateService( $c->db(), $c->get( 'wallet' ), $c->logger() ) );
+		$plugin->bind( 'gamification', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Gamification\GamificationService( $c->db(), $c->settings(), $c->logger() ) );
 		$plugin->bind( 'lms', static fn ( Plugin $c ) => new LmsService( $c->db() ) );
 		$plugin->bind(
 			'payments',

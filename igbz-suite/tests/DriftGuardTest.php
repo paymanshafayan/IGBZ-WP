@@ -68,9 +68,9 @@ final class DriftGuardTest extends TestCase {
 
 	private function table_count_is_pinned(): void {
 		$this->assert_same(
-			76,
+			79,
 			count( Schema::statements() ),
-			'Schema table count drifted from the pinned baseline (76 / PHASE-01-INVENTORY.json database.table_count)'
+			'Schema table count drifted from the pinned baseline (79 / PHASE-01-INVENTORY.json database.table_count)'
 		);
 	}
 
@@ -81,9 +81,9 @@ final class DriftGuardTest extends TestCase {
 		$found  = preg_match( "/define\(\s*'IGBZ_DB_VERSION',\s*(\d+)/", $source, $matches );
 		$this->assert_same( 1, $found, 'IGBZ_DB_VERSION define not found in igbz-suite.php' );
 		$this->assert_same(
-			31,
+			32,
 			(int) ( $matches[1] ?? 0 ),
-			'IGBZ_DB_VERSION drifted from the pinned baseline (31 / PHASE-01-INVENTORY.json database.version)'
+			'IGBZ_DB_VERSION drifted from the pinned baseline (32 / PHASE-01-INVENTORY.json database.version)'
 		);
 	}
 

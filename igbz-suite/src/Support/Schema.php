@@ -85,6 +85,9 @@ final class Schema {
 			'ig_domain_quotes',
 			'ig_domain_orders',
 			'ig_domain_journal',
+			'ig_points_ledger',
+			'ig_point_rewards',
+			'ig_reward_redemptions',
 			'ig_web_presence',
 			'ig_couriers',
 			'ig_label_groups',
@@ -1266,6 +1269,48 @@ final class Schema {
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY order_event (order_id,event)
+		) {$charset};";
+
+
+		$sql[] = "CREATE TABLE {$p}ig_points_ledger (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			reason VARCHAR(64) NOT NULL DEFAULT '',
+			reference VARCHAR(191) NOT NULL DEFAULT '',
+			points INT NOT NULL DEFAULT 0,
+			expires_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY user_reason_ref (user_id,reason,reference),
+			KEY tenant_user (tenant_id,user_id),
+			KEY expires (expires_at)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_point_rewards (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			slug VARCHAR(64) NOT NULL DEFAULT '',
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			cost_points INT NOT NULL DEFAULT 0,
+			is_active TINYINT(1) NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_slug (tenant_id,slug)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_reward_redemptions (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			reward_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			points_spent INT NOT NULL DEFAULT 0,
+			idempotency_key VARCHAR(191) DEFAULT NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'issued',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY user_key (user_id,idempotency_key),
+			KEY tenant_user (tenant_id,user_id)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}ig_domain_quotes (
