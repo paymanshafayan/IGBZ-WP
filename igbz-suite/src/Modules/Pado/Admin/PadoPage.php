@@ -541,6 +541,17 @@ final class PadoPage {
 		// job remains approved and can be retried without pretending that work was completed.
 		$executor = null;
 		$scope = current_user_can( Capabilities::MANAGE_TENANTS ) ? null : igbz()->tenancy()->id();
+
+		// Phase 58 — the sensitive commercial kinds execute through the queue's
+		// claim/complete contract; the page only supplies the human yes.
+		$sensitive = [ 'price_change', 'payment_refund', 'bulk_product_delete' ];
+		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], $sensitive, true ) ) {
+			$ops     = igbz()->get( 'pado.ops' );
+			$ops_row = $row;
+			$executor = static function ( array $request ) use ( $ops, $ops_row ): bool {
+				return $ops->run( 0 !== (int) ( $request['id'] ?? 0 ) ? $request : $ops_row );
+			};
+		}
 		$row = $this->approvals->get( $id, $scope );
 		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], [ 'theme_apply', 'theme_rollback' ], true ) ) {
 			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );

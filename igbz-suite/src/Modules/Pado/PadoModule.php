@@ -111,6 +111,16 @@ final class PadoModule implements ModuleInterface {
 		// Phase 56 — the versioned inference plane: toolbox allowlist + the sole
 		// version-one provider. Activation flags default to off (ADR-0004 §4).
 		$plugin->bind( 'pado.ai.toolbox', static fn (): \IGBZ\Suite\Modules\Pado\Ai\AiToolbox => new \IGBZ\Suite\Modules\Pado\Ai\AiToolbox() );
+		// Phase 58 — the sensitive commercial operations ride the phase-57 queue.
+		$plugin->bind(
+			'pado.ops',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\SensitiveOperationsService => new \IGBZ\Suite\Modules\Pado\Services\SensitiveOperationsService(
+				$c->db(),
+				$c->logger(),
+				$c->get( 'pado.approvals' ),
+				$c->get( 'payments' )
+			)
+		);
 		$plugin->bind(
 			'pado.ai.deepinfra',
 			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter => new \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter(
