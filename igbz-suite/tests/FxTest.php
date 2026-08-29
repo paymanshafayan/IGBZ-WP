@@ -11,7 +11,7 @@
  *   - a verified top-up credits exactly once, even if the webhook replays;
  *   - the meter refuses a task on the spot when the tenant's credit is short —
  *     there is no queue, no debt and no cross-tenant borrowing;
- *   - a task Manus never accepted is refunded, once, at the exact amount that
+ *   - a task the provider never accepted is refunded, once, at the exact amount that
  *     was debited;
  *   - the rate falls back to the manual value when the auto source fails.
  */
@@ -377,9 +377,8 @@ final class FxTest extends TestCase {
 		$this->test_the_meter_spends_and_refunds_once();
 		$this->test_the_meter_refuses_on_the_spot_when_credit_is_short();
 		$this->test_an_unpriced_service_is_refused();
-		$this->test_a_monthly_bill_is_created_once_and_settled();
-		$this->test_an_unpaid_bill_stays_due_and_refunds_the_wallet();
-		$this->test_manychat_delivery_is_charged_once();
+		$this->test_monthly_billing_is_retired_with_the_legacy_providers();
+		$this->test_dm_delivery_is_charged_once();
 		$this->test_the_pstnet_adapter_charges_and_reports_balance();
 		$this->test_the_redotpay_adapter_is_a_valid_pilot();
 		$this->test_manual_settlement_marks_the_bill_paid_and_debits();
@@ -489,34 +488,34 @@ final class FxTest extends TestCase {
 
 	public function test_the_meter_spends_and_refunds_once(): void {
 		$this->boot();
-		$this->seed_price( 'manus_task', 0.5 );
+		$this->seed_price( 'social_task', 0.5 );
 		$this->wallet()->credit( 7, 1.0, FxWalletService::REASON_TOPUP, 'payment:1' );
 		$meter = $this->meter();
 
-		$first = $meter->consume( 7, 'manus_task', 'manus-task:aaa' );
+		$first = $meter->consume( 7, 'social_task', 'task:aaa' );
 		$this->assert_true( $first['ok'], 'the first task is allowed' );
 		$this->assert_same( 0.5, $first['balance'], 'half a dollar left' );
 
-		$second = $meter->consume( 7, 'manus_task', 'manus-task:bbb' );
+		$second = $meter->consume( 7, 'social_task', 'task:bbb' );
 		$this->assert_true( $second['ok'], 'the second task is allowed' );
 		$this->assert_same( 0.0, $second['balance'], 'the wallet is empty' );
 
-		$third = $meter->consume( 7, 'manus_task', 'manus-task:ccc' );
+		$third = $meter->consume( 7, 'social_task', 'task:ccc' );
 		$this->assert_false( $third['ok'], 'the third task is refused on the spot' );
 		$this->assert_same( 'insufficient', $third['error'], 'the refusal names the reason' );
 
-		$meter->release( 7, 'manus_task', 'manus-task:bbb' );
+		$meter->release( 7, 'social_task', 'task:bbb' );
 		$this->assert_same( 0.5, $this->wallet()->balance( 7 )['balance_usd'], 'a failed task is refunded' );
 
-		$meter->release( 7, 'manus_task', 'manus-task:bbb' );
+		$meter->release( 7, 'social_task', 'task:bbb' );
 		$this->assert_same( 0.5, $this->wallet()->balance( 7 )['balance_usd'], 'a double release refunds once' );
 	}
 
 	public function test_the_meter_refuses_on_the_spot_when_credit_is_short(): void {
 		$this->boot();
-		$this->seed_price( 'manus_task', 0.5 );
+		$this->seed_price( 'social_task', 0.5 );
 
-		$result = $this->meter()->consume( 7, 'manus_task', 'manus-task:aaa' );
+		$result = $this->meter()->consume( 7, 'social_task', 'task:aaa' );
 
 		$this->assert_false( $result['ok'], 'an empty wallet refuses immediately' );
 		$this->assert_same( 'insufficient', $result['error'], 'no queue, no debt — just the reason' );
@@ -525,64 +524,37 @@ final class FxTest extends TestCase {
 	public function test_an_unpriced_service_is_refused(): void {
 		$this->boot();
 
-		$result = $this->meter()->consume( 7, 'manus_task', 'manus-task:aaa' );
+		$result = $this->meter()->consume( 7, 'social_task', 'task:aaa' );
 
 		$this->assert_false( $result['ok'], 'a service with no price cannot be consumed' );
 		$this->assert_same( 'unpriced', $result['error'], 'the operator must set prices first' );
 	}
 
-	public function test_a_monthly_bill_is_created_once_and_settled(): void {
+	public function test_monthly_billing_is_retired_with_the_legacy_providers(): void {
 		$this->boot();
-		$this->seed_price( 'manus_monthly', 25 );
+		$this->seed_price( 'legacy_monthly', 25 );
 		$this->wallet()->credit( 7, 30, FxWalletService::REASON_TOPUP, 'payment:1' );
 
 		$accounts = new FxAccountsService( $this->db );
-		$account_id = $accounts->create( 7, 'manus', 'acct-1' );
+		$account  = $accounts->get( $accounts->create( 7, 'legacy', 'acct-1' ) );
 
 		$billing = $this->billing();
-		$bill_id = $billing->create_monthly_bill( $accounts->get( $account_id ) );
-
-		$this->assert_true( $bill_id > 0, 'a bill is created for the month' );
-
-		$again = $billing->create_monthly_bill( $accounts->get( $account_id ) );
-		$this->assert_same( 0, $again, 'the same month is not billed twice' );
-
-		$result = $billing->settle_bill( $this->fxdb->tables['fx_bills'][ $bill_id ] );
-
-		$this->assert_true( $result['ok'], 'a funded bill is paid' );
-		$this->assert_same( FxBillingService::STATUS_PAID, $this->fxdb->tables['fx_bills'][ $bill_id ]['status'], 'the bill is marked paid' );
-		$this->assert_same( 5.0, $this->wallet()->balance( 7 )['balance_usd'], 'the wallet is debited the bill amount' );
+		$this->assert_same( '', $billing->service_for( $account ), 'no legacy provider maps to a priced service anymore' );
+		$this->assert_same( 0, $billing->create_monthly_bill( $account ), 'so no monthly bill is created — the mechanism stays, the billing does not' );
+		$this->assert_same( 30.0, $this->wallet()->balance( 7 )['balance_usd'], 'the wallet is untouched' );
 	}
 
-	public function test_an_unpaid_bill_stays_due_and_refunds_the_wallet(): void {
+	public function test_dm_delivery_is_charged_once(): void {
 		$this->boot();
-		$this->seed_price( 'manus_monthly', 25 );
-		$this->wallet()->credit( 7, 10, FxWalletService::REASON_TOPUP, 'payment:1' );
-
-		$accounts = new FxAccountsService( $this->db );
-		$account_id = $accounts->create( 7, 'manus', 'acct-1' );
-
-		$billing = $this->billing();
-		$bill_id = $billing->create_monthly_bill( $accounts->get( $account_id ) );
-		$result  = $billing->settle_bill( $this->fxdb->tables['fx_bills'][ $bill_id ] );
-
-		$this->assert_false( $result['ok'], 'a bill beyond the wallet is not paid' );
-		$this->assert_same( 'insufficient', $result['error'], 'the refusal names the reason' );
-		$this->assert_same( FxBillingService::STATUS_UNPAID, $this->fxdb->tables['fx_bills'][ $bill_id ]['status'], 'the bill is marked unpaid' );
-		$this->assert_same( 10.0, $this->wallet()->balance( 7 )['balance_usd'], 'nothing is taken from the wallet' );
-	}
-
-	public function test_manychat_delivery_is_charged_once(): void {
-		$this->boot();
-		$this->seed_price( 'manychat_dm', 0.1 );
+		$this->seed_price( 'dm_delivery', 0.1 );
 		$this->wallet()->credit( 7, 1, FxWalletService::REASON_TOPUP, 'payment:1' );
 		$meter = $this->meter();
 
-		$first = $meter->charge_delivery( 7, 'funnel-hit:11' );
+		$first = $meter->charge_delivery( 7, 'dm:11' );
 		$this->assert_true( $first['ok'], 'the first delivery is charged' );
 		$this->assert_same( 0.9, $first['balance'], 'the delivery price is deducted' );
 
-		$second = $meter->charge_delivery( 7, 'funnel-hit:11' );
+		$second = $meter->charge_delivery( 7, 'dm:11' );
 		$this->assert_false( $second['ok'], 'a replayed delivery is not charged twice' );
 		$this->assert_same( 0.9, $this->wallet()->balance( 7 )['balance_usd'], 'the wallet is untouched by the replay' );
 	}
@@ -621,15 +593,24 @@ final class FxTest extends TestCase {
 
 	public function test_manual_settlement_marks_the_bill_paid_and_debits(): void {
 		$this->boot();
-		$this->seed_price( 'manus_monthly', 25 );
 		$this->wallet()->credit( 7, 30, FxWalletService::REASON_TOPUP, 'payment:1' );
 
-		$accounts = new FxAccountsService( $this->db );
-		$account_id = $accounts->create( 7, 'manus', 'acct-1' );
-
-		$billing = $this->billing();
-		$bill_id = $billing->create_monthly_bill( $accounts->get( $account_id ) );
-		$bill    = $this->fxdb->tables['fx_bills'][ $bill_id ];
+		// The bill row is written directly: manual settlement no longer depends on the
+		// retired monthly-bill creation path.
+		$now       = current_time( 'mysql', true );
+		$bill_id   = $this->fxdb->tables['fx_bills'] ? max( array_keys( $this->fxdb->tables['fx_bills'] ) ) + 1 : 1;
+		$this->fxdb->tables['fx_bills'][ $bill_id ] = [
+			'id'         => $bill_id,
+			'tenant_id'  => 7,
+			'service'    => 'manual',
+			'period'     => gmdate( 'Y-m' ),
+			'amount_usd' => 25.0,
+			'status'     => 'unpaid',
+			'created_at' => $now,
+			'updated_at' => $now,
+		];
+		$bill     = $this->fxdb->tables['fx_bills'][ $bill_id ];
+		$billing  = $this->billing();
 
 		$result = $billing->settle_bill_manually( $bill, 99 );
 
@@ -678,7 +659,7 @@ final class FxTest extends TestCase {
 			'fx_ledger',
 			[
 				'tenant_id' => 7, 'reason' => FxWalletService::REASON_TASK,
-				'reference' => 'manus-task:1', 'amount_usd' => -0.5, 'amount_irt' => 0,
+				'reference' => 'task:1', 'amount_usd' => -0.5, 'amount_irt' => 0,
 				'meta' => '{}', 'created_at' => gmdate( 'Y-m-d 11:00:00' ),
 			]
 		);

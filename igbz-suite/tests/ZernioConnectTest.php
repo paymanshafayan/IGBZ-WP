@@ -34,15 +34,61 @@ final class ScriptedZernio implements ZernioAdapterInterface {
 		$key = 'zernio-key-' . (string) ( ++$this->key_issuances );
 		$this->issued_keys[] = $key;
 
-		return [ 'ok' => true, 'key' => $key, 'error' => '' ];
+		return [ 'ok' => true, 'key' => $key, 'key_id' => 'keyid-' . (string) $this->key_issuances, 'error' => '' ];
 	}
 
-	public function revoke_profile_key( string $profile_id ): array {
+	public function revoke_profile_key( string $key_id ): array {
 		return [ 'ok' => true, 'error' => '' ];
 	}
 
-	public function connect_account( string $profile_id ): array {
-		return [ 'ok' => true, 'account_id' => 'acct-1', 'instagram_account_id' => 'ig-77', 'error' => '' ];
+	public function start_connect( string $profile_id ): array {
+		return [ 'ok' => true, 'auth_url' => 'https://connect.zernio.test/' . rawurlencode( $profile_id ), 'error' => '' ];
+	}
+
+	public function list_accounts( string $profile_id ): array {
+		return [ 'ok' => true, 'accounts' => [ [ 'account_id' => 'acct-1', 'platform' => 'instagram', 'username' => 'store-five' ] ], 'error' => '' ];
+	}
+
+	public function delete_profile( string $profile_id ): array {
+		return [ 'ok' => true, 'error' => '' ];
+	}
+
+	// Social-plane methods: the connection test exercises the profile plane only.
+
+	public function publish_content( string $key, string $account_id, array $content ): array {
+		return [ 'ok' => false, 'post_id' => '', 'error' => 'not_in_this_test' ];
+	}
+
+	public function get_post( string $key, string $post_id ): array {
+		return [ 'ok' => false, 'status' => '', 'permalink' => '', 'media_id' => '', 'error' => 'not_in_this_test' ];
+	}
+
+	public function retry_post( string $key, string $post_id ): array {
+		return [ 'ok' => false, 'error' => 'not_in_this_test' ];
+	}
+
+	public function send_direct_message( string $key, string $account_id, string $recipient_id, array $message ): array {
+		return [ 'ok' => false, 'message_id' => '', 'error' => 'not_in_this_test' ];
+	}
+
+	public function send_story_reply( string $key, string $account_id, string $story_id, string $recipient_id, string $text ): array {
+		return [ 'ok' => false, 'message_id' => '', 'error' => 'not_in_this_test' ];
+	}
+
+	public function get_inbox( string $key, string $kind, string $cursor = '', int $limit = 50 ): array {
+		return [ 'ok' => false, 'items' => [], 'next_cursor' => '', 'error' => 'not_in_this_test' ];
+	}
+
+	public function get_analytics( string $key, string $account_id, string $period = '30d' ): array {
+		return [ 'ok' => false, 'metrics' => [], 'error' => 'not_in_this_test' ];
+	}
+
+	public function get_trending_audio( string $key, int $limit = 20 ): array {
+		return [ 'ok' => false, 'audios' => [], 'error' => 'not_in_this_test' ];
+	}
+
+	public function account_health( string $key, string $account_id ): array {
+		return [ 'ok' => false, 'healthy' => false, 'error' => 'not_in_this_test' ];
 	}
 }
 
@@ -187,12 +233,14 @@ final class ZernioConnectTest extends TestCase {
 		$this->boot();
 		$this->service->provision( 5, 'store-five' );
 
-		$this->assert_same( 'bad_state', $this->service->attach_account( 9 )['error'], 'an unknown tenant cannot attach' );
-		$this->assert_true( $this->service->attach_account( 5 )['ok'], 'the provisioned store attaches' );
+		$this->assert_same( 'bad_state', $this->service->start_connect( 9 )['error'], 'an unknown tenant cannot start the connect' );
+		$started = $this->service->start_connect( 5 );
+		$this->assert_true( $started['ok'] && '' !== $started['auth_url'], 'the provisioned store gets the OAuth URL' );
+		$this->assert_true( $this->service->sync_accounts( 5 )['ok'], 'the sync pulls the account mapping' );
 
 		$row = $this->row();
 		$this->assert_same( 'connected', (string) $row['status'], 'the connection is recorded' );
-		$this->assert_same( 'ig-77', (string) $row['instagram_account_id'], 'the Instagram account is mapped' );
+		$this->assert_same( 'acct-1', (string) $row['instagram_account_id'], 'the Instagram account is mapped' );
 
 		$this->assert_true( $this->service->resolve( 5, 'prof-store-five', 'acct-1' )['ok'], 'the true mapping resolves' );
 		$this->assert_same( 'profile_mismatch', $this->service->resolve( 5, 'prof-someone-else' )['error'], 'a claimed foreign profile is refused' );
@@ -206,7 +254,8 @@ final class ZernioConnectTest extends TestCase {
 	public function test_keys_rotate_and_revoke_honestly(): void {
 		$this->boot();
 		$this->service->provision( 5, 'store-five' );
-		$this->service->attach_account( 5 );
+		$this->service->start_connect( 5 );
+		$this->service->sync_accounts( 5 );
 
 		$this->assert_true( $this->service->rotate( 5 )['ok'], 'rotation lands' );
 		$row = $this->row();

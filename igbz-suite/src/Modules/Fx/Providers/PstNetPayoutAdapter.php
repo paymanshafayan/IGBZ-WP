@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * a real, documented developer API covering exactly what automatic settlement
  * needs: issuing a card, reading the card number/CVV, topping up with USDT and
  * checking the balance. Cards carry their own BINs, so AI subscriptions
- * (Manus, ManyChat) accept them.
+ * (the social provider, AI subscriptions) accept them.
  *
  * The company running this product has a registered entity in Northern Cyprus,
  * so the cards are held and paid by that entity — the compliance layer is
@@ -52,7 +52,7 @@ final class PstNetPayoutAdapter implements FxPayoutAdapterInterface {
 	 * Pay one bill by charging the tenant's card at PST.NET.
 	 *
 	 * This is the automatic path: the adapter asks PST to charge the card that
-	 * pays the Manus/ManyChat subscription. `reference` is the PST transaction
+	 * pays the provider subscription. `reference` is the PST transaction
 	 * id so the bill row can be reconciled later.
 	 *
 	 * @param array<string,mixed> $bill

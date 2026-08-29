@@ -10,7 +10,7 @@
  * And a funnel could be scoped to one post only by typing an opaque id into a text box, with
  * nothing in the product that could tell an operator what to type. We never receive a media id --
  * calling the Graph API is prohibited here, and scraping instagram.com is worse -- so the only
- * identifier available is the shortcode inside the permalink Manus hands back at publish time.
+ * identifier available is the shortcode inside the permalink the publisher hands back at publish time.
  * Publishing now records it, and the funnel form offers the published posts as a list.
  *
  * These tests pin:
@@ -139,7 +139,7 @@ final class PostIdentityTest extends TestCase {
 
 	/**
 	 * The two sides of a funnel match are configured by different parties: the operator picks or
-	 * pastes one spelling, ManyChat sends another on the comment event. They have to compare equal.
+	 * pastes one spelling, the provider sends another on the comment event. They have to compare equal.
 	 */
 	private function test_the_same_post_in_two_spellings_compares_equal(): void {
 		$this->assert_true(
@@ -157,36 +157,20 @@ final class PostIdentityTest extends TestCase {
 	}
 
 	/**
-	 * The ledger reason, pinned at the constant level.
+	 * The ledger reasons, pinned at the constant level.
 	 *
 	 * A funnel reward is not an affiliate commission: one is a promotion paid for commenting, the
 	 * other is money owed to a registered affiliate for a referred sale. They were sharing a reason
 	 * code, which mislabelled every funnel credit on the customer's statement and made the two
 	 * indistinguishable to anything totalling the ledger.
 	 *
-	 * The reference codes are what keep the v12 back-fill honest -- it rewrites only rows whose
-	 * reference starts with the funnel's own prefix, so it can never touch a real commission.
+	 * Phase 50 removed the legacy funnel; when phase 55 rebuilds the comment giveaway on the
+	 * Zernio inbox, the source-level assertions (the rebuilt service must credit
+	 * REASON_IG_REWARD with an ig_funnel: reference and never REASON_COMMISSION) come back with
+	 * it. Until then the constants stay pinned here.
 	 */
 	private function test_the_funnel_reward_is_not_an_affiliate_commission(): void {
 		$this->assert_same( 'instagram_reward', WalletService::REASON_IG_REWARD, 'the reward reason is instagram_reward' );
 		$this->assert_same( 'affiliate_commission', WalletService::REASON_COMMISSION, 'the commission reason is unchanged' );
-
-		$source = file_get_contents( dirname( __DIR__ ) . '/src/Modules/Instagram/Services/FunnelService.php' );
-		$source = is_string( $source ) ? $source : '';
-
-		$this->assert_contains(
-			'WalletService::REASON_IG_REWARD',
-			$source,
-			'the funnel credits an Instagram reward'
-		);
-		$this->assert_false(
-			str_contains( $source, 'WalletService::REASON_COMMISSION' ),
-			'the funnel no longer credits an affiliate commission'
-		);
-		$this->assert_contains(
-			"'ig_funnel:' . \$hit_id",
-			$source,
-			'the reference code still identifies the hit, so the v12 back-fill can find these rows'
-		);
 	}
 }

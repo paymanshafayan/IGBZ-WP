@@ -105,6 +105,13 @@ final class Schema {
 			'ig_glossary_terms',
 			'ig_intl_consents',
 			'ig_zernio_profiles',
+			'ig_social_migration',
+			'ig_zernio_inbox',
+			'ig_inbox_rules',
+			'ig_inbox_actions',
+			'ig_inbox_optouts',
+			'ig_product_registrations',
+			'ig_publish_events',
 		];
 	}
 
@@ -529,6 +536,7 @@ final class Schema {
 			trial_started_at DATETIME NULL,
 			trial_expires_at DATETIME NULL,
 			trial_tasks_used INT NOT NULL DEFAULT 0,
+			legacy_deprecated_at DATETIME NULL,
 			timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Tehran',
 			niche VARCHAR(191) NOT NULL DEFAULT '',
 			brand_voice TEXT NULL,
@@ -554,7 +562,7 @@ final class Schema {
 			media LONGTEXT NULL,
 			product_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			funnel_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
-			provider VARCHAR(32) NOT NULL DEFAULT 'manus',
+			provider VARCHAR(32) NOT NULL DEFAULT 'zernio',
 			provider_task_id VARCHAR(191) NOT NULL DEFAULT '',
 			provider_status VARCHAR(32) NOT NULL DEFAULT '',
 			status VARCHAR(20) NOT NULL DEFAULT 'draft',
@@ -1590,6 +1598,7 @@ final class Schema {
 			instagram_account_id VARCHAR(64) NOT NULL DEFAULT '',
 			status VARCHAR(16) NOT NULL DEFAULT 'pending',
 			key_enc TEXT NULL,
+			key_id VARCHAR(64) NOT NULL DEFAULT '',
 			key_version INT NOT NULL DEFAULT 0,
 			webhook_secret_enc TEXT NULL,
 			connected_at DATETIME NULL,
@@ -1599,6 +1608,163 @@ final class Schema {
 			PRIMARY KEY  (id),
 			UNIQUE KEY tenant (tenant_id)
 		) {$charset};";
+
+		// Phase 50 (ADR-0004 §6): the controlled-migration ledger. One row per
+		// tenant per step; a finished step never re-runs and a pending step is
+		// retried by the hourly round. The legacy credentials themselves stay
+		// where they are (encrypted, stamped on ig_accounts) — erasure belongs
+		// to offboarding, not to migration.
+		$sql[] = "CREATE TABLE {$p}ig_social_migration (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			step VARCHAR(32) NOT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'pending',
+			detail VARCHAR(255) NOT NULL DEFAULT '',
+			payload_hash VARCHAR(64) NOT NULL DEFAULT '',
+			attempts INT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_step (tenant_id,step)
+		) {$charset};";
+
+		// Phase 51 (ADR-0004 §6): the Zernio inbox. Captured events are stored per
+		// profile; the server-side account->profile->tenant mapping decides ownership,
+		// so a webhook from an account we do not manage is refused before anything
+		// else. event_id is Zernio's stable event id (content hash when absent) and
+		// deduplicates retries per profile.
+		$sql[] = "CREATE TABLE {$p}ig_zernio_inbox (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			profile_id BIGINT UNSIGNED NOT NULL,
+			event_id VARCHAR(64) NOT NULL,
+			event VARCHAR(48) NOT NULL DEFAULT '',
+			source VARCHAR(16) NOT NULL DEFAULT 'other',
+			post_id VARCHAR(64) NOT NULL DEFAULT '',
+			sender_id VARCHAR(64) NOT NULL DEFAULT '',
+			sender_username VARCHAR(128) NOT NULL DEFAULT '',
+			text TEXT NULL,
+			occurred_at DATETIME NOT NULL,
+			received_at DATETIME NOT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'received',
+			PRIMARY KEY  (id),
+			UNIQUE KEY event (profile_id,event_id),
+			KEY tenant_time (tenant_id,received_at)
+		) {$charset};";
+
+		// Phase 51: the backend rule table. Decisions about what to answer and how
+		// stay in our database; no external automation is given business authority.
+		// keyword '' matches everything; template placeholders: {username}.
+		$sql[] = "CREATE TABLE {$p}ig_inbox_rules (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			name VARCHAR(128) NOT NULL,
+			source VARCHAR(16) NOT NULL DEFAULT 'any',
+			keyword VARCHAR(128) NOT NULL DEFAULT '',
+			action VARCHAR(16) NOT NULL DEFAULT 'ignore',
+			template TEXT NULL,
+			priority INT NOT NULL DEFAULT 100,
+			active TINYINT NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_priority (tenant_id,priority)
+		) {$charset};";
+
+		// Phase 51: one row per reply/DM decision. idempotency_key is stable across
+		// retries (inbox:<id>), so the provider can never receive the same answer
+		// twice; state tracks the delivery lifecycle end to end.
+		$sql[] = "CREATE TABLE {$p}ig_inbox_actions (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			inbox_id BIGINT UNSIGNED NOT NULL,
+			rule_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			kind VARCHAR(16) NOT NULL,
+			target VARCHAR(128) NOT NULL DEFAULT '',
+			text TEXT NULL,
+			idempotency_key VARCHAR(64) NOT NULL,
+			state VARCHAR(20) NOT NULL DEFAULT 'queued',
+			provider_ref VARCHAR(64) NOT NULL DEFAULT '',
+			error VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			delivered_at DATETIME NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY idem (idempotency_key),
+			KEY tenant_state (tenant_id,state)
+		) {$charset};";
+
+		// Phase 51: the opt-out register. A user who asked to stop is never messaged
+		// again by this tenant; the row outlives the conversation.
+		$sql[] = "CREATE TABLE {$p}ig_inbox_optouts (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			sender_id VARCHAR(64) NOT NULL,
+			sender_username VARCHAR(128) NOT NULL DEFAULT '',
+			note VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY sender (tenant_id,sender_id)
+		) {$charset};";
+
+		// Phase 52 (the rebuilt 13-step product registration): one row per
+		// registration, row-state instead of a call stack. Every REST call and
+		// every agent webhook moves the row one checkpoint forward, so a dead
+		// request, a closed app or a late task resumes exactly where it stopped.
+		// client_token makes the app's start call idempotent; product_id and
+		// content_id make the commerce writes idempotent the same way.
+		$sql[] = "CREATE TABLE {$p}ig_product_registrations (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			account_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			input_type VARCHAR(16) NOT NULL DEFAULT 'text',
+			client_token VARCHAR(64) NOT NULL DEFAULT '',
+			status VARCHAR(32) NOT NULL DEFAULT 'uploaded',
+			stage VARCHAR(32) NOT NULL DEFAULT '',
+			stage_task VARCHAR(191) NOT NULL DEFAULT '',
+			image_url VARCHAR(512) NOT NULL DEFAULT '',
+			image_prepared_url VARCHAR(512) NOT NULL DEFAULT '',
+			voice_url VARCHAR(512) NOT NULL DEFAULT '',
+			transcription TEXT NULL,
+			copy_json LONGTEXT NULL,
+			kind VARCHAR(16) NOT NULL DEFAULT '',
+			product_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			content_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			public_code VARCHAR(32) NOT NULL DEFAULT '',
+			approved_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			approved_at DATETIME NULL,
+			failed_from VARCHAR(32) NOT NULL DEFAULT '',
+			error VARCHAR(500) NOT NULL DEFAULT '',
+			attempts INT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY client_token (tenant_id,client_token),
+			KEY tenant_status (tenant_id,status),
+			KEY stage_task (stage_task)
+		) {$charset};";
+
+		// Phase 53: the publish webhook ledger — capture + dedupe + the store's
+		// publishing report. One row per Zernio post lifecycle event (post.published,
+		// post.failed, post.partial, post.scheduled, post.cancelled, per-platform
+		// terminal events); the UNIQUE(profile_id, event_id) pair makes provider
+		// retries no-ops, exactly as the inbox capture does.
+		$sql[] = "CREATE TABLE {$p}ig_publish_events (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			profile_id BIGINT UNSIGNED NOT NULL,
+			event_id VARCHAR(64) NOT NULL,
+			event VARCHAR(48) NOT NULL,
+			provider_post_id VARCHAR(64) NOT NULL DEFAULT '',
+			platform_status VARCHAR(32) NOT NULL DEFAULT '',
+			content_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			outcome VARCHAR(32) NOT NULL DEFAULT 'received',
+			error VARCHAR(500) NOT NULL DEFAULT '',
+			occurred_at DATETIME NULL,
+			received_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY event (profile_id,event_id),
+			KEY tenant (tenant_id),
+			KEY provider_post (provider_post_id)
+		) {$charset}.";
 
 		return $sql;
 	}

@@ -1514,25 +1514,90 @@ profile-scoped رمزنگاری‌شده دریافت می‌کند و کلید 
 در فهرست `TenantOffboarding` نیز ثبت شد. آداپتر واقعی پشت قرارداد `ZernioAdapterInterface`
 است و تأیید زندهٔ اندپوینت‌ها به فاز `PV-ZERNIO-*` موکول است. تست `ZernioConnectTest` با ۵
 سناریو. تست ۲۵۲۹/۶۷ · لینت ۳۲۶/۰. جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۴۹`.
-#### فاز ۵۰ — مهاجرت به تنها provider اجتماعی
+#### فاز ۵۰ — مهاجرت به تنها provider اجتماعی — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 ساخت adapter رسمی Zernio و migration کنترل‌شدهٔ داده؛ حذف Manus، ChatPlace، ManyChat و
 fallbackهای اجتماعی از container، تنظیمات، endpoint، UI و Runbook؛ افزودن گارد معماری و
 آزمون برای جلوگیری از ورود کانال Instagram مبتنی بر session در Agent Reach.
 
-#### فاز ۵۱ — Inbox و comment-to-DM با Zernio
+**نتیجهٔ محقق‌شده:** `ZernioClient` (همهٔ مسیرها از طریق تنظیمات `zernio.*` قابل جابجایی
+هستند؛ دو صفحهٔ کلید — profile با کلید مرکزی، social با کلید scoped خودش + `Idempotency-Key`)
+پشت `ZernioAdapterInterface` قرار گرفت و `ZernioSocialService` روی قرارداد
+`SocialProvider` (تنها پیاده‌سازی مجاز: `zernio`، گارد `SocialProviders` کلیدهای ممنوعه را
+`social_provider_not_allowed` رد می‌کند) resolve می‌شود. `SocialMigrationService` هر ساعت
+(`ig.social.migrate`، حد ۲۰) دو مرحلهٔ روزن‌ماننده را جلو می‌برد — ensure profile با کلید
+مرکزی، سپس stamping `legacy_deprecated_at` بر حساب‌های قدیمی؛ تکرار مرحلهٔ تمام‌شده
+`already_done` می‌گیرد و مستأجر به‌محض تمام‌شدن هر دو مرحله از فهرست due خارج می‌شود
+(نیمه‌کاره‌ها — حتی با کلید مرکزی خالی — در فهرست می‌مانند تا round بعد). UI صفحهٔ حساب
+دکمهٔ «مهاجرت حساب‌های قدیمی» + فهرست روزن نشان می‌دهد و Runbook مرحلهٔ v38 را دارد. حذف:
+۲۴ فایل کلاینت/سرویس قدیمی، ۶ فایل تست، کلیدهای secret و تنظیمات و مسیرهای وب‌هوک قدیمی
+و دکمه‌های UI و سطرهای Runbook. گارد معماری (`SocialArchitectureGuardTest`) شناسه‌های
+معماریِ حذف‌شده — نام‌های کلاس، bindingهای container، پیشوند کلیدهای secret، نشانه‌های
+کانال session — را در کل `src/` نگه می‌دارد تا بازگشت هر بخشِ قدیمی تست را می‌شکند.
+تست ۱۳۰۷۳/۶۴ · لینت ۲۹۶/۰. جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۰`.
+
+#### فاز ۵۱ — Inbox و comment-to-DM با Zernio — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 webhook امضاشده، deduplication، rule بک‌اند، opt-out، rate limit، approval، delivery state،
 idempotency و audit؛ هیچ تصمیم تجاری به automation بیرونی واگذار نمی‌شود.
 
-#### فاز ۵۲ — ثبت محصول ۱۳مرحله‌ای
+**نتیجهٔ محقق‌شده:** اینباکس (`POST /igbz/v1/zernio/inbox`) خوداحرازش با HMAC
+رویداد — رویداد روی account بیگانه قبل از هر ذخیره‌ای رد می‌شود و امضا با راز
+خودِ پروفایل و در پنجرهٔ ۳۰۰ ثانیه‌ای چک می‌شود. خط لولهٔ تصمیم کاملاً در بک‌اند
+(`InboxService`): capture با dedupe روی `(profile, event)` ← opt-out (ماندگار و
+خودتشخیص از پیام کاربر) ← rule بک‌اند با priority ← rate limit ساعتی (per-sender
+و per-tenant) ← approval انسانی (پیش‌فرض خاموش) ← delivery با کلید idempotency
+لنگر‌داده‌شده به رویداد (`inbox:<event_id>`) — ارسال با کلید scoped فروشگاه و
+بدون کلید مرکزی. شکست‌ها در دفترچۀ `ig_inbox_actions` با همان کلید retry می‌شوند.
+سطح ادمین (`/igbz/v1/ig/inbox*`) رویدادها، دفترچۀ delivery و approve/reject/retry،
+optout و قواعد را به صاحب فروشگاه می‌دهد (scoped). اسکیمای ۳۹ با ۹۰ جدول.
+آزمون زندهٔ ارسال (پنجرهٔ ۲۴ ساعتی اینستاگرام و شکل‌های واقعی پاسخ) با
+`PV-ZERNIO-*`؛ تا آن زمان پیش‌فرض approval انسانی است و چیزی بدون تأیید بیرون
+نمی‌رود. تست ۱۳۲۵۳/۶۵ · لینت صفر خطا. جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۱`.
+
+#### فاز ۵۲ — ثبت محصول ۱۳مرحله‌ای — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 checkpoint، resume، idempotency، validation، تأیید انسانی، محصول ووکامرس و شکست/جبران.
 
-#### فاز ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio
+**نتیجهٔ محقق‌شده:** ماشین حالت سطر-محور با ۱۳ checkpoint روی جدول
+`ig_product_registrations` (اسکیمای ۴۰، ۹۱ جدول): هر فراخوانی REST یا webhook فقط
+یک checkpoint جلو می‌رود، هر گام `failed` می‌شود و با `retry` از همان
+`failed_from` ادامه می‌یابد. idempotency دو لایه: شروع روی `(tenant, client_token)`
+و ساخت محصول روی `product_id` ذخیره‌شده (کرش‌محور، تست‌شده). درز agent صادقانه:
+مراحل هوش مصنوعی فقط از `IntakeAgentInterface` و بدون agent با
+`agent_not_configured` رد می‌شوند — هیچ نتیجهٔ ساختگی‌ای ثبت نمی‌شود و مسیرهای
+`manual_*` جبران انسانی‌اند (اتصال agent واقعی با ۵۳/۵۵). مرحلۀ تجاری
+(`WooCommerceDraftFactory`) **فقط draft** می‌سازد با metaهای
+`_igbz_registration_id`/`_igbz_public_code` (کد عمومی = id محصول). `approve` فقط
+از `awaiting_approval` و با ثبت `approved_by/at` یک سطر **draft** از `ig_content`
+(provider `zernio`) می‌سازد — ورودیِ publisherِ فاز ۵۳؛ هیچ چیز با approve
+منتشر نمی‌شود. `compensate` محصول draft را حذف می‌کند (غیر-draft هرگز لمس
+نمی‌شود؛ در صورتِ باقی‌ماندن مرجع روی سطر می‌ماند). ۲۴ مسیر REST scoped زیر
+`/igbz/v1/ig/product-registrations`. تست ۱۳۵۱۲/۶۶ · لینت ۳۰۳/۰ · DriftGuard ۹۱/۴۰.
+جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۲`.
+
+#### فاز ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 انتخاب زمان، دریافت صدای کاتالوگ‌شده، job انتشار، نتیجهٔ واقعی webhook/polling، duplicate
 prevention، failure state و گزارش؛ عدم دسترسی به audio گیت production است.
+
+**نتیجهٔ محقق‌شده:** `ContentPublishService` (بایند `ig.content_publish`) ماشینِ
+انتشار را روی خودِ `ig_content` پیاده کرد: `draft ← scheduled ← publishing ←
+published` + `failed`. انتخاب زمان = `schedule` (۶۰ ثانیه تا ۹۰ روز)؛ اجرای
+لحظه‌ای = `publish_now`. duplicate prevention ریشه‌ای با کلید idempotency ثابتِ
+سطر `content:<id>` روی هر `POST /posts` (دستی/sweep/retry) — یک سطر هرگز دو
+پست نمی‌سازد؛ sweep فقط `scheduled` بدون `provider_task_id` را اجرا می‌کند.
+retry بدون کور بودن: اول reconcile با `GET /posts/{id}`، سپس `POST /posts/{id}/
+retry` provider، در صورتِ رد re-publish با همان کلید؛ سقف ۳. نتیجهٔ واقعی از دو
+در (webhook خوداحرازی `POST /zernio/posts` با همان مدلِ امزای فاز ۵۱ + pollingِ
+احتیاطی هر ۵ دقیقه) به یک قیف (`apply_provider_state`) ختم می‌شود که فقط
+پیشرویِ رو به جلو می‌پذیرد؛ `partial`/`cancelled` به `failed` با دلیلِ نام‌دار.
+ledgerِ جدید `ig_publish_events` (اسکیمای v41، جدول ۹۲) با
+`UNIQUE(profile_id,event_id)` = dedupe + گزارش. صدا گیت است نه تزئین:
+`igbz.publisher_audio` (پیش‌فرض خاموش) فقط وقتی `voice_url` واقعی روی
+registration هست mp3 را به `media[]` اضافه می‌کند — هیچ صدای ساختگی. ۷ مسیر REST
+scoped + ۱ webhook. تست **۱۳۷۲۲/۶۷** · لینت ۳۰۶/۰ · DriftGuard ۹۲/۴۱.
+جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۳` و `PROJECT-STATE.md §۱۱.۹`.
 
 #### فاز ۵۴ — کانال VIP
 

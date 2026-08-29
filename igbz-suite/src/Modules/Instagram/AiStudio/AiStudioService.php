@@ -7,7 +7,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Facade over the AI provider: runs a job and pulls the produced file into
- * the media library. Like the Manus intake path, attachments are sideloaded
+ * the media library. Like the intake path, attachments are sideloaded
  * immediately because provider URLs are signed and expire.
  */
 final class AiStudioService {

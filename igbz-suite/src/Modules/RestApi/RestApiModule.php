@@ -7,11 +7,15 @@ use IGBZ\Suite\Modules\RestApi\Auth\Authenticator;
 use IGBZ\Suite\Modules\RestApi\Auth\TokenService;
 use IGBZ\Suite\Modules\RestApi\Controllers\AccountController;
 use IGBZ\Suite\Modules\RestApi\Controllers\AuthController;
+use IGBZ\Suite\Modules\RestApi\Controllers\SocialMigrationController;
 use IGBZ\Suite\Modules\RestApi\Controllers\BaseController;
 use IGBZ\Suite\Modules\RestApi\Controllers\CatalogController;
 use IGBZ\Suite\Modules\RestApi\Controllers\DeviceController;
 use IGBZ\Suite\Modules\RestApi\Controllers\FxController;
-use IGBZ\Suite\Modules\RestApi\Controllers\ProductIntakeController;
+use IGBZ\Suite\Modules\RestApi\Controllers\ContentPublishController;
+use IGBZ\Suite\Modules\RestApi\Controllers\InboxController;
+use IGBZ\Suite\Modules\RestApi\Controllers\ProductRegistrationController;
+
 use IGBZ\Suite\Modules\RestApi\Controllers\StoreAdminController;
 use IGBZ\Suite\Modules\RestApi\Controllers\WebhookController;
 use IGBZ\Suite\Modules\RestApi\Controllers\VipAdminController;
@@ -129,16 +133,32 @@ final class RestApiModule implements ModuleInterface {
 			new WebhookController( $plugin->get( 'webhooks.inbox' ) ),
 		];
 
-		// Product registration lives in the Instagram module — it is what owns the assistant, the
-		// funnels and the Manus credentials — so the endpoints only exist when that module is on.
-		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.intake' ) ) {
-			$controllers[] = new ProductIntakeController(
-				$plugin->get( 'ig.intake' ),
-				$plugin->get( 'ig.publisher' ),
-				$plugin->get( 'ig.stt' ),
-				$plugin->get( 'ig.translations' ),
-				$plugin->get( 'ig.skus' )
-			);
+		// Phase 50: the legacy product-intake endpoints went with the legacy
+		// assistant/funnel stack they existed for. The 13-step product
+		// registration (phase 52) re-lands its own endpoints on the single
+		// social provider. What survives from that area is the migration
+		// surface — store owners read their state and run their own round.
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.social_migration' ) ) {
+			$controllers[] = new SocialMigrationController();
+		}
+
+		// Phase 51: the Zernio inbox — the self-authenticating webhook plus the
+		// store's decision surface (events, ledger, approval, opt-out, rules).
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.inbox' ) ) {
+			$controllers[] = new InboxController();
+		}
+
+		// Phase 52: the rebuilt 13-step product registration — the app drives the
+		// state machine checkpoint by checkpoint; publishing stays human-gated.
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.product_registration' ) ) {
+			$controllers[] = new ProductRegistrationController();
+		}
+
+		// Phase 53: the publishing engine — the store's content queue, the
+		// publish/schedule/retry decisions, the event ledger, and the provider's
+		// self-authenticating post lifecycle webhook.
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.content_publish' ) ) {
+			$controllers[] = new ContentPublishController();
 		}
 
 		// Same story for the VIP channel: the posts, the paywall and the member inbox are owned

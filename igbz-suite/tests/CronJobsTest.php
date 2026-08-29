@@ -3,7 +3,8 @@
  * Phase 24 — the five-minute sweeps run as independent queued jobs. The beat enqueues (idempotent
  * per time slot, so WP-Cron's duplicate deliveries are absorbed), the runner drains with leases,
  * failures retry with backoff, and a service that keeps failing ends up dead-lettered — never
- * silently lost, never blocking the shared cron request.
+ * silently lost, never blocking the shared cron request. Phase 50: the Instagram module's beat
+ * is now exactly the two VIP sweeps; the social migration round rides the hourly beat.
  */
 
 declare( strict_types = 1 );
@@ -37,6 +38,10 @@ final class CronJobsSpy {
 		$this->tick();
 	}
 
+	public function reconcile(): void {
+		$this->tick();
+	}
+
 	public function process_pending(): void {
 		$this->tick();
 	}
@@ -50,7 +55,7 @@ final class CronJobsTest extends TestCase {
 
 	public function run(): void {
 		$this->slot_key_is_stable_inside_its_window();
-		$this->five_minute_beat_enqueues_four_independent_jobs_once();
+		$this->five_minute_beat_enqueues_two_independent_jobs_once();
 		$this->runner_drains_the_beat_end_to_end();
 		$this->hook_entry_point_survives_wordpress_arguments();
 		$this->marketplace_sync_respects_the_switch_at_run_time();
@@ -67,9 +72,9 @@ final class CronJobsTest extends TestCase {
 
 		$this->with_clean_container( function (): void {
 			$spy = new CronJobsSpy();
-			igbz()->bind( 'ig.scheduler', static fn () => $spy );
+			igbz()->bind( 'vip.posts', static fn () => $spy );
 			( new InstagramModule() )->register_queue_handlers( $this->queue );
-			$this->queue->enqueue( 'ig.content.tick', [], [ 'idempotency_key' => 'hook-arg' ] );
+			$this->queue->enqueue( 'ig.vip.publish_due', [], [ 'idempotency_key' => 'hook-arg' ] );
 
 			// Simulate WP calling the hook with its usual stray empty-string argument.
 			$this->runner->on_beat();
@@ -117,19 +122,19 @@ final class CronJobsTest extends TestCase {
 		$this->assert_same( 0, $minute % 5, 'the window key sits on a five-minute boundary' );
 	}
 
-	private function five_minute_beat_enqueues_four_independent_jobs_once(): void {
+	private function five_minute_beat_enqueues_two_independent_jobs_once(): void {
 		$this->fresh();
 
 		( new InstagramModule() )->run_five_minutes();
 		$rows = array_values( $this->wpdb->tables['jobs'] );
-		$this->assert_same( 4, count( $rows ), 'one beat enqueues the four sweeps as separate jobs' );
+		$this->assert_same( 4, count( $rows ), 'one beat enqueues the two VIP sweeps and the two publisher sweeps as separate jobs' );
 
 		$types = array_map( static fn ( array $r ): string => (string) $r['job_type'], $rows );
 		sort( $types );
 		$this->assert_same(
-			[ 'ig.content.tick', 'ig.intake.tick', 'ig.vip.expire_due', 'ig.vip.publish_due' ],
+			[ 'ig.content_publish.publish_due', 'ig.content_publish.reconcile', 'ig.vip.expire_due', 'ig.vip.publish_due' ],
 			$types,
-			'exactly the four migrated sweeps are enqueued'
+			'exactly the VIP sweeps and the phase-53 publisher sweeps are enqueued (phase 50 removed the legacy content/intake ticks)'
 		);
 
 		$keys = array_unique( array_map( static fn ( array $r ): string => (string) $r['idempotency_key'], $rows ) );
@@ -144,12 +149,10 @@ final class CronJobsTest extends TestCase {
 		$this->fresh();
 
 		$this->with_clean_container( function (): void {
-			$scheduler = new CronJobsSpy();
-			$intake    = new CronJobsSpy();
 			$vip       = new CronJobsSpy();
-			igbz()->bind( 'ig.scheduler', static fn () => $scheduler );
-			igbz()->bind( 'ig.intake_worker', static fn () => $intake );
+			$publisher = new CronJobsSpy();
 			igbz()->bind( 'vip.posts', static fn () => $vip );
+			igbz()->bind( 'ig.content_publish', static fn () => $publisher );
 
 			( new InstagramModule() )->register_queue_handlers( $this->queue );
 			( new InstagramModule() )->run_five_minutes();
@@ -158,9 +161,8 @@ final class CronJobsTest extends TestCase {
 
 			$this->assert_same( 4, $totals['done'], 'the runner completes all four sweeps' );
 			$this->assert_same( 0, $totals['failed'] + $totals['dead'], 'nothing failed' );
-			$this->assert_same( 1, $scheduler->calls, 'the content scheduler ran exactly once' );
-			$this->assert_same( 1, $intake->calls, 'the intake worker ran exactly once' );
 			$this->assert_same( 2, $vip->calls, 'both VIP sweeps ran (publish + expire)' );
+			$this->assert_same( 2, $publisher->calls, 'both publisher sweeps ran (due + reconcile)' );
 
 			foreach ( $this->wpdb->tables['jobs'] as $row ) {
 				$this->assert_same( 'done', (string) $row['status'], 'every drained job ends done' );
@@ -199,11 +201,11 @@ final class CronJobsTest extends TestCase {
 
 		$this->with_clean_container( function (): void {
 			$spy = new CronJobsSpy();
-			igbz()->bind( 'ig.scheduler', static fn () => $spy );
+			igbz()->bind( 'vip.posts', static fn () => $spy );
 			( new InstagramModule() )->register_queue_handlers( $this->queue );
 
 			for ( $i = 0; $i < 3; ++$i ) {
-				$this->queue->enqueue( 'ig.content.tick', [], [ 'idempotency_key' => 'budget-' . $i ] );
+				$this->queue->enqueue( 'ig.vip.publish_due', [], [ 'idempotency_key' => 'budget-' . $i ] );
 			}
 
 			$first = $this->runner->run( 2 );

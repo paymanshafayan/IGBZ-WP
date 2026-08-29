@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Zernio connection, profile mapping, key lifecycle and webhook identity
- * (phase 49, ADR-0004 §5).
+ * (phase 49/50, ADR-0004 §5).
  *
  * The rules this service enforces are the ADR's rules:
  * - exactly one profile per store, and the tenant↔profile↔account↔Instagram
@@ -19,9 +19,12 @@ defined( 'ABSPATH' ) || exit;
  * - the central Zernio key stays in the secret store and never travels to a
  *   store's context; stores only ever hold a profile-scoped key, encrypted
  *   at rest;
- * - rotation replaces the key and bumps the version; revocation clears it;
+ * - rotation replaces the key and bumps the version; revocation clears it and
+ *   tells the provider by key id;
  * - webhook identity is an HMAC over payload+timestamp inside a replay
- *   window, with a per-profile secret.
+ *   window, with a per-profile secret;
+ * - connection is two-step official OAuth: start (browser) then sync
+ *   (backend pulls the accounts and persists the mapping).
  */
 final class ZernioConnectionService {
 
@@ -76,6 +79,7 @@ final class ZernioConnectionService {
 			'profile_id'         => (string) $result['profile_id'],
 			'status'             => self::STATUS_PROVISIONED,
 			'key_enc'            => Crypto::encrypt( (string) $key['key'] ),
+			'key_id'             => (string) ( $key['key_id'] ?? '' ),
 			'key_version'        => 1,
 			'webhook_secret_enc' => Crypto::encrypt( bin2hex( Crypto::token( 16 ) ) ),
 			'updated_at'         => $now,
@@ -94,29 +98,75 @@ final class ZernioConnectionService {
 		return [ 'ok' => true, 'error' => '' ];
 	}
 
-	/** Attach the store's own Instagram account through the profile (official OAuth). */
-	public function attach_account( int $tenant_id ): array {
+	/**
+	 * Step one of the official OAuth connect: start it and hand the admin the
+	 * browser URL. Nothing is "connected" until the account is actually
+	 * visible in the profile — that is sync_accounts().
+	 *
+	 * @return array{ok:bool,auth_url:string,error:string}
+	 */
+	public function start_connect( int $tenant_id ): array {
 		$profile = $this->profile( $tenant_id );
 		if ( null === $profile || self::STATUS_PROVISIONED !== (string) $profile['status'] ) {
+			return [ 'ok' => false, 'auth_url' => '', 'error' => 'bad_state' ];
+		}
+
+		$result = $this->adapter->start_connect( (string) $profile['profile_id'] );
+		if ( ! $result['ok'] ) {
+			return [ 'ok' => false, 'auth_url' => '', 'error' => 'provider_failed' ];
+		}
+
+		return [ 'ok' => true, 'auth_url' => (string) $result['auth_url'], 'error' => '' ];
+	}
+
+	/**
+	 * Step two: pull the accounts currently attached to the profile and
+	 * persist the mapping. The backend decides what lands where — the provider
+	 * only reports.
+	 *
+	 * @return array{ok:bool,error:string}
+	 */
+	public function sync_accounts( int $tenant_id ): array {
+		$profile = $this->profile( $tenant_id );
+		if ( null === $profile || in_array( (string) $profile['status'], [ self::STATUS_PENDING, self::STATUS_REVOKED ], true ) ) {
 			return [ 'ok' => false, 'error' => 'bad_state' ];
 		}
 
-		$result = $this->adapter->connect_account( (string) $profile['profile_id'] );
+		$result = $this->adapter->list_accounts( (string) $profile['profile_id'] );
 		if ( ! $result['ok'] ) {
 			return [ 'ok' => false, 'error' => 'provider_failed' ];
 		}
 
+		$account = null;
+		foreach ( (array) $result['accounts'] as $candidate ) {
+			if ( 'instagram' === (string) ( $candidate['platform'] ?? 'instagram' ) ) {
+				$account = $candidate;
+				break;
+			}
+		}
+		if ( null === $account && 1 === count( (array) $result['accounts'] ) ) {
+			// A single attached account is the Instagram one by construction of the connect flow.
+			$account = (array) array_values( (array) $result['accounts'] )[0];
+		}
+		if ( null === $account ) {
+			return [ 'ok' => false, 'error' => 'no_account_yet' ];
+		}
+
+		$account_id = (string) $account['account_id'];
 		$this->db->update(
 			'ig_zernio_profiles',
 			[
-				'account_id'           => (string) $result['account_id'],
-				'instagram_account_id' => (string) $result['instagram_account_id'],
+				'account_id'           => $account_id,
+				// Zernio's account id is the platform (Meta) account id itself.
+				'instagram_account_id' => $account_id,
 				'status'               => self::STATUS_CONNECTED,
 				'connected_at'         => current_time( 'mysql', true ),
 				'updated_at'           => current_time( 'mysql', true ),
 			],
 			[ 'id' => (int) $profile['id'] ]
 		);
+
+		$this->logger->info( 'zernio', 'Account mapping synced', [ 'tenant' => $tenant_id, 'account' => $account_id ] );
 
 		return [ 'ok' => true, 'error' => '' ];
 	}
@@ -175,6 +225,7 @@ final class ZernioConnectionService {
 			'ig_zernio_profiles',
 			[
 				'key_enc'     => Crypto::encrypt( (string) $result['key'] ),
+				'key_id'      => (string) ( $result['key_id'] ?? '' ),
 				'key_version' => (int) $profile['key_version'] + 1,
 				'updated_at'  => current_time( 'mysql', true ),
 			],
@@ -184,15 +235,15 @@ final class ZernioConnectionService {
 		return [ 'ok' => true, 'error' => '' ];
 	}
 
-	/** Revoke: the provider is told, the key is cleared, the stamp is dated. */
+	/** Revoke: the provider is told by key id, the key is cleared, the stamp is dated. */
 	public function revoke( int $tenant_id ): array {
 		$profile = $this->profile( $tenant_id );
 		if ( null === $profile || self::STATUS_REVOKED === (string) $profile['status'] ) {
 			return [ 'ok' => false, 'error' => 'bad_state' ];
 		}
 
-		if ( '' !== (string) $profile['profile_id'] ) {
-			$this->adapter->revoke_profile_key( (string) $profile['profile_id'] );
+		if ( '' !== (string) $profile['key_id'] ) {
+			$this->adapter->revoke_profile_key( (string) $profile['key_id'] );
 		}
 
 		$this->db->update(
@@ -200,6 +251,7 @@ final class ZernioConnectionService {
 			[
 				'status'     => self::STATUS_REVOKED,
 				'key_enc'    => null,
+				'key_id'     => '',
 				'updated_at' => current_time( 'mysql', true ),
 				'revoked_at' => current_time( 'mysql', true ),
 			],
@@ -248,8 +300,17 @@ final class ZernioConnectionService {
 
 	// --------------------------------------------------------------- erase
 
-	/** Data erasure: the tenant's Zernio connection leaves no row behind. */
+	/**
+	 * Data erasure: the provider-side profile is deleted (best effort — the
+	 * row must go regardless of provider reachability) and the tenant's row
+	 * leaves no trace.
+	 */
 	public function erase( int $tenant_id ): void {
+		$profile = $this->profile( $tenant_id );
+		if ( null !== $profile && '' !== (string) $profile['profile_id'] ) {
+			$this->adapter->delete_profile( (string) $profile['profile_id'] );
+		}
+
 		$this->db->delete( 'ig_zernio_profiles', [ 'tenant_id' => $tenant_id ] );
 	}
 }

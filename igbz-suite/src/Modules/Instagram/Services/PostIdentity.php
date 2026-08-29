@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * The permalink is the one durable identifier we are allowed to have. We do not call the Graph API
  * (the founding rule of this project), so we never receive a numeric media id from Meta; and we do
- * not scrape instagram.com to discover one. What Manus hands back when it publishes is the post
+ * not scrape instagram.com to discover one. What the publisher hands back when it publishes is the post
  * URL, and the shortcode embedded in that URL is stable for the life of the post. It is what
  * appears in a share link, so it is also the thing an operator can recognise and paste.
  *
@@ -107,7 +107,7 @@ final class PostIdentity {
 	 * Do two post references point at the same post?
 	 *
 	 * Either side may be a full URL or a bare shortcode, because one side is typically what an
-	 * operator configured on a funnel and the other is what ManyChat sent on a comment event, and
+	 * operator configured on a funnel and the other is what the provider sent on a comment event, and
 	 * those two arrive in different shapes. A reference we cannot parse never matches -- an
 	 * unmatched funnel is recoverable, a funnel that fires on every post is not.
 	 */

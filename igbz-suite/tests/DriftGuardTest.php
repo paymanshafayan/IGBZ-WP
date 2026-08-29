@@ -13,8 +13,6 @@ final class DriftGuardTest extends TestCase {
 
 	/** Registry members that are generated tokens, not admin-form password fields. */
 	private const REGISTRY_WITHOUT_FIELD = [
-		'manus.webhook_token',
-		'manychat.webhook_token',
 		'pado.api_key', // rendered on the Pado page, not the shared settings form
 		'vip.media_hmac_secret', // generated token, no form field
 	];
@@ -68,9 +66,9 @@ final class DriftGuardTest extends TestCase {
 
 	private function table_count_is_pinned(): void {
 		$this->assert_same(
-			85,
+			92,
 			count( Schema::statements() ),
-			'Schema table count drifted from the pinned baseline (85 / PHASE-01-INVENTORY.json database.table_count)'
+			'Schema table count drifted from the pinned baseline (92 / PHASE-01-INVENTORY.json database.table_count)'
 		);
 	}
 
@@ -81,9 +79,9 @@ final class DriftGuardTest extends TestCase {
 		$found  = preg_match( "/define\(\s*'IGBZ_DB_VERSION',\s*(\d+)/", $source, $matches );
 		$this->assert_same( 1, $found, 'IGBZ_DB_VERSION define not found in igbz-suite.php' );
 		$this->assert_same(
-			37,
+			41,
 			(int) ( $matches[1] ?? 0 ),
-			'IGBZ_DB_VERSION drifted from the pinned baseline (37 / PHASE-01-INVENTORY.json database.version)'
+			'IGBZ_DB_VERSION drifted from the pinned baseline (41 / PHASE-01-INVENTORY.json database.version)'
 		);
 	}
 

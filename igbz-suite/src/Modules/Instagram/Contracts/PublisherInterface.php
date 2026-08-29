@@ -7,9 +7,10 @@ defined( 'ABSPATH' ) || exit;
  * Anything that can put content on an Instagram account.
  *
  * The IGBZ WordPress port deliberately does NOT call the Instagram Graph API: publishing is
- * delegated to Manus, which performs the whole workflow (design -> caption -> schedule -> publish)
- * without a manual download/upload step. This interface keeps the seam so a Graph-based publisher
- * can be dropped back in later without touching the scheduler or the admin screens.
+ * delegated to the single social provider (Zernio), which performs the workflow (caption ->
+ * schedule -> publish) through official OAuth without a manual download/upload step. This
+ * interface keeps the seam so a different publisher can be dropped in later without touching
+ * the scheduler or the admin screens.
  */
 interface PublisherInterface {
 

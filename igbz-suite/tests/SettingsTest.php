@@ -29,29 +29,29 @@ final class SettingsTest extends TestCase {
 		$this->assert_true( $settings->bool( 'wallet.enabled' ), 'the string "yes" is truthy' );
 
 		// Secrets: encrypted at rest, transparent through the accessor, masked for the browser.
-		$this->assert_true( $settings->is_secret( 'manychat.api_key' ), 'the ManyChat key is registered as a secret' );
-		$settings->set( 'manychat.api_key', '123456:abcdef' );
+		$this->assert_true( $settings->is_secret( 'zernio.central_api_key' ), 'the central Zernio key is registered as a secret (phase 50: the legacy provider secrets are gone)' );
+		$settings->set( 'zernio.central_api_key', '123456:abcdef' );
 
-		$stored = $GLOBALS['igbz_test_options'][ Settings::OPTION ]['manychat.api_key'];
+		$stored = $GLOBALS['igbz_test_options'][ Settings::OPTION ]['zernio.central_api_key'];
 		$this->assert_contains( 'igbz1:', (string) $stored, 'the secret is stored encrypted' );
-		$this->assert_same( '123456:abcdef', $settings->string( 'manychat.api_key' ), 'the secret decrypts on read' );
-		$this->assert_same( Crypto::MASK, $settings->masked( 'manychat.api_key' ), 'masked() hides a configured secret' );
-		$this->assert_same( '', $settings->masked( 'manus.api_key' ), 'masked() is empty when nothing is stored' );
+		$this->assert_same( '123456:abcdef', $settings->string( 'zernio.central_api_key' ), 'the secret decrypts on read' );
+		$this->assert_same( Crypto::MASK, $settings->masked( 'zernio.central_api_key' ), 'masked() hides a configured secret' );
+		$this->assert_same( '', $settings->masked( 'pado.api_key' ), 'masked() is empty when nothing is stored' );
 
 		// Submitting the form back unchanged must not overwrite the secret with the mask.
-		$settings->set_many( [ 'manychat.api_key' => Crypto::MASK, 'wallet.min_topup' => 20000 ] );
-		$this->assert_same( '123456:abcdef', $settings->string( 'manychat.api_key' ), 'the masked placeholder keeps the stored secret' );
+		$settings->set_many( [ 'zernio.central_api_key' => Crypto::MASK, 'wallet.min_topup' => 20000 ] );
+		$this->assert_same( '123456:abcdef', $settings->string( 'zernio.central_api_key' ), 'the masked placeholder keeps the stored secret' );
 		$this->assert_same( 20000, $settings->int( 'wallet.min_topup' ), 'set_many still writes normal values' );
 
-		$settings->set_many( [ 'manychat.api_key' => '' ] );
-		$this->assert_same( '123456:abcdef', $settings->string( 'manychat.api_key' ), 'an empty submission keeps the stored secret' );
+		$settings->set_many( [ 'zernio.central_api_key' => '' ] );
+		$this->assert_same( '123456:abcdef', $settings->string( 'zernio.central_api_key' ), 'an empty submission keeps the stored secret' );
 
-		$this->assert_true( $settings->has( 'manychat.api_key' ), 'has() is true for a configured key' );
-		$this->assert_false( $settings->has( 'manus.api_key' ), 'has() is false for an unset key' );
+		$this->assert_true( $settings->has( 'zernio.central_api_key' ), 'has() is true for a configured key' );
+		$this->assert_false( $settings->has( 'pado.api_key' ), 'has() is false for an unset key' );
 
 		$threw = false;
 		try {
-			$settings->required( 'manus.api_key' );
+			$settings->required( 'pado.api_key' );
 		} catch ( \RuntimeException ) {
 			$threw = true;
 		}

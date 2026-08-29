@@ -5,7 +5,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * AES-256-GCM helpers keyed off the WordPress salts, plus constant-time signature helpers
- * used by the Manus / ManyChat webhooks.
+ * used by the social provider webhook.
  */
 final class Crypto {
 

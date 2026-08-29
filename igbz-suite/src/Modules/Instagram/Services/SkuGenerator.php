@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * WooCommerce product id, zero-padded to at least four digits — digits only, because the audience
  * is on a Persian keyboard and an alphanumeric token like IGBZ-P6R4 means switching layouts,
  * hunting for letters and usually mistyping at least once. Digits are the one character class that
- * is trivial to type in every layout, and FunnelService::canonical() folds Persian and Arabic
+ * is trivial to type in every layout, and the canonical form folds Persian and Arabic
  * digits to ASCII, so a shopper who comments ۰۰۴۷ matches a funnel stored as 0047.
  *
  * The padding is not cosmetic. WooCommerce ids start low, and a bare "12" under a post is
@@ -141,7 +141,7 @@ final class SkuGenerator {
 	/**
 	 * The comment keyword for a public code.
 	 *
-	 * FunnelService::canonical() lower-cases and folds Persian/Arabic digits before matching, so
+	 * canonical() lower-cases and folds Persian/Arabic digits before matching, so
 	 * an all-digit code is already in canonical form. This stays a named method rather than an
 	 * inlined strtolower because the funnel and the caption must agree on one definition — when
 	 * the code was alphanumeric, disagreeing here silently produced funnels that never fired.

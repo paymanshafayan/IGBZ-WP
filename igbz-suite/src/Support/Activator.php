@@ -1,7 +1,6 @@
 <?php
 namespace IGBZ\Suite\Support;
 
-use IGBZ\Suite\Modules\Instagram\Services\FunnelService;
 use IGBZ\Suite\Modules\Instagram\Services\PostIdentity;
 use IGBZ\Suite\Modules\MultiTenant\Lms\LmsService;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletService;
@@ -114,6 +113,10 @@ final class Activator {
 			35 => [ self::class, 'migrate_to_v35' ],
 			36 => [ self::class, 'migrate_to_v36' ],
 			37 => [ self::class, 'migrate_to_v37' ],
+			38 => [ self::class, 'migrate_to_v38' ],
+			39 => [ self::class, 'migrate_to_v39' ],
+			40 => [ self::class, 'migrate_to_v40' ],
+			41 => [ self::class, 'migrate_to_v41' ],
 		];
 	}
 
@@ -281,6 +284,42 @@ final class Activator {
 	}
 
 	/**
+	 * v38 (phase 50, ADR-0004 §6): single-provider migration groundwork.
+	 * `ig_zernio_profiles.key_id` keeps the provider-side key id (revocation is
+	 * by key id, not by profile), `ig_accounts.legacy_deprecated_at` is the
+	 * reversible migration stamp that makes legacy credentials unusable while
+	 * keeping them auditable until offboarding, and `ig_social_migration` is
+	 * the per-tenant per-step journal the controlled migration round writes.
+	 * No data back-fill.
+	 */
+	public static function migrate_to_v38(): void {
+		// Pure dbDelta work; see the ig_zernio_profiles, ig_accounts and ig_social_migration tables.
+	}
+
+	/**
+	 * v39 (phase 51): the Zernio inbox — captured events, backend rules, the
+	 * delivery ledger with its stable idempotency keys and the opt-out register.
+	 * Pure dbDelta work.
+	 */
+	public static function migrate_to_v39(): void {
+	}
+
+	/**
+	 * v40 (phase 52): the rebuilt 13-step product registration — one checkpoint
+	 * row per registration, idempotent on the app's client token. Pure dbDelta
+	 * work; the ig_content provider default also moved to the single provider.
+	 */
+	public static function migrate_to_v40(): void {
+	}
+
+	/**
+	 * v41 (phase 53): the publish webhook ledger. Pure dbDelta work; every statement
+	 * already exists in Schema::statements() for fresh installs.
+	 */
+	public static function migrate_to_v41(): void {
+	}
+
+	/**
 	 * v21 (phase 06): bring installs activated before the security defaults existed in line.
 	 *
 	 * seed_defaults() only fills keys that are absent, so a site created before
@@ -408,11 +447,13 @@ final class Activator {
 		}
 
 		$now = current_time( 'mysql', true );
+		// Phase 50: the legacy per-provider services were seeded under their
+		// vendor names; fresh installs now price the provider-neutral services
+		// (the meter is generic over any service key).
 		foreach (
 			[
-				'manus_task'      => 0.5,
-				'manus_monthly'   => 25.0,
-				'manychat_monthly' => 30.0,
+				'social_task' => 0.5,
+				'dm_delivery' => 0.1,
 			] as $service => $price
 		) {
 			$db->insert(
@@ -715,18 +756,20 @@ final class Activator {
 	 * a send. They become explicitly pending so retry_failed() picks them up.
 	 */
 	public static function migrate_to_v7(): void {
+		// Historical one-shot step. The marker strings are inlined (the source class
+		// that owned them was removed in phase 50) so legacy upgrades still run.
 		$db    = new Db();
 		$table = $db->table( 'ig_funnel_hits' );
 
 		$db->query(
 			"UPDATE {$table} SET delivery_error = %s WHERE delivered = 1 AND delivery_error = %s",
-			FunnelService::DELIVERY_UNCONFIRMED,
+			'unconfirmed',
 			''
 		);
 
 		$db->query(
 			"UPDATE {$table} SET delivery_error = %s WHERE delivered = 0 AND delivery_error = %s",
-			FunnelService::DELIVERY_PENDING,
+			'pending',
 			''
 		);
 	}
@@ -1070,10 +1113,6 @@ final class Activator {
 			'ai_credits.enabled'            => true,
 			'ai_credits.purchase_percent'   => 2.0,
 			'ai_credits.min_topup'          => 10000,
-			'giveaway.enabled'              => true,
-			'dm.provider'                   => 'manychat',
-			'chatplace.api_key'             => '',
-			'chatplace.base_url'            => 'https://api.chatplace.io',
 			'master_payment.enabled'        => true,
 			'master_payment.release_hours'  => 24,
 			'master_payment.fx_fee_percent' => 2.0,
@@ -1106,61 +1145,27 @@ final class Activator {
 			'marketplace.google.enabled'    => false,
 			'marketplace.feed_limit'        => 500,
 			'marketplace.cache_ttl'         => 900,
-			'instagram.provider'            => 'manus',
-			'instagram.autopublish'         => true,
-			'instagram.unique_coupons'      => true,
-			'instagram.coupon_ttl_days'     => 7,
-			'manus.agent_profile'           => 'manus-1.6',
-			'manus.locale'                  => 'fa-IR',
-			'manus.content_language'        => 'Persian (Farsi)',
-			'manus.poll_interval'           => 300,
-			'manus.auto_generate'           => true,
-			'manus.auto_schedule'           => true,
-			'manus.collect_insights'        => true,
-			'manus.default_peak_hours'      => '12:00,18:30,21:00',
-			'manus.min_gap_minutes'         => 90,
-			'manus.reel_seconds'            => 25,
-			'manus.weekly_slots'            => 5,
-			'manus.account_concurrency'     => 0,
-			'trial.enabled'                 => true,
-			'trial.days'                    => 14,
-			'trial.task_quota'              => 1,
-			'intake.enabled'                => true,
+			// Phase 50 — the single social provider (ADR-0004). Base URL and
+			// paths default to the documented docs.zernio.com endpoints and stay
+			// overridable per install (proxy, staging, future path changes).
+			'zernio.base_url'               => 'https://zernio.com/api/v1',
+			'zernio.profiles_path'          => '/profiles',
+			'zernio.api_keys_path'          => '/api-keys',
+			'zernio.connect_path'           => '/connect/instagram',
+			'zernio.accounts_path'          => '/accounts',
+			'zernio.posts_path'             => '/posts',
+			'zernio.dm_path'                => '/messages',
+			'zernio.story_reply_path'       => '/messages/story-reply',
+			'zernio.inbox_path'             => '/inbox',
+			'zernio.analytics_path'         => '/analytics',
+			'zernio.audio_path'             => '/audio/trending',
+			'zernio.timeout'                => 30,
+			// Provider-neutral intake knobs the rebuilt registration flow (phase 52)
+			// reads with safe defaults.
 			'intake.sku_prefix'             => 'IGBZ',
 			'intake.code_digits'            => 4,
-			'intake.quality_threshold'      => 60,
-			'intake.product_status'         => 'publish',
-			'intake.funnel_per_user_limit'  => 1,
-			'intake.funnel_reply'           => '',
-			'intake.image_style'            => 'clean seamless studio background in a very light neutral tone with a soft natural shadow under the product',
 			'intake.languages'              => '',
 			'intake.default_language'       => '',
-			'stt.enabled'                   => true,
-			'stt.provider'                  => 'manus',
-			'stt.endpoint'                  => '',
-			'stt.model'                     => '',
-			'stt.language'                  => 'fa',
-			'stt.file_field'                => 'file',
-			'stt.auth_header'               => 'Authorization',
-			'stt.auth_scheme'               => 'Bearer',
-			'stt.response_path'             => '',
-			'stt.timeout'                   => 120,
-			'dm.provider'                   => 'manychat',
-			'dm.custom.title'               => '',
-			'dm.custom.endpoint'            => '',
-			'dm.custom.api_key'             => '',
-			'dm.custom.auth_header'         => 'Authorization',
-			'dm.custom.auth_scheme'         => 'Bearer',
-			'dm.custom.method'              => 'POST',
-			'dm.custom.capabilities'        => 'text',
-			'dm.custom.body_template'       => '',
-			'dm.custom.message_id_path'     => '',
-			'dm.custom.timeout'             => 20,
-			'manychat.async_reply'          => true,
-			'manychat.link_field_name'      => 'igbz_link',
-			'manychat.coupon_field_name'    => 'igbz_coupon',
-			'manychat.button_label'         => $t ? __( 'Open the link', 'igbz-suite' ) : 'Open the link',
-			'manychat.duplicate_message'    => $t ? __( 'You have already received this link.', 'igbz-suite' ) : 'You have already received this link.',
 			'hub.enabled'                   => true,
 			'hub.vip_link_ttl'              => 900,
 			'hub.sync_interval'             => 3600,
@@ -1197,8 +1202,6 @@ final class Activator {
 			'lms.video_hmac_secret',
 			'hub.vip_link_secret',
 			'vip.media_hmac_secret',
-			'manychat.webhook_token',
-			'manus.webhook_token',
 		];
 		foreach ( $generated as $key ) {
 			if ( ! $settings->has( $key ) ) {

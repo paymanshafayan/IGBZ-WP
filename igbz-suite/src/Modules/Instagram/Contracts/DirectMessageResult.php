@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
  * distinction is worth carrying in the type.
  *
  *   ok            the gateway accepted it
- *   unsupported   this gateway cannot send this kind of message at all — ManyChat and video, say.
+ *   unsupported   this gateway cannot send this kind of message at all — some vendors and video, say.
  *                 Retrying is pointless; the caller should fall back to another delivery route.
  *   window_closed the 24-hour window has expired. Also pointless to retry now, but it becomes
  *                 possible again the moment the subscriber interacts, so the caller should park

@@ -219,7 +219,7 @@ final class WebhookInboxTest extends TestCase {
 		$other = $this->inbox->receive( 'psp', 'EVT-2', '{}' );
 		$this->assert_same( 'stored', (string) $other['status'], 'a different event key is a different event' );
 
-		$same_key_other_source = $this->inbox->receive( 'manychat', 'EVT-1', '{}' );
+		$same_key_other_source = $this->inbox->receive( 'zernio', 'EVT-1', '{}' );
 		$this->assert_same( 'stored', (string) $same_key_other_source['status'], 'deduplication is per source' );
 	}
 

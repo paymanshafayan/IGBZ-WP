@@ -118,9 +118,11 @@ final class SchemaTest extends TestCase {
 			}
 		}
 
+		// ig_zernio_inbox.post_id is intentional: it holds the Instagram shortcode of the post
+		// the captured event belongs to (phase 51) — the same VARCHAR-of-a-shortcode shape.
 		// ig_funnels.post_id and ig_funnel_hits.post_id are intentional: they hold Instagram media
 		// ids, which are opaque strings. They are safe only because Db always sends formats.
-		$known = [ 'ig_funnels.post_id (VARCHAR)', 'ig_funnel_hits.post_id (VARCHAR)' ];
+		$known = [ 'ig_funnels.post_id (VARCHAR)', 'ig_funnel_hits.post_id (VARCHAR)', 'ig_zernio_inbox.post_id (VARCHAR)' ];
 		$new   = array_values( array_diff( $found, $known ) );
 
 		$this->assert_same(

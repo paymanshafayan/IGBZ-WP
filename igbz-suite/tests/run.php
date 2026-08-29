@@ -21,14 +21,8 @@ $cases = [
 	'MoneyTest',
 	'GatewayTest',
 	'ModulesTest',
-	'PromptBuilderTest',
 	'UpsertTest',
 	'CronScheduleTest',
-	'AccountCredentialsTest',
-	'PublishVerificationTest',
-	'FunnelDeliveryTest',
-	'ProductIntakeTest',
-	'DirectMessageTest',
 	'VipChannelTest',
 	'LmsTest',
 	'PostIdentityTest',
@@ -80,6 +74,12 @@ $cases = [
 	'SeoAdsTest',
 	'IntlCommerceTest',
 	'ZernioConnectTest',
+	'ZernioSocialAdapterTest',
+	'SocialMigrationTest',
+	'SocialArchitectureGuardTest',
+	'InboxTest',
+	'ProductRegistrationTest',
+	'ContentPublishTest',
 ];
 
 foreach ( $cases as $case ) {

@@ -6,11 +6,11 @@ defined( 'ABSPATH' ) || exit;
 /**
  * The outcome of one speech-to-text attempt.
  *
- * Three states rather than two, because the fallback engine is Manus and a Manus task is
- * asynchronous: it answers with a task id now and a transcript some minutes later. Collapsing
- * that into a plain "failed" would make the app tell the user to type it out by hand while the
- * transcription was still on its way, so `pending` is a first-class result and the intake row
- * parks in the transcribing state until the webhook or the cron poll settles it.
+ * Three states rather than two, because some engines are asynchronous: they answer with a task
+ * id now and a transcript some minutes later. Collapsing that into a plain "failed" would make
+ * the app tell the user to type it out by hand while the transcription was still on its way, so
+ * `pending` is a first-class result and the intake row parks in the transcribing state until the
+ * webhook or the cron poll settles it.
  */
 final class TranscriptionResult {
 

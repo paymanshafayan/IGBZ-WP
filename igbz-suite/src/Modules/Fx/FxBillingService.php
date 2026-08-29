@@ -184,11 +184,16 @@ final class FxBillingService {
 		return [ 'ok' => true, 'status' => self::STATUS_PAID, 'error' => '' ];
 	}
 
-	/** The service key a provider maps to for pricing. */
+	/**
+	 * The service key a provider maps to for pricing.
+	 *
+	 * Phase 50: the legacy monthly subscriptions are gone with their providers —
+	 * the single social provider bills through its own plan model, not the FX
+	 * monthly bill. The mechanism stays (create_monthly_bill short-circuits on
+	 * an empty service) for whatever replaces it.
+	 */
 	public function service_for( array $account ): string {
-		return 'manus' === (string) ( $account['provider'] ?? '' )
-			? 'manus_monthly'
-			: ( 'manychat' === (string) ( $account['provider'] ?? '' ) ? 'manychat_monthly' : '' );
+		return '';
 	}
 
 	/**

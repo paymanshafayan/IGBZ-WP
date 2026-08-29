@@ -1763,3 +1763,182 @@ visual-testing/phase-02-adr-0004-pado-zernio.png
 visual-testing/design-instagram-pado-zernio.png
 visual-testing/prompt-instagram-growth-pado.png
 ```
+
+### ۱۱.۶ فاز ۵۰ — مهاجرت به تنها provider اجتماعی — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+**هدف:** ساخت adapter رسمی Zernio برای تمام صفحهٔ اجتماعی، مهاجرت کنترل‌شدهٔ دادهٔ
+legacy، و حذف کامل Manus/ChatPlace/ManyChat و fallbackهای اجتماعی از container،
+تنظیمات، endpoint، UI و اسناد + گارد معماری علیه کانال session-based اینستاگرام (Agent Reach).
+مرجع: `ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md §۵-۷` و
+`DESIGN-INSTAGRAM-PADO-ZERNIO.md §۱،§۱۵`. تحقیق به‌روز (قاعدهٔ ۱۰) روی مستندات رسمی
+`docs.zernio.com` انجام شد: base `/api/v1`، profile به‌ازای هر مشتری، کلیدهای profile-scoped
+از `POST /api-keys` با `scope=profiles`، اتصال OAuth از `/connect/instagram?profileId=`،
+انتشار `POST /posts` با `Idempotency-Key`، inbox یکپارچه `/inbox/*`، analytics `/analytics`،
+وب‌هوک با امضا و dedupe رویداد.
+
+**بخش‌های اجرا:**
+1. `ZernioAdapterInterface`/`ZernioClient` — قرارداد کامل: profile، کلید (با key_id)،
+   اتصال OAuth، list accounts، انتشار/تطبیق/retry، دایرکت، پاسخ استوری، inbox، analytics،
+   audio ترند، health، حذف profile. همهٔ مسیرها config-driven با پیش‌فرض رسمی.
+2. اسکیمای v38 (۸۶ جدول): ستون `key_id` روی `ig_zernio_profiles`، ستون
+   `legacy_deprecated_at` روی `ig_accounts`، جدول `ig_social_migration` (دفترچهٔ
+   مهاجرت مستأجر-محور).
+3. `SocialMigrationService` + جاب `ig.social.migrate` (پخش‌بینی ساعتی به الگوی فاز ۲۵):
+   اطمینان از profile ← غیرفعال‌سازی اعتباری legacy با مهر زمان (کلیدها رمزنگاری‌شده
+   دست‌نخورده می‌مانند — حذف نهایی در offboarding) ← ثبت هر گام در دفترچه.
+   REST: `GET /igbz/v1/ig/social/status` + `POST /igbz/v1/ig/social/migrate` (ادمین).
+4. موج حذف: کلاینت‌ها/هوک‌ها/گیت‌وی‌های Manus، ManyChat، ChatPlace، fallback دایرکت
+   `dm.custom`، Speech به‌عنوان fallback Manus، و جریان‌های وابسته (scheduler، funnels،
+   subscribers، intake، insights، giveaways) + صفحات ادمین متناظر + کنترلر intake +
+   کلیدهای تنظیمات و تب‌های فرم. فلوهای بازمی‌سازند: ۵۱ (inbox/DM)، ۵۲ (ثبت محصول)،
+   ۵۳ (انتشار/صدا)، ۵۵ (giveaway/insights).
+5. `SocialProviders` (گارد معماری): تنها provider مجاز `zernio` است؛ هر ثبت/استفاده از
+   سایر channelها (از جمله session-based Agent Reach) استثناء می‌دهد.
+   `SocialArchitectureGuardTest`: پیمایش استاتیک src برای شناسه‌های integration ممنوع
+   (کلاس‌ها، bindingها، کلیدهای تنظیمات، مارکرهای session) + آزمون منفی runtime.
+6. به‌روزرسانی: DriftGuard (۸۶/۳۸)، offboarding، Fx metering (حذف شارژ legacy)،
+   StatusPage/PlansPage/READMEها/ماتریس ردیابی.
+
+### ۱۱.۷ فاز ۵۱ — اینباکس و comment-to-DM با Zernio — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+**هدف:** اینباکس رسمی Zernio و خط لولهٔ کامنت‌به‌دایرکت کاملاً سمت بک‌اند: وب‌هوک
+امضاشده، deduplication، rule بک‌اند، opt-out، rate limit، approval انسانی، delivery
+state، idempotency و audit. هیچ تصمیم تجاری به automation بیرونی واگذار نمی‌شود
+(ADR-0004 §۶).
+
+**بخش‌های اجرا:**
+1. اسکیمای v39 (۹۰ جدول): `ig_zernio_inbox` (رویدادهای ثبت‌شده، dedupe روی
+   `(profile_id,event_id)`)، `ig_inbox_rules` (قواعد بک‌اند با priority)،
+   `ig_inbox_actions` (دفترچۀ delivery با کلید idempotency یکتا)، `ig_inbox_optouts`
+   (رجیستر opt-out). همه در `Schema`/`Activator`/`TenantOffboarding` و DriftGuard ثبت شد.
+2. `InboxService` — خط لولهٔ تصمیم: capture ← dedupe ← opt-out ← rule ← rate limit
+   (ساعتی، per-sender و per-tenant) ← approval (پیش‌فرض خاموش) ← delivery. هر گام
+   idempotent است. کلید idempotency به رویدادِ ثبت‌شده (`inbox:<event_id>`) لنگر می‌خورد،
+   نه به سطر action — پس هر رویداد هرگز دوباره delivered نمی‌شود.
+3. مالکیت سمت بک‌اند: accountId رویداد از طریق `ig_zernio_profiles` به profile و tenant
+   نگاشت می‌شود؛ رویدادِ account ناشناس قبل از هر ذخیره‌ای رد می‌شود. هویت = HMAC
+   روی payload+timestamp با رازِ خودِ پروفایل و پنجرۀ ۳۰۰ ثانیه (ضد replay). امضای متعلق
+   به مستأجر دیگر هرگز رد نمی‌شود.
+4. `ZernioClient::reply_to_comment` افزوده شد (مسیر config-driven). ارسال با کلیدِ
+   scoped خودِ فروشگاه (نه کلید مرکزی) و با هدر `Idempotency-Key`.
+5. `InboxController` — وب‌هوک `POST /igbz/v1/zernio/inbox` (خوداحراز با HMAC، بدون JWT،
+   زیر پیشوند `/zernio/` که در Authenticator whitelist است) + سطح تصمیمِ ادمین
+   (`/igbz/v1/ig/inbox*`: events، actions، approve، reject، retry، optout، rules).
+6. تنظیمات: `igbz.inbox_auto_approve` (پیش‌فرض خاموش)، سقف ساعتی per-tenant/per-sender،
+   و عبارات opt-out — هر سه در تب Zernio فرم تنظیمات.
+7. `InboxTest` با ۱۳ سناریو: رد account ناشناس، رد امضای بیگانه/کهنه، dedupe،
+   approval پیش‌فرض، reject نهایی، rule بدون تطبیق، opt-out ماندگار، rate-limit
+   (sender و tenant)، retry شکست با همان کلید، reply روی کامنت، و عایق‌بندی
+   tenant. تست **۱۳۲۵۳/۶۵** · لینت صفر خطا.
+
+### ۱۱.۸ فاز ۵۲ — ثبت محصول ۱۳مرحله‌ای — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+**هدف:** بازسازی ثبت محصول ۱۳مرحله‌ای که در فاز ۵۰ حذف شده بود — اما این بار به‌شکل
+ماشین حالتِ سطر-محور: checkpoint، resume، idempotency، validation، تأیید انسانی،
+محصول ووکامرس و شکست/جبران (ADR-0004 §۶). قرارداد محصول با اپ، ۱۳ checkpoint است.
+
+**بخش‌های اجرا:**
+1. اسکیمای v40 (۹۱ جدول): `ig_product_registrations` — سطرِ checkpoint با
+   `UNIQUE(tenant_id, client_token)`، ستون‌های stage/stage_task (لنگر webhook)،
+   image/voice/prepared/transcription/copy، product_id/content_id/public_code،
+   approved_by/at، failed_from/attempts/error. پیش‌فرض `provider` جدول `ig_content`
+   هم از `manus` به `zernio` آمد (معماری فاز ۵۰). در `Schema`/`Activator::
+   migrate_to_v40`/`TenantOffboarding` و DriftGuard ۹۱/۴۰ ثبت شد.
+2. `ProductRegistrationService` — ماشین حالت. ۱۳ checkpoint
+   (`uploaded ← grading ← graded ← processing ← ready_to_edit ← edited ←
+   describing ← [transcribing فقط صدا] ← writing ← product_created ← awaiting_kind
+   ← composing ← awaiting_approval`) + پایانی‌های `approved|rejected|failed|
+   abandoned`. هر فراخوانی فقط یک checkpoint جلو می‌رود؛ هر گام می‌تواند `failed`
+   شود و `failed_from` checkpoint دقیق را نگه می‌دارد تا `retry` از همان‌جا ادامه
+   بدهد. گاردهای گذر (`GUARDS`) گذر نامعتبر را با `invalid_state_for_*` رد می‌کنند.
+3. **درز agent صادقانه:** مراحل هوش مصنوعی (grading، image، transcribe، copy،
+   video/post) فقط از `IntakeAgentInterface` و با binding اختیاری `ig.intake_agent`
+   اجرا می‌شوند. در فاز ۵۲ agentی ثبت نشده است؛ پس هر `start_*` بدون agent صریحاً
+   `agent_not_configured` برمی‌گردد و سطر **جا می‌ماند** — هیچ مرحلهٔ AI «انجام‌
+   شدهٔ ساختگی» ثبت نمی‌شود. جبرانش مسیرهای `manual_*` است (operator نتیجه را
+   خودش می‌دهد). اتصال agent واقعی با ۵۳/۵۵ بدون لمس ماشین می‌آید.
+4. **idempotency دو لایه:** شروع روی `(tenant, client_token)` (retry اپ = همان id +
+   `duplicate`) و ساخت محصول روی `product_id`ِ ذخیره‌شده (کرش بین نوشتن محصول و
+   جابه‌جایی وضعیت = محصول دوم ساخته نمی‌شود؛ تست کرش صریح دارد).
+5. **مرحلۀ تجاری:** `WooCommerceDraftFactory` — تنها درز نوشتن به Woo، جایگزین‌پذیر.
+   **فقط draft** می‌سازد (بدون تأیید انسانی هیچ‌چیز live نمی‌شود؛ این خود جبران
+   طبیعی است). meta `_igbz_registration_id`/`_igbz_public_code`؛ کد عمومی = id
+   محصول (قاعدهٔ `SkuGenerator`). بدون Woo با `woocommerce_not_active` تمیز می‌شکست.
+6. **gate انسانی + مادهٔ انتشار:** `approve` فقط از `awaiting_approval`، با
+   `approved_by/at`، و سطر **draft**ِ `ig_content` (provider `zernio`) می‌سازد —
+   ورودیِ publisherِ فاز ۵۳. `reject` = رد. `compensate` محصول draft را حذف می‌کند
+   (کارخانه هرگز غیر-draft را لمس نمی‌کند؛ اگر نتواند، مرجع را نگه می‌دارد) و سطر
+   را `abandoned` می‌کند.
+7. `ProductRegistrationController` — ۲۴ مسیر scoped: شروع، خواندن، و ۲۲ گام
+   (start/complete هر مرحله + `manual_*` + `create_product` + `await_kind` +
+   `choose_kind` + `approve` + `reject` + `retry` + `compensate`). خطای گامِ
+   غیرممکن 409، ورودی بد 422، موجود‌نبودن 404.
+8. `ProductRegistrationTest` با ۱۲ سناریو: اعتبارسنجی شروع + idempotencyِ token،
+   عایق‌بندی tenant (خواندن/جلوبردن/UPDATE مستقیم بیگانه)، رد صادقانهٔ AI بدون
+   agent، کل مسیر manual تا approval + سطر content، شاعبة transcribing صدا، کرش
+   بین محصول و وضعیت، retry از checkpoint دقیق، compensate (draft حذف/live
+   دست‌نخورده)، approval/reject فقط از awaiting_approval، رد گذر و kind نامعتبر،
+   مسیر agent اسکریپت‌شده (ثبت stage/stage_task و context حساب)، و Woo
+   در دسترس‌نبودن. تست **۱۳۵۱۲/۶۶** · لینت ۳۰۳/۰ · DriftGuard ۹۱/۴۰.
+9. **اسموک زندهٔ پلی‌گراند:** هر ۲۴ مسیر ثبت شد؛ POST بدون احراز صحتاً 401 (cookie
+   لاگین ≠ احراز REST، طبق طراحی)؛ لاگ بدون fatal؛ صفحهٔ تنظیمات ادمین سالم.
+
+### ۱۱.۹ فاز ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+**هدف:** publisherِ واقعیِ محتوا — مصرفِ سطرهای draftِ `ig_content` (خروجیِ
+`approve` فاز ۵۲)، انتخاب زمان، job انتشار، **نتیجهٔ واقعی** از webhook/polling،
+duplicate prevention، failure state و گزارش. عدم دسترسی به audio = گیتِ
+production، نه تزئین.
+
+**بخش‌های اجرا:**
+1. **`ContentPublishService` (بایند `ig.content_publish`)** — ماشینِ انتشار روی
+   خودِ `ig_content` (بدون جدولِ وضعیتِ جدا): `draft ← scheduled ← publishing
+   ← published` + `failed` (با `retry_count`). `schedule` (پنجرۀ ۶۰ ثانیه تا
+   ۹۰ روز، UTC)، `publish_now` (از `draft`/`scheduled`/`failed`-پس‌از-reconcile)،
+   `publish_due` (sweep)، `reconcile` (polling خنثی-بُند)، `retry` (سقف ۳)،
+   `handle_post_event` (webhook)، `list_content`/`list_events` (گزارش).
+2. **duplicate prevention ریشه‌ای:** کلید idempotency **ثابتِ سطر**
+   `content:<id>` روی هر `POST /posts` (دستی/sweep/retry) — یک سطر هرگز دو پست
+   نمی‌سازد (ADR-0004 §8). در سطح خودمان: `publish_now` روی `publishing`/
+   `published` رد می‌شود؛ sweep فقط `scheduled` بدون `provider_task_id` را اجرا
+   می‌کند (سطرِ دارای task به reconcile می‌رود، نه دوباره ساخته).
+3. **retry بدون کور بودن:** `retry` فقط از `failed`؛ **اول reconcile** با
+   `GET /posts/{id}` (اگر در واقع منتشر شده → `published`، چیزی ساخته
+   نمی‌شود)؛ سپس `POST /posts/{id}/retry` provider؛ در صورتِ ردِ provider،
+   re-publish با همان کلیدِ ثابت (safe-retry). سقف ۳ = `retry_limit_reached`
+   با خروجیِ شبکهٔ صفر.
+4. **نتیجهٔ واقعی از دو در، یک قیف:** webhook خودِ provider + pollingِ
+   احتیاطی هر دو به `apply_provider_state` ختم می‌شوند که فقط پیشرویِ رو به جلو
+   می‌پذیرد: `published` بر نمی‌گردد (failure دیررس) و `failed` با رویدادِ
+   `published` واقعی جلو می‌رود. `partial`/`cancelled` → `failed` با دلیلِ
+   نام‌دار.
+5. **webhook خوداحرازی** (`POST /igbz/v1/zernio/posts`، بدون JWT — امزا = احراز،
+   همان مدلِ فاز ۵۱): مالکیت از `accountId` ← `ig_zernio_profiles` ← tenant
+   (account نامعلوم = 404 بدون اثر)؛ سپس HMAC سِرِ profile روی payload+timestamp
+   در پنجرۀ ۳۰۰ ثانیه. ledgerِ جدید **`ig_publish_events`** (اسکیمای v41، جدول
+   ۹۲) با `UNIQUE(profile_id, event_id)` = dedupe + گزارش؛ رویدادِ بدون row
+   ledger می‌شود با `outcome=no_content_row` (ثبت، بدون اثر).
+6. **صدا — گیت، نه تزئین:** `igbz.publisher_audio` (پیش‌فرض خاموش، فیلدِ جدید
+   تبِ Zernio) وقتی روشن است **فقط** اگر روی registrationِ محصول `voice_url`
+   واقعی باشد آن mp3 را به `media[]` اضافه می‌کند. خاموش یا بدون URL واقعی =
+   تصویر/ویدیو فقط — هیچ صدای ساختگی. تا endpoint واقعی trending-audio در
+   PV-ZERNIO راستی‌آزمایی نشود، صدا فقط از فایلِ ثبت‌شده می‌آید.
+7. **jobها** در `run_five_minutes` (هر ۵ دقیقه، slot-idempotent):
+   `ig.content_publish.publish_due` + `ig.content_publish.reconcile`.
+   `CronJobsTest` به ۴ job به‌روز شد (spy با `reconcile()`).
+8. **REST (scoped، ۷ مسیر):** `GET /igbz/v1/ig/content` (فیلتر status)، `GET
+   .../{id}`، `POST .../{id}/publish`، `POST .../{id}/schedule {at}`، `POST
+   .../{id}/retry`، `GET /igbz/v1/ig/publish/events`، `POST
+   /igbz/v1/zernio/posts` (webhook). خطای حالتِ غیرممکن 409.
+9. **اسکیمای v41 (۹۲ جدول):** فقط `ig_publish_events`؛
+   `Activator::migrate_to_v41` (dbDelta) + `TenantOffboarding`. ستونِ مرجعِ
+   پست `provider_post_id` نام دارد (نه `post_id` که wpdb آن را `%d` cast می‌کند
+   و SchemaTest نگه می‌دارد). DriftGuard ۹۲/۴۱.
+10. **`ContentPublishTest` با ۱۴ سناریو** (سرویس واقعی + client واقعی + HMAC
+    واقعی؛ فقط DB و شبکه double): یک provider call با کلیدِ ثابت، reconcile
+    پیش از re-create، پنجرۀ schedule، sweep فقط مهلت‌گرفته-بدون-task، polling
+    خنثی-بُند، webhook published + ledger + dedupe، account نامعلوم، امضای
+    بیگانه/stale، رویدادِ دیررس فقط رو به جلو، retry (reconcile → provider →
+    سقف)، retry بدون task با همان کلید، گیتِ صدا (خاموش/روشن/بدون-URL)،
+    partial→failed، عایق‌بندی tenant، store اتصال‌نیافته.
+    تست **۱۳۷۲۲/۶۷** · لینت ۳۰۶/۰ · DriftGuard ۹۲/۴۱.

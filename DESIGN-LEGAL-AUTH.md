@@ -1335,6 +1335,244 @@ Playground معنا ندارد و رفتار ناشناس با تست واحد �
   تصمیم‌گیر بک‌اند و رد ادعاهای بیگانه، چرخش/لغو/اتصال مجددِ سالم نسخه‌ها، هویت وب‌هوک زمان‌دار و
   حذف کامل داده. آزمون زنده روی پلی‌گراند. تست ۲۵۲۹/۶۷ · لینت ۳۲۶/۰.
 
+### ۷.۷.۵۰ وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۰ ✅)
+
+فاز حذفی: تنها پرووایدر اجتماعی رسمی Zernio شد و معماری قدیمی (Manus، ManyChat،
+ChatPlace و fallbackهای اجتماعی) از کد بیرون رفت.
+
+- **آداپتر رسمی:** `ZernioClient` (بستهٔ `Instagram\Zernio`) همهٔ مسیرهای خود را از
+  تنظیمات `zernio.*` می‌خواند — `base_url` پیش‌فرض `https://zernio.com/api/v1`، هر مسیر
+  (`posts_path`، `inbox_comments_path`، `media_presign_path`، …) از تنظیم قابل جابجایی
+  است و اسکیمای احراز (`auth_scheme`، پیش‌فرض `Bearer`) هم از تنظیم می‌آید. هیچ معنای
+  اندپوینتی در کد اختراع نشده؛ هر فرم پاسخ واقعی که با سند متفاوت باشد در فاز
+  `PV-ZERNIO-*` با تنظیمات اصلاح می‌شود، نه با حدس در کد.
+- **دو صفحهٔ کلید (طبق ADR-0004 §۴):** روش‌های صفحهٔ profile (`create_profile`،
+  `get_connect_url`، `list_accounts`، `issue_profile_key`) با کلید مرکزی `zernio.api_key`
+  و روش‌های صفحهٔ social (`publish_post`، `retry_post`، `presign_media`، `get_inbox`)
+  با کلید scoped خودش؛ کلید خالی صفحهٔ social → `zernio_not_configured` بدون هیچ درخواست
+  شبکه. `publish_post` کلید پست را روی هر تلاش ثابت نگه می‌دارد و فقط وقتی فراخوانده‌گر
+  `idempotency_key` بدهد هدر `Idempotency-Key` می‌رود (اتوژن به‌جای حدس).
+- **قرارداد:** `ZernioSocialService` روی `SocialProvider::publish()` resolve می‌شود و
+  `ZernioSocialAdapter` آن را روی `ZernioClient` پیاده می‌کند. resolve سه‌مرحله‌ای: گارد
+  `SocialProviders` (رد `social_provider_not_allowed`) → نگاشت بک‌اند (رد `no_social_account`)
+  → کلید رمزگشایی‌شده (رد `zernio_not_configured`). `account_id` را فقط از `ig_zernio_profiles`
+  می‌گیرد — هرگز از ورودی فراخوانده.
+- **مهاجرت کنترل‌شده:** `SocialMigrationService` هر ساعت (`ig.social.migrate`، حد ۲۰
+  مستأجر) دو مرحلهٔ روزن‌ماننده را در `ig_social_migration` جلو می‌برد: `profile_ensured`
+  (ensure profile + کلید profile با کلید مرکزی؛ `already_provisioned` برای تکرار) و
+  `legacy_deprecated` (stamping `legacy_deprecated_at` روی حساب‌های فعال قدیمی). مستأجر
+  تنها به‌محض تمام‌شدن **هر دو** مرحله از فهرست due خارج می‌شود؛ pending/failed هر دو
+  مرحله او را در فهرست نگه می‌دارد — حتی تا وقتی کلید مرکزی خالی است. خروجی `run()`
+  (`ok`/`profile`/`legacy`/`error`) روی خط آدرس صفحهٔ حساب نمایش داده می‌شود.
+- **حذف کامل:** ۲۴ فایل (کلاینت‌ها Manus/ManyChat/ChatPlace، سرویس‌های funnel/insights/
+  scheduler/intake/publisher/subscribers/giveaway/credentials و webhookها و کنترلرهای
+  REST آن‌ها)، ۶ فایل تست قدیمی، کلیدهای secret `manus.*`/`manychat.*`/`chatplace.*`/
+  `stt.*`/`dm.*` از `Settings::SECRETS`، تنظیمات و فیلدهای فرم، مسیرهای وب‌هوک
+  `/manychat`/`/manus`/`/chatplace`، bindingهای container (`ig.manychat` و…)، دکمه‌های
+  نوارابزار و سطرهای Runbook. ستون‌های قدیمی اسکیمای `ig_accounts` تا پایان offboarding
+  به‌عنوان **داده** می‌مانند (نه یکپارچه‌سازی)؛ `migrate_to_v7` Activator با رشته‌های
+  درون‌خطی‌شده برای ارتقاء قدیمی‌ها سالم ماند.
+- **گارد معماری:** `SocialArchitectureGuardTest` کل `src/` را برای شناسه‌های معماریِ
+  حذف‌شده می‌شابد — نام‌های کلاس، bindingهای container، پیشوند کلیدهای secret، نشانه‌های
+  کانال session (`instagram_session`/`ig_session`/`agent_reach`) و مسیرهای وب‌هوک قدیمی —
+  و فهرست ممنوعهٔ `SocialProviders` را هم خودسنجی می‌کند. هدف‌گذاری روی شناسه است، نه
+  زیررشته: ستون‌های دادهٔ قدیمی (`manychat_subscriber_id` و…) خطای کاذب نمی‌سازند.
+- **صداقت:** هیچ پول/محتوایی تا `PV-ZERNIO-*` از این مسیر عبور نمی‌کند؛ تأیید زندهٔ
+  شکل‌های پاسخ (درگاه `apiKey`/`_id`/`data.*` و…) با تنظیمات اصلاح می‌شود.
+- **پوشش:** `ZernioSocialAdapterTest` (۸ سناریو: گارد، دو صفحهٔ کلید، صفر-HTTP بدون
+  تنظیم، فرم‌های پاسخِ مجاز، resolve facade و رد `not_connected`) و `SocialMigrationTest`
+  (۵ سناریو: موج اول، idempotency موج دوم، انتظار صادقانه بدون کلید مرکزی، خروج از فهرست
+  بعد از پایان، گزارش وضعیت). تست ۱۳۰۷۳/۶۴ · لینت ۲۹۶/۰.
+
+### ۷.۷.۵۱ وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۱ ✅)
+
+اینباکس رسمی Zernio و خط لولهٔ کامنت‌به‌دایرکت؛ کل تصمیم‌گیری در بک‌اند، طبق ADR-0004 §۶.
+
+- **ورودی (`POST /igbz/v1/zernio/inbox`):** خوداحراز — بدون JWT. زرنیو webhookهای
+  team-level می‌فرستد، پس هر event برای همهٔ حساب‌های تیم می‌آید؛ مالکیت را ما می‌سازیم:
+  `accountId` از payload فقط با نگاشت بک‌اند `ig_zernio_profiles` (account→profile→
+  tenant) تبدیل به مستأجر می‌شود و eventِ حساب ناشناس **قبل از هر ذخیره‌ای** رد می‌شود
+  (404، بدون فاش‌کردن اینکه کدام حساب‌ها تحت مدیریت‌اند). هویت، همان معماری فاز ۴۹:
+  HMAC-SHA256 روی «بار + نقطه + مهر زمانی» با **راز خودِ پروفایل** و پنجرهٔ ۳۰۰ ثانیه‌ای؛
+  امضای متعلق به مستأجر دیگر یا مهر کهنه رد می‌شود (401).
+- **capture + dedupe:** رویداد در `ig_zernio_inbox` با کلید یکتای `(profile_id,
+  event_id)` ثبت می‌شود (event_id از payload، در نبودش hash بار). retryِ پرووایدر
+  `duplicate` برمی‌گردد و هیچ‌چیز دوباره پردازش نمی‌شود.
+- **خط لولهٔ تصمیم (`InboxService::process_event`):** (۱) opt-out — پیام DM که دقیقاً
+  یکی از عبارات opt-out باشد (`igbz.inbox_optout_phrases`) رجیستر `ig_inbox_optouts` را
+  پر می‌کند و کاربر **برای همیشه** از پاسخ‌دهی خارج می‌شود؛ (۲) rule — اولین rule فعال
+  مطابق priority که source و keyword (خالی = همه) ب‌خورد؛ عملیات‌ها `ignore|dm|reply`
+  با template و placeholder `{username}`؛ (۳) rate limit — سقف ساعتی per-sender
+  (`igbz.inbox_rate_limit_sender`، پیش‌فرض ۳) و per-tenant (`igbz.inbox_rate_limit_tenant`،
+  پیش‌فرض ۲۰)؛ عبور از سقف = event ذخیره می‌شود ولی ارسال نمی‌شود (`skipped_rate_limit`)؛
+  (۴) approval — `igbz.inbox_auto_approve` پیش‌فرض **خاموش**: هر پاسخ `pending_approval`
+  می‌ماند تا اپراتور از سطح ادمین تأیید یا رد کند؛ (۵) delivery — فقط حالا به پرووایدر.
+- **idempotency و delivery:** هر تصمیم یک سطر در `ig_inbox_actions` با کلید یکتای
+  `inbox:<event_id>` — لنگر به **رویداد** است نه سطر action، پس هیچ رویدادی هرگز
+  دوباره delivered نمی‌شود، حتی اگر مسیر approval چند بار طی شود. ارسال با کلید
+  scoped خودِ فروشگاه (هرگز کلید مرکزی) و هدر `Idempotency-Key`. DM از
+  `send_direct_message`، پاسخ عمومی کامنت از `reply_to_comment` (مسیر config-driven).
+  شکست با خطای پرووایدر در دفترچه می‌ماند و با `retry` همان کلید تکرار می‌شود.
+- **سطح ادمین (scoped به مستأجر):** `GET /igbz/v1/ig/inbox` (رویدادها)،
+  `GET /igbz/v1/ig/inbox/actions` (دفترچۀ delivery)، `POST .../approve`، `.../reject`
+  (رد نهایی و قابل ممیزی)، `.../retry`، `.../optout`، `GET/POST .../rules` و
+  `.../rules/active`. عملیات‌های cross-tenant هرگز رد نمی‌شوند (تست‌شده).
+- **صداقت پرووایدر:** پنجرهٔ ۲۴ ساعتی اینستاگرام یعنی Zernio cold DM باز نمی‌کند؛
+  کامنت به‌عنوان تعاملِ خودِ کاربر، DM به کاربر پست ما می‌رود. تأیید زندهٔ شکل‌های
+  پاسخ و رفتار پنجره با `PV-ZERNIO-*` است — تا آن زمان approval انسانی پیش‌فرض مانده
+  و بدون تأیید چیزی بیرون نمی‌رود.
+- **پوشش:** `InboxTest` با ۱۳ سناریو — رد account ناشناس/امضای بیگانه/مهر کهنه، dedupe،
+  approval پیش‌فرض + یکباری آن، reject نهایی، rule بدون تطبیق، opt-out ماندگار و
+  خودتشخیص، rate-limit هر دو سطح، retry شکست با همان کلید، reply روی کامنت، عایق‌بندی
+  tenant. تست ۱۳۲۵۳/۶۵ · لینت صفر خطا.
+- **اسموک زندهٔ پلی‌گراند:** همهٔ ۹ مسیر ثبت شدند؛ webhook روی رویدادِ آزمایشی
+  `unmapped account refused` را در لاگ ثبت کرد (مالکیت قبل از ذخیره) و مسیرهای
+  ادمین بدون JWT صحتاً 401 دادند. همین سموک یک باگ واقعی را هم روشن کرد:
+  `InstagramModule` چهار import (VipAccessService/VipPostService/VipSocialService/
+  VipMessageService) را نداشت و bindingها هنگام resolve fatal می‌شدند — اصلاح شد.
+
+### ۷.۷.۵۲ وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۲ ✅)
+
+ثبت محصول ۱۳مرحله‌ای بازسازی‌شده؛ ماشین حالتِ سطر-محور که قرارداد محصول با اپ است.
+
+- **۱۳ checkpoint، سطر-محور نه call-stack:** `uploaded ← grading ← graded ←
+  processing ← ready_to_edit ← edited ← describing ← transcribing (فقط صدا) ←
+  writing ← product_created ← awaiting_kind ← composing ← awaiting_approval` +
+  وضعیت‌های پایانی `approved|rejected|failed|abandoned`. هر فراخوانی REST و هر
+  webhookِ agent فقط یک سطرِ `ig_product_registrations` را یک checkpoint جلو می‌برد؛
+  درخواستِ مرده، اپِ بسته یا taskِ دیررس دقیقاً از همان نقطهٔ توقف ادامه پیدا می‌کند.
+  هر گام می‌تواند `failed` شود؛ `failed_from` checkpoint دقیق را به یاد می‌سپارد و
+  `retry` از همان‌جا (نه از اول) ادامه می‌دهد و شمارۀ `attempts` را زیاد می‌کند.
+- **درز agent صادقانه (`ProductRegistrationService` + `IntakeAgentInterface`):**
+  مراحل هوش مصنوعی (grading، image، transcribe، copy، video/post) فقط از درز
+  `ig.intake_agent` اجرا می‌شوند. در فاز ۵۲ هیچ agentی ثبت نشده است؛ پس هر
+  `start_*` بدون agent صریحاً با `agent_not_configured` **رد** می‌شود و سطر جا
+  می‌ماند — هیچ مرحلهٔ هوش مصنوعی «در ظاهر انجام‌شده» ثبت نمی‌شود. جبران انسانی
+  از همان مسیرهای `manual_*` است (manual_grade، manual_prepared_image،
+  manual_transcription، manual_copy، manual_composed) — operator خودش نتیجه را
+  می‌دهد و ماشین ردپای آن را نگه می‌دارد. اتصال agent واقعی با فاز ۵۳/۵۵ می‌آید
+  بدون اینکه ماشینی لمس شود (همان وعده‌ای که `PublisherInterface` برای سمت محتوا
+  داده است).
+- **idempotency دو لایه:** (۱) شروع روی `UNIQUE(tenant_id, client_token)` — retryِ
+  اپ با همان token سطر دوم نمی‌سازد و `duplicate` + همان id برمی‌گردد؛ (۲) ساخت
+  محصول: اگر `product_id` روی سطر هست (مثلاً کرش بین نوشتن محصول و جابه‌جایی
+  وضعیت) دوباره محصول ساخته نمی‌شود — تست کرش صریح دارد.
+- **مرحلۀ تجاری:** `WooCommerceDraftFactory` (تنها درزی که به Woo می‌نویسد؛
+  جایگزین‌پذیر برای provider بعدی) **فقط draft** می‌سازد — هیچ registration بدون
+  تأیید انسانی چیزی live نمی‌کند؛ این خود جبران طبیعی است. metaهای
+  `_igbz_registration_id` و `_igbz_public_code` روی محصول؛ کد عمومی = id محصول
+  (قاعدهٔ `SkuGenerator`). بدون Woo، مرحله با `woocommerce_not_active` تمیز
+  `failed` می‌شود نه fatal.
+- **gate انسانی و ماده‌ای که منتشر می‌شود:** `approve` فقط از `awaiting_approval`
+  و با `approved_by/at` ثبت می‌شود و **سطر draftِ `ig_content`** (provider `zernio`،
+  status `draft`) می‌سازد — دقیقاً همان ورودی که publisherِ فاز ۵۳ مصرف می‌کند.
+  `reject` به `failed/rejected` می‌رود. هیچ چیزی با approve منتشر نمی‌شود؛
+  انتشار صرفاً وظیفۀ فاز ۵۳ است.
+- **شکست/جبران:** `compensate` محصول draft را **حذف** می‌کند تا registration
+  مرده زباله در کاتالوگ نهد؛ کارخانهٔ واقعی هرگز چیزی غیر از draft را لمس
+  نمی‌کند و اگر حذف ممکن نباشد (محصول live شده) سطر مرجعِ محصول را نگه می‌دارد
+  تا operator خودش ببیند (`compensated_product_kept`) و بعد `abandoned` می‌شود.
+- **REST (scoped به مستأجر، ۲۴ مسیر):** `POST /igbz/v1/ig/product-registrations`
+  (شروع)، `GET .../{id}`، و ۲۲ گام: start/complete هر مرحله + `manual_*` +
+  `create_product` + `await_kind` + `choose_kind` + `approve` + `reject` +
+  `retry` + `compensate`. خطای گامِ غیرممکن 409، ورودی بد 422، موجود‌نبودن 404.
+- **اسکیمای v40 (۹۱ جدول):** `ig_product_registrations` (row checkpoint با
+  `UNIQUE(tenant_id,client_token)`) و پیش‌فرض `provider` جدول `ig_content` از
+  `manus` به `zernio` (معماری فاز ۵۰: تنها provider اجتماعی). در
+  `Activator::migrate_to_v40` و فهرست حذف `TenantOffboarding` ثبت شد؛ DriftGuard
+  ۹۱/۴۰.
+- **پوشش:** `ProductRegistrationTest` با ۱۲ سناریو — اعتبارسنجی شروع +
+  idempotencyِ token، عایق‌بندی tenant (خواندن، جلوبردن، و UPDATE مستقیم بیگانه)،
+  رد صادقانهٔ مراحل AI بدون agent، کل مسیر manual تا approval + سطر content،
+  شاعبة transcribing صدا، کرش بین محصول و وضعیت، retry از checkpoint دقیق،
+  compensate (draft حذف، live دست‌نخورده)، approval/reject فقط از
+  awaiting_approval، رد گذرهای نامعتبر و kind نامعتبر، مسیر agent اسکریپت‌شده
+  (ثبت stage/stage_task و context حساب)، و Woo در دسترس‌نبودن. تست **۱۳۵۱۲/۶۶**
+  · لینت ۳۰۳/۰ · DriftGuard ۹۱/۴۰.
+- **اسموک زندهٔ پلی‌گراند:** هر ۲۴ مسیر در index ثبت شد؛ POST بدون احراز صحتاً
+  401 (cookie لاگین ≠ احراز REST، طبق طراحی)؛ لاگ بدون fatal (fatalهای کهنه
+  پیش از اصلاح فاز ۵۱)؛ صفحهٔ تنظیمات ادمین سالم رندر می‌شود.
+
+### ۷.۷.۵۳ وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۳ ✅)
+
+پبلیشرِ واقعیِ محتوا: ماشینِ انتشاری که سطرِ draftِ `ig_content` (خروجیِ
+`approve` فاز ۵۲) را به اینستاگرام می‌رساند و **نتیجهٔ واقعی** را از provider
+می‌آموزد — نه فرض می‌کند. پیاده‌سازی روی قرارداد موجود (`ZernioClient`/
+`ZernioSocialService` از فاز ۴۹/۵۱) و بدون هیچ نتیجهٔ ساختگی.
+
+- **ماشینِ حالت روی خودِ سطر (بدون جدولِ وضعیتِ جدا):** `ContentPublishService`
+  (بایند `ig.content_publish`) پنج وضعیت را روی `ig_content.status` نگه
+  می‌دارد: `draft ← scheduled ← publishing ← published` و `failed` (با
+  `retry_count`). انتخاب زمان = `schedule` (۶۰ ثانیهٔ گذشته تا ۹۰ روز، UTC
+  ذخیره)؛ اجرای لحظه‌ای = `publish_now` (از `draft`، از `scheduled` — یعنی هم
+  sweep و هم operator می‌توانند «حالا» بزنند — و از `failed` پس از
+  reconcile).
+- **duplicate prevention ریشه‌ای، نه سطحی:** کلید idempotency **ثابتِ سطر**
+  `content:<id>` است — روی هر فراخوانیِ `POST /posts` (چه دستی، چه sweep، چه
+  retry پس از شکستِ transport) همان کلید می‌رود، پس یک سطرِ محتوا هرگز دو
+  پست نمی‌سازد (قاعدهٔ ADR-0004 §8: هر create = idempotencyِ provider + کلید
+  منطقیِ داخلی). در سطح خودِ ما هم `publish_now` روی `publishing`/`published`
+  رد می‌شود (409) و sweep فقط سطرهای `scheduled` **بدون** `provider_task_id` را
+  اجرا می‌کند — سطرِ دارای task به reconcile سپرده می‌شود، نه دوباره ساخته می‌شود.
+- **retry بدون کور بودن (ADR-0004 §8):** `retry` فقط از `failed` و با سقف
+  `MAX_RETRIES=3`؛ **اول reconcile** (`GET /posts/{id}`) — اگر provider در
+  واقع منتشر کرده (timeout بین ارسال و دریافت پاسخ) سطر `published` می‌شود و
+  چیزی ساخته/تلاش نمی‌شود؛ اگر هنوز `failed` است، از endpoint رسمی
+  `POST /posts/{id}/retry` provider استفاده می‌کند و اگر provider آن را هم رد
+  کند، re-publish با همان کلیدِ ثابت (safe-retry — دوباره publish نمی‌شود).
+  سقفِ ۳، `retry_limit_reached` برمی‌گردد و خروجیِ شبکه صفر است.
+- **نتیجهٔ واقعی از دو در، یک قیف:** webhook خودِ provider
+  (`POST /zernio/posts`) و pollingِ احتیاطی (job `ig.content_publish.reconcile`
+  در هر ضربِ ۵ دقیقه، فقط سطرهای `publishing|scheduled` که `updated_at` آن‌ها
+  بیش از ۵ دقیقه خنثی است — webhook مسیرِ سریع است و polling شبکه را
+  بمباران نمی‌کند) هر دو به `apply_provider_state` ختم می‌شوند که **فقط
+  پیشرویِ رو به جلو** می‌پذیرد: `published` روی سطرِ `published` دیگر بر
+  نمی‌گردد (roی رویدادِ failure دیررس) و `failed` با رویدادِ `published` واقعی
+  جلو می‌رود (retryِ گذرای خودِ provider موفق شده — این همان نتیجهٔ حقیقی است).
+  وضعیت‌های `partial`/`cancelled` به `failed` با دلیلِ نام‌دار
+  (`provider_partial_failure`/`post_cancelled_by_provider`) می‌روند.
+- **webhook خوداحرازی (همان مدلِ فاز ۵۱):** مالکیت از `accountId` روی واردۀ
+  رویداد ← `ig_zernio_profiles.account_id` ← tenant (بُردارِ چندمستأجری؛ account
+  نامعلوم = 404 بدون اثر)؛ سپس HMAC همان سِرِ profile روی
+  payload+timestamp در پنجرۀ replay (۳۰۰ ثانیه). رویدادها
+  `post.published/failed/partial/scheduled/cancelled` + رویدادهای پایانیِ
+  هر-پلتفرم (`post.platform.*`). جدولِ ledger **جدید** `ig_publish_events`
+  (اسکیمای v41، جدول ۹۲) با `UNIQUE(profile_id, event_id)` = dedupeِ
+  retryهای provider + گزارشِ انتشارِ store — عمداً جدا از `ig_zernio_inbox`
+  (سِمانتیکِ status/source آن مخصوص inbox است). رویدادی که `provider_task_id`
+  نداردِ row، ledger می‌شود با `outcome=no_content_row` — ثبت می‌شود، اثری
+  ندارد.
+- **صدا — گیت، نه تزئین (Rule 13):** `igbz.publisher_audio` (پیش‌فرض **خاموش**؛
+  فیلدِ جدید در تبِ Zernio تنظیمات) وقتی روشن است **فقط** اگر روی سطرِ
+  registrationِ محصولِ مرتبط `voice_url` واقعی باشد، آن mp3 را به `media[]`
+  پست اضافه می‌کند. خاموش = تصویر/ویدیو فقط؛ روشن ولی بدون URL واقعی = باز هم
+  تصویر/ویدیو فقط — هیچ صدای ساختگی‌ای ساخته نمی‌شود. این همان «عدم دسترسی به
+  audio گیت production است»: تا endpoint واقعی trending-audio در فاز PV-ZERNIO
+  راستی‌آزمایی نشود، صدا فقط از فایلِ ثبت‌شدهٔ registration می‌آید.
+- **jobها (ضربِ ۵ دقیقه، `run_five_minutes`):** `ig.content_publish.publish_due`
+  (فایرِ سطرهای مهلت‌گرفته) + `ig.content_publish.reconcile` (pollingِ
+  احتیاطی)؛ هر دو slot-idempotent مثل بقیهٔ jobهای ضرب. CronJobsTest به
+  ۴ job به‌روز شد.
+- **REST (scoped به مستأجر، ۷ مسیر):** `GET /igbz/v1/ig/content` (صف + گزارش،
+  فیلتر status)، `GET .../{id}`، `POST .../{id}/publish`، `POST
+  .../{id}/schedule {at}`، `POST .../{id}/retry`، `GET
+  /igbz/v1/ig/publish/events` (ledger) و `POST /igbz/v1/zernio/posts`
+  (webhook بدون JWT — امضا = احراز). خطای حالتِ غیرممکن 409.
+- **اسکیمای v41 (۹۲ جدول):** فقط `ig_publish_events` اضافه شد؛
+  `Activator::migrate_to_v41` (خالی — dbDelta) و فهرست حذف
+  `TenantOffboarding` +۱. ستونِ مرجعِ پست `provider_post_id` نام‌گذاری شد —
+  `post_id` صریحاً در فهرستِ wpdb است که به `%d` cast می‌کند و SchemaTest آن
+  را نگه می‌دارد. DriftGuard ۹۲/۴۱.
+- **پوشش:** `ContentPublishTest` با ۱۴ سناریو روی سرویس واقعی + client واقعی +
+  HMAC واقعی (فقط DB و شبکه double): دقیقاً یک provider call با کلیدِ ثابت
+  (بدون re-fire)، reconcile پیش از re-create، پنجرۀ schedule، sweep فقط
+  سطرهای مهلت‌گرفته-بدون-task، polling خنثی-بُند، webhook published + ledger +
+  dedupe، account نامعلوم، امضای بیگانه/stale، رویدادهای دیررس فقط رو به جلو،
+  retry (reconcile → provider-retry → سقف)، retry بدون task با همان کلید، گیتِ
+  صدا (خاموش/روشن/بدون-URL)، partial→failed، عایق‌بندی tenant روی محتوا و
+  رویدادها، و store اتصال‌نیافته. تست **۱۳۷۲۲/۶۷** · لینت ۳۰۶/۰ ·
+  DriftGuard ۹۲/۴۱.
+
 ---
 
 ## ۸. فازبندی پیاده‌سازی (پس از تأیید)

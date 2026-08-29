@@ -128,7 +128,7 @@ function wp_parse_url( string $url, int $component = -1 ) {
  * served to the first request whose URL contains that fragment, whenever it arrives; responses
  * without one are consumed in order. Matching on the endpoint keeps a test from having to know
  * that, say, writing four custom fields costs four HTTP calls. Anything not queued gets a bland
- * ManyChat-shaped success, so a test only describes the calls it actually cares about.
+ * provider-shaped success, so a test only describes the calls it actually cares about.
  *
  * @var array<int,array{status?:int,body?:string,error?:string,match?:string}>
  */
@@ -141,18 +141,6 @@ $GLOBALS['igbz_test_user_roles']   = [];
 /** Queue one response for the next outbound request. */
 function igbz_test_queue_http( array $response ): void {
 	$GLOBALS['igbz_test_http'][] = $response;
-}
-
-/** Queue a ManyChat-style failure, optionally only for requests to a given endpoint. */
-function igbz_test_queue_manychat_error( string $message, int $code = 3011, string $match = '' ): void {
-	$response = [
-		'status' => 200,
-		'body'   => wp_json_encode( [ 'status' => 'error', 'message' => $message, 'code' => $code ] ),
-	];
-	if ( '' !== $match ) {
-		$response['match'] = $match;
-	}
-	igbz_test_queue_http( $response );
 }
 
 class WP_Error {
@@ -182,9 +170,10 @@ function is_wp_error( $thing ): bool {
 
 function wp_remote_request( string $url, array $args = [] ) {
 	$GLOBALS['igbz_test_http_requests'][] = [
-		'url'    => $url,
-		'method' => (string) ( $args['method'] ?? 'GET' ),
-		'body'   => (string) ( $args['body'] ?? '' ),
+		'url'     => $url,
+		'method'  => (string) ( $args['method'] ?? 'GET' ),
+		'body'    => (string) ( $args['body'] ?? '' ),
+		'headers' => (array) ( $args['headers'] ?? [] ),
 	];
 
 	$next = null;
@@ -505,9 +494,9 @@ function sanitize_title( string $title ): string {
 
 // -------------------------------------------------------------------- media
 //
-// The intake pipeline copies every asset Manus produces into the media library, because a Manus
-// attachment URL expires and a product image that 404s a fortnight later is worse than no
-// automation at all. There is no filesystem or HTTP here, so the sideload is doubled: by default
+// The intake pipeline copies every asset the assistant produces into the media library,
+// because a remote attachment URL expires and a product image that 404s a fortnight later is
+// worse than no automation at all. There is no filesystem or HTTP here, so the sideload is doubled: by default
 // it "succeeds" and hands back a local-looking URL. Setting $GLOBALS['igbz_test_sideload_fails']
 // exercises the other branch, where the remote URL is kept rather than the registration failing.
 
