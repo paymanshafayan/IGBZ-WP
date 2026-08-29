@@ -1830,3 +1830,55 @@ state، idempotency و audit. هیچ تصمیم تجاری به automation بی�
    approval پیش‌فرض، reject نهایی، rule بدون تطبیق، opt-out ماندگار، rate-limit
    (sender و tenant)، retry شکست با همان کلید، reply روی کامنت، و عایق‌بندی
    tenant. تست **۱۳۲۵۳/۶۵** · لینت صفر خطا.
+
+### ۱۱.۸ فاز ۵۲ — ثبت محصول ۱۳مرحله‌ای — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+**هدف:** بازسازی ثبت محصول ۱۳مرحله‌ای که در فاز ۵۰ حذف شده بود — اما این بار به‌شکل
+ماشین حالتِ سطر-محور: checkpoint، resume، idempotency، validation، تأیید انسانی،
+محصول ووکامرس و شکست/جبران (ADR-0004 §۶). قرارداد محصول با اپ، ۱۳ checkpoint است.
+
+**بخش‌های اجرا:**
+1. اسکیمای v40 (۹۱ جدول): `ig_product_registrations` — سطرِ checkpoint با
+   `UNIQUE(tenant_id, client_token)`، ستون‌های stage/stage_task (لنگر webhook)،
+   image/voice/prepared/transcription/copy، product_id/content_id/public_code،
+   approved_by/at، failed_from/attempts/error. پیش‌فرض `provider` جدول `ig_content`
+   هم از `manus` به `zernio` آمد (معماری فاز ۵۰). در `Schema`/`Activator::
+   migrate_to_v40`/`TenantOffboarding` و DriftGuard ۹۱/۴۰ ثبت شد.
+2. `ProductRegistrationService` — ماشین حالت. ۱۳ checkpoint
+   (`uploaded ← grading ← graded ← processing ← ready_to_edit ← edited ←
+   describing ← [transcribing فقط صدا] ← writing ← product_created ← awaiting_kind
+   ← composing ← awaiting_approval`) + پایانی‌های `approved|rejected|failed|
+   abandoned`. هر فراخوانی فقط یک checkpoint جلو می‌رود؛ هر گام می‌تواند `failed`
+   شود و `failed_from` checkpoint دقیق را نگه می‌دارد تا `retry` از همان‌جا ادامه
+   بدهد. گاردهای گذر (`GUARDS`) گذر نامعتبر را با `invalid_state_for_*` رد می‌کنند.
+3. **درز agent صادقانه:** مراحل هوش مصنوعی (grading، image، transcribe، copy،
+   video/post) فقط از `IntakeAgentInterface` و با binding اختیاری `ig.intake_agent`
+   اجرا می‌شوند. در فاز ۵۲ agentی ثبت نشده است؛ پس هر `start_*` بدون agent صریحاً
+   `agent_not_configured` برمی‌گردد و سطر **جا می‌ماند** — هیچ مرحلهٔ AI «انجام‌
+   شدهٔ ساختگی» ثبت نمی‌شود. جبرانش مسیرهای `manual_*` است (operator نتیجه را
+   خودش می‌دهد). اتصال agent واقعی با ۵۳/۵۵ بدون لمس ماشین می‌آید.
+4. **idempotency دو لایه:** شروع روی `(tenant, client_token)` (retry اپ = همان id +
+   `duplicate`) و ساخت محصول روی `product_id`ِ ذخیره‌شده (کرش بین نوشتن محصول و
+   جابه‌جایی وضعیت = محصول دوم ساخته نمی‌شود؛ تست کرش صریح دارد).
+5. **مرحلۀ تجاری:** `WooCommerceDraftFactory` — تنها درز نوشتن به Woo، جایگزین‌پذیر.
+   **فقط draft** می‌سازد (بدون تأیید انسانی هیچ‌چیز live نمی‌شود؛ این خود جبران
+   طبیعی است). meta `_igbz_registration_id`/`_igbz_public_code`؛ کد عمومی = id
+   محصول (قاعدهٔ `SkuGenerator`). بدون Woo با `woocommerce_not_active` تمیز می‌شکست.
+6. **gate انسانی + مادهٔ انتشار:** `approve` فقط از `awaiting_approval`، با
+   `approved_by/at`، و سطر **draft**ِ `ig_content` (provider `zernio`) می‌سازد —
+   ورودیِ publisherِ فاز ۵۳. `reject` = رد. `compensate` محصول draft را حذف می‌کند
+   (کارخانه هرگز غیر-draft را لمس نمی‌کند؛ اگر نتواند، مرجع را نگه می‌دارد) و سطر
+   را `abandoned` می‌کند.
+7. `ProductRegistrationController` — ۲۴ مسیر scoped: شروع، خواندن، و ۲۲ گام
+   (start/complete هر مرحله + `manual_*` + `create_product` + `await_kind` +
+   `choose_kind` + `approve` + `reject` + `retry` + `compensate`). خطای گامِ
+   غیرممکن 409، ورودی بد 422، موجود‌نبودن 404.
+8. `ProductRegistrationTest` با ۱۲ سناریو: اعتبارسنجی شروع + idempotencyِ token،
+   عایق‌بندی tenant (خواندن/جلوبردن/UPDATE مستقیم بیگانه)، رد صادقانهٔ AI بدون
+   agent، کل مسیر manual تا approval + سطر content، شاعبة transcribing صدا، کرش
+   بین محصول و وضعیت، retry از checkpoint دقیق، compensate (draft حذف/live
+   دست‌نخورده)، approval/reject فقط از awaiting_approval، رد گذر و kind نامعتبر،
+   مسیر agent اسکریپت‌شده (ثبت stage/stage_task و context حساب)، و Woo
+   در دسترس‌نبودن. تست **۱۳۵۱۲/۶۶** · لینت ۳۰۳/۰ · DriftGuard ۹۱/۴۰.
+9. **اسموک زندهٔ پلی‌گراند:** هر ۲۴ مسیر ثبت شد؛ POST بدون احراز صحتاً 401 (cookie
+   لاگین ≠ احراز REST، طبق طراحی)؛ لاگ بدون fatal؛ صفحهٔ تنظیمات ادمین سالم.

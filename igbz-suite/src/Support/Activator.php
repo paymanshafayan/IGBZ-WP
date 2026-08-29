@@ -115,6 +115,7 @@ final class Activator {
 			37 => [ self::class, 'migrate_to_v37' ],
 			38 => [ self::class, 'migrate_to_v38' ],
 			39 => [ self::class, 'migrate_to_v39' ],
+			40 => [ self::class, 'migrate_to_v40' ],
 		];
 	}
 
@@ -300,6 +301,14 @@ final class Activator {
 	 * Pure dbDelta work.
 	 */
 	public static function migrate_to_v39(): void {
+	}
+
+	/**
+	 * v40 (phase 52): the rebuilt 13-step product registration — one checkpoint
+	 * row per registration, idempotent on the app's client token. Pure dbDelta
+	 * work; the ig_content provider default also moved to the single provider.
+	 */
+	public static function migrate_to_v40(): void {
 	}
 
 	/**

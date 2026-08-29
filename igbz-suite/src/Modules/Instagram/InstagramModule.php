@@ -4,7 +4,9 @@ namespace IGBZ\Suite\Modules\Instagram;
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioAdapterInterface;
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioClient;
 use IGBZ\Suite\Modules\Instagram\Services\InboxService;
+use IGBZ\Suite\Modules\Instagram\Services\ProductRegistrationService;
 use IGBZ\Suite\Modules\Instagram\Services\SocialMigrationService;
+use IGBZ\Suite\Modules\Instagram\Services\WooCommerceDraftFactory;
 use IGBZ\Suite\Modules\Instagram\Services\TranslationBridge;
 use IGBZ\Suite\Modules\Instagram\Services\SkuGenerator;
 use IGBZ\Suite\Modules\Instagram\Services\ZernioConnectionService;
@@ -121,6 +123,18 @@ final class InstagramModule implements ModuleInterface {
 				$c->get( 'ig.zernio' ),
 				$c->get( 'ig.zernio_client' ),
 				$c->settings()
+			)
+		);
+		$plugin->bind(
+			'ig.product_registration',
+			static fn ( Plugin $c ) => new ProductRegistrationService(
+				$c->db(),
+				$c->logger(),
+				new WooCommerceDraftFactory(),
+				// The rebuilt intake agent lands with its provider (phases 53/55);
+				// until then the machine runs its checkpoints and the manual_*
+				// fallbacks are the honest human-in-the-loop path.
+				$c->has( 'ig.intake_agent' ) ? $c->get( 'ig.intake_agent' ) : null
 			)
 		);
 

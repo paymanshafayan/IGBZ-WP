@@ -37,6 +37,7 @@ final class TenantOffboarding {
 		'ig_cod_payments', 'ig_courier_routes', 'ig_courier_tracking', 'ig_courier_chat',
 		'ig_zernio_profiles', 'ig_social_migration',
 		'ig_zernio_inbox', 'ig_inbox_rules', 'ig_inbox_actions', 'ig_inbox_optouts',
+		'ig_product_registrations',
 		'jobs', 'webhook_events', 'ig_domain_journal', 'ig_points_ledger', 'ig_point_rewards',
 		'ig_reward_redemptions', 'ig_domain_quotes', 'logs', 'ig_ad_campaigns', 'ig_seo_activity',
 		'ig_translation_memory', 'ig_glossary_terms', 'ig_intl_consents',

@@ -1431,6 +1431,68 @@ ChatPlace و fallbackهای اجتماعی) از کد بیرون رفت.
   `InstagramModule` چهار import (VipAccessService/VipPostService/VipSocialService/
   VipMessageService) را نداشت و bindingها هنگام resolve fatal می‌شدند — اصلاح شد.
 
+### ۷.۷.۵۲ وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۲ ✅)
+
+ثبت محصول ۱۳مرحله‌ای بازسازی‌شده؛ ماشین حالتِ سطر-محور که قرارداد محصول با اپ است.
+
+- **۱۳ checkpoint، سطر-محور نه call-stack:** `uploaded ← grading ← graded ←
+  processing ← ready_to_edit ← edited ← describing ← transcribing (فقط صدا) ←
+  writing ← product_created ← awaiting_kind ← composing ← awaiting_approval` +
+  وضعیت‌های پایانی `approved|rejected|failed|abandoned`. هر فراخوانی REST و هر
+  webhookِ agent فقط یک سطرِ `ig_product_registrations` را یک checkpoint جلو می‌برد؛
+  درخواستِ مرده، اپِ بسته یا taskِ دیررس دقیقاً از همان نقطهٔ توقف ادامه پیدا می‌کند.
+  هر گام می‌تواند `failed` شود؛ `failed_from` checkpoint دقیق را به یاد می‌سپارد و
+  `retry` از همان‌جا (نه از اول) ادامه می‌دهد و شمارۀ `attempts` را زیاد می‌کند.
+- **درز agent صادقانه (`ProductRegistrationService` + `IntakeAgentInterface`):**
+  مراحل هوش مصنوعی (grading، image، transcribe، copy، video/post) فقط از درز
+  `ig.intake_agent` اجرا می‌شوند. در فاز ۵۲ هیچ agentی ثبت نشده است؛ پس هر
+  `start_*` بدون agent صریحاً با `agent_not_configured` **رد** می‌شود و سطر جا
+  می‌ماند — هیچ مرحلهٔ هوش مصنوعی «در ظاهر انجام‌شده» ثبت نمی‌شود. جبران انسانی
+  از همان مسیرهای `manual_*` است (manual_grade، manual_prepared_image،
+  manual_transcription، manual_copy، manual_composed) — operator خودش نتیجه را
+  می‌دهد و ماشین ردپای آن را نگه می‌دارد. اتصال agent واقعی با فاز ۵۳/۵۵ می‌آید
+  بدون اینکه ماشینی لمس شود (همان وعده‌ای که `PublisherInterface` برای سمت محتوا
+  داده است).
+- **idempotency دو لایه:** (۱) شروع روی `UNIQUE(tenant_id, client_token)` — retryِ
+  اپ با همان token سطر دوم نمی‌سازد و `duplicate` + همان id برمی‌گردد؛ (۲) ساخت
+  محصول: اگر `product_id` روی سطر هست (مثلاً کرش بین نوشتن محصول و جابه‌جایی
+  وضعیت) دوباره محصول ساخته نمی‌شود — تست کرش صریح دارد.
+- **مرحلۀ تجاری:** `WooCommerceDraftFactory` (تنها درزی که به Woo می‌نویسد؛
+  جایگزین‌پذیر برای provider بعدی) **فقط draft** می‌سازد — هیچ registration بدون
+  تأیید انسانی چیزی live نمی‌کند؛ این خود جبران طبیعی است. metaهای
+  `_igbz_registration_id` و `_igbz_public_code` روی محصول؛ کد عمومی = id محصول
+  (قاعدهٔ `SkuGenerator`). بدون Woo، مرحله با `woocommerce_not_active` تمیز
+  `failed` می‌شود نه fatal.
+- **gate انسانی و ماده‌ای که منتشر می‌شود:** `approve` فقط از `awaiting_approval`
+  و با `approved_by/at` ثبت می‌شود و **سطر draftِ `ig_content`** (provider `zernio`،
+  status `draft`) می‌سازد — دقیقاً همان ورودی که publisherِ فاز ۵۳ مصرف می‌کند.
+  `reject` به `failed/rejected` می‌رود. هیچ چیزی با approve منتشر نمی‌شود؛
+  انتشار صرفاً وظیفۀ فاز ۵۳ است.
+- **شکست/جبران:** `compensate` محصول draft را **حذف** می‌کند تا registration
+  مرده زباله در کاتالوگ نهد؛ کارخانهٔ واقعی هرگز چیزی غیر از draft را لمس
+  نمی‌کند و اگر حذف ممکن نباشد (محصول live شده) سطر مرجعِ محصول را نگه می‌دارد
+  تا operator خودش ببیند (`compensated_product_kept`) و بعد `abandoned` می‌شود.
+- **REST (scoped به مستأجر، ۲۴ مسیر):** `POST /igbz/v1/ig/product-registrations`
+  (شروع)، `GET .../{id}`، و ۲۲ گام: start/complete هر مرحله + `manual_*` +
+  `create_product` + `await_kind` + `choose_kind` + `approve` + `reject` +
+  `retry` + `compensate`. خطای گامِ غیرممکن 409، ورودی بد 422، موجود‌نبودن 404.
+- **اسکیمای v40 (۹۱ جدول):** `ig_product_registrations` (row checkpoint با
+  `UNIQUE(tenant_id,client_token)`) و پیش‌فرض `provider` جدول `ig_content` از
+  `manus` به `zernio` (معماری فاز ۵۰: تنها provider اجتماعی). در
+  `Activator::migrate_to_v40` و فهرست حذف `TenantOffboarding` ثبت شد؛ DriftGuard
+  ۹۱/۴۰.
+- **پوشش:** `ProductRegistrationTest` با ۱۲ سناریو — اعتبارسنجی شروع +
+  idempotencyِ token، عایق‌بندی tenant (خواندن، جلوبردن، و UPDATE مستقیم بیگانه)،
+  رد صادقانهٔ مراحل AI بدون agent، کل مسیر manual تا approval + سطر content،
+  شاعبة transcribing صدا، کرش بین محصول و وضعیت، retry از checkpoint دقیق،
+  compensate (draft حذف، live دست‌نخورده)، approval/reject فقط از
+  awaiting_approval، رد گذرهای نامعتبر و kind نامعتبر، مسیر agent اسکریپت‌شده
+  (ثبت stage/stage_task و context حساب)، و Woo در دسترس‌نبودن. تست **۱۳۵۱۲/۶۶**
+  · لینت ۳۰۳/۰ · DriftGuard ۹۱/۴۰.
+- **اسموک زندهٔ پلی‌گراند:** هر ۲۴ مسیر در index ثبت شد؛ POST بدون احراز صحتاً
+  401 (cookie لاگین ≠ احراز REST، طبق طراحی)؛ لاگ بدون fatal (fatalهای کهنه
+  پیش از اصلاح فاز ۵۱)؛ صفحهٔ تنظیمات ادمین سالم رندر می‌شود.
+
 ---
 
 ## ۸. فازبندی پیاده‌سازی (پس از تأیید)

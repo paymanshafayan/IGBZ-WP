@@ -110,6 +110,7 @@ final class Schema {
 			'ig_inbox_rules',
 			'ig_inbox_actions',
 			'ig_inbox_optouts',
+			'ig_product_registrations',
 		];
 	}
 
@@ -560,7 +561,7 @@ final class Schema {
 			media LONGTEXT NULL,
 			product_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			funnel_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
-			provider VARCHAR(32) NOT NULL DEFAULT 'manus',
+			provider VARCHAR(32) NOT NULL DEFAULT 'zernio',
 			provider_task_id VARCHAR(191) NOT NULL DEFAULT '',
 			provider_status VARCHAR(32) NOT NULL DEFAULT '',
 			status VARCHAR(20) NOT NULL DEFAULT 'draft',
@@ -1701,6 +1702,43 @@ final class Schema {
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY sender (tenant_id,sender_id)
+		) {$charset};";
+
+		// Phase 52 (the rebuilt 13-step product registration): one row per
+		// registration, row-state instead of a call stack. Every REST call and
+		// every agent webhook moves the row one checkpoint forward, so a dead
+		// request, a closed app or a late task resumes exactly where it stopped.
+		// client_token makes the app's start call idempotent; product_id and
+		// content_id make the commerce writes idempotent the same way.
+		$sql[] = "CREATE TABLE {$p}ig_product_registrations (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			account_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			input_type VARCHAR(16) NOT NULL DEFAULT 'text',
+			client_token VARCHAR(64) NOT NULL DEFAULT '',
+			status VARCHAR(32) NOT NULL DEFAULT 'uploaded',
+			stage VARCHAR(32) NOT NULL DEFAULT '',
+			stage_task VARCHAR(191) NOT NULL DEFAULT '',
+			image_url VARCHAR(512) NOT NULL DEFAULT '',
+			image_prepared_url VARCHAR(512) NOT NULL DEFAULT '',
+			voice_url VARCHAR(512) NOT NULL DEFAULT '',
+			transcription TEXT NULL,
+			copy_json LONGTEXT NULL,
+			kind VARCHAR(16) NOT NULL DEFAULT '',
+			product_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			content_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			public_code VARCHAR(32) NOT NULL DEFAULT '',
+			approved_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			approved_at DATETIME NULL,
+			failed_from VARCHAR(32) NOT NULL DEFAULT '',
+			error VARCHAR(500) NOT NULL DEFAULT '',
+			attempts INT NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY client_token (tenant_id,client_token),
+			KEY tenant_status (tenant_id,status),
+			KEY stage_task (stage_task)
 		) {$charset};";
 
 		return $sql;

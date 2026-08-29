@@ -13,6 +13,7 @@ use IGBZ\Suite\Modules\RestApi\Controllers\CatalogController;
 use IGBZ\Suite\Modules\RestApi\Controllers\DeviceController;
 use IGBZ\Suite\Modules\RestApi\Controllers\FxController;
 use IGBZ\Suite\Modules\RestApi\Controllers\InboxController;
+use IGBZ\Suite\Modules\RestApi\Controllers\ProductRegistrationController;
 
 use IGBZ\Suite\Modules\RestApi\Controllers\StoreAdminController;
 use IGBZ\Suite\Modules\RestApi\Controllers\WebhookController;
@@ -144,6 +145,12 @@ final class RestApiModule implements ModuleInterface {
 		// store's decision surface (events, ledger, approval, opt-out, rules).
 		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.inbox' ) ) {
 			$controllers[] = new InboxController();
+		}
+
+		// Phase 52: the rebuilt 13-step product registration — the app drives the
+		// state machine checkpoint by checkpoint; publishing stays human-gated.
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.product_registration' ) ) {
+			$controllers[] = new ProductRegistrationController();
 		}
 
 		// Same story for the VIP channel: the posts, the paywall and the member inbox are owned

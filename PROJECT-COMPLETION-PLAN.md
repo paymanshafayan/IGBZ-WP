@@ -1555,9 +1555,26 @@ optout و قواعد را به صاحب فروشگاه می‌دهد (scoped). �
 `PV-ZERNIO-*`؛ تا آن زمان پیش‌فرض approval انسانی است و چیزی بدون تأیید بیرون
 نمی‌رود. تست ۱۳۲۵۳/۶۵ · لینت صفر خطا. جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۱`.
 
-#### فاز ۵۲ — ثبت محصول ۱۳مرحله‌ای
+#### فاز ۵۲ — ثبت محصول ۱۳مرحله‌ای — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 checkpoint، resume، idempotency، validation، تأیید انسانی، محصول ووکامرس و شکست/جبران.
+
+**نتیجهٔ محقق‌شده:** ماشین حالت سطر-محور با ۱۳ checkpoint روی جدول
+`ig_product_registrations` (اسکیمای ۴۰، ۹۱ جدول): هر فراخوانی REST یا webhook فقط
+یک checkpoint جلو می‌رود، هر گام `failed` می‌شود و با `retry` از همان
+`failed_from` ادامه می‌یابد. idempotency دو لایه: شروع روی `(tenant, client_token)`
+و ساخت محصول روی `product_id` ذخیره‌شده (کرش‌محور، تست‌شده). درز agent صادقانه:
+مراحل هوش مصنوعی فقط از `IntakeAgentInterface` و بدون agent با
+`agent_not_configured` رد می‌شوند — هیچ نتیجهٔ ساختگی‌ای ثبت نمی‌شود و مسیرهای
+`manual_*` جبران انسانی‌اند (اتصال agent واقعی با ۵۳/۵۵). مرحلۀ تجاری
+(`WooCommerceDraftFactory`) **فقط draft** می‌سازد با metaهای
+`_igbz_registration_id`/`_igbz_public_code` (کد عمومی = id محصول). `approve` فقط
+از `awaiting_approval` و با ثبت `approved_by/at` یک سطر **draft** از `ig_content`
+(provider `zernio`) می‌سازد — ورودیِ publisherِ فاز ۵۳؛ هیچ چیز با approve
+منتشر نمی‌شود. `compensate` محصول draft را حذف می‌کند (غیر-draft هرگز لمس
+نمی‌شود؛ در صورتِ باقی‌ماندن مرجع روی سطر می‌ماند). ۲۴ مسیر REST scoped زیر
+`/igbz/v1/ig/product-registrations`. تست ۱۳۵۱۲/۶۶ · لینت ۳۰۳/۰ · DriftGuard ۹۱/۴۰.
+جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۲`.
 
 #### فاز ۵۳ — انتشار، صدا و راستی‌آزمایی Zernio
 

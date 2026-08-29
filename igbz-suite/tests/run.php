@@ -78,6 +78,7 @@ $cases = [
 	'SocialMigrationTest',
 	'SocialArchitectureGuardTest',
 	'InboxTest',
+	'ProductRegistrationTest',
 ];
 
 foreach ( $cases as $case ) {
