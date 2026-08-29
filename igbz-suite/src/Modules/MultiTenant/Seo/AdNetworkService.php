@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Advertorial publishing (Triboon API) — config-driven.
  */
-final class AdNetworkService {
+final class AdNetworkService implements AdvertorialPublisherInterface {
 
 	public function __construct( private Http $http ) {}
 

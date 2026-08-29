@@ -99,6 +99,8 @@ final class Schema {
 			'logs',
 			'approval_requests',
 			'themes',
+			'ig_ad_campaigns',
+			'ig_seo_activity',
 		];
 	}
 
@@ -1512,6 +1514,32 @@ final class Schema {
 			KEY tenant_status (tenant_id,status),
 			KEY slug (slug),
 			KEY created_at (created_at)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_ad_campaigns (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			channel VARCHAR(32) NOT NULL DEFAULT '',
+			budget_irt BIGINT NOT NULL DEFAULT 0,
+			spent_irt BIGINT NOT NULL DEFAULT 0,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending_approval',
+			approver_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			approved_at DATETIME NULL,
+			reject_reason VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_status (tenant_id,status)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_seo_activity (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			activity_date DATE NOT NULL,
+			count INT NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_date (tenant_id,activity_date)
 		) {$charset};";
 
 		return $sql;

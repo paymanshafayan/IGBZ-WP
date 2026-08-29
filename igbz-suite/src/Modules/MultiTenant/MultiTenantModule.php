@@ -177,6 +177,11 @@ final class MultiTenantModule implements ModuleInterface {
 		$plugin->bind( 'master.payment', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\MasterPayment\MasterPaymentService( $c->db(), $c->logger() ) );
 $plugin->bind( 'logistics', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\LogisticsService( $c->db(), $c->settings(), $c->logger() ) );
 		$plugin->bind( 'logistics.sync', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Logistics\ShippingSyncService( $c->db(), $c->settings(), $c->logger() ) );
+		$plugin->bind( 'seo.structured_data', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\StructuredDataService() );
+		$plugin->bind( 'seo.head_tags', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\HeadTagsService( new \IGBZ\Suite\Modules\MultiTenant\Seo\SeoService() ) );
+		$plugin->bind( 'seo.sitemap', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\SitemapService() );
+		$plugin->bind( 'seo.campaigns', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\AdCampaignService( $c->db(), $c->logger(), new \IGBZ\Suite\Modules\MultiTenant\Seo\AdNetworkService( $c->get( 'http' ) ) ) );
+		$plugin->bind( 'seo.throttle', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Seo\ContentThrottle( $c->db() ) );
 		$plugin->bind( 'marketplace.sync', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Marketplace\MarketplaceSyncService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'marketplace.mappings', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Marketplace\CategoryMappingService( $c->db() ) );
 		$plugin->bind( 'gamification', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Gamification\GamificationService( $c->db(), $c->logger() ) );

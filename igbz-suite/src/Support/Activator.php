@@ -111,6 +111,7 @@ final class Activator {
 			32 => [ self::class, 'migrate_to_v32' ],
 			33 => [ self::class, 'migrate_to_v33' ],
 			34 => [ self::class, 'migrate_to_v34' ],
+			35 => [ self::class, 'migrate_to_v35' ],
 		];
 	}
 
@@ -242,6 +243,17 @@ final class Activator {
 	 */
 	public static function migrate_to_v34(): void {
 		// Pure dbDelta work; see the marketplace_links and ig_marketplace_sync tables.
+	}
+
+	/**
+	 * v35 (phase 47): SEO & advertising governance — `ig_ad_campaigns` carries the approval
+	 * state machine (pending_approval → approved/rejected, only an approved campaign may
+	 * spend) and the hard budget cap that cost control checks before every advertorial;
+	 * `ig_seo_activity` counts a tenant's generated SEO content per day so the bulk
+	 * low-value-content guard has an honest ledger to enforce its cap against.
+	 */
+	public static function migrate_to_v35(): void {
+		// Pure dbDelta work; see the ig_ad_campaigns and ig_seo_activity tables.
 	}
 
 	/**
