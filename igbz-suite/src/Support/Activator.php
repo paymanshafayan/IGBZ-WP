@@ -112,6 +112,7 @@ final class Activator {
 			33 => [ self::class, 'migrate_to_v33' ],
 			34 => [ self::class, 'migrate_to_v34' ],
 			35 => [ self::class, 'migrate_to_v35' ],
+			36 => [ self::class, 'migrate_to_v36' ],
 		];
 	}
 
@@ -254,6 +255,17 @@ final class Activator {
 	 */
 	public static function migrate_to_v35(): void {
 		// Pure dbDelta work; see the ig_ad_campaigns and ig_seo_activity tables.
+	}
+
+	/**
+	 * v36 (phase 48): international commerce foundations — `ig_translation_memory`
+	 * (tenant-scoped exact-match segments, unique per tenant/language/hash),
+	 * `ig_glossary_terms` (the do-not-translate term base a tenant locks per language)
+	 * and `ig_intl_consents` (the consent ledger cross-border processing checks before it
+	 * touches a customer's data). No data back-fill.
+	 */
+	public static function migrate_to_v36(): void {
+		// Pure dbDelta work; see the ig_translation_memory, ig_glossary_terms and ig_intl_consents tables.
 	}
 
 	/**

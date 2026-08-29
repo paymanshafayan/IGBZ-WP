@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Config-driven machine-translation provider (Tarjomyar / Farazin / Deepfa).
  */
-final class HttpTranslationAdapter {
+final class HttpTranslationAdapter implements TranslatorAdapterInterface {
 
 	public function __construct( private Http $http ) {}
 

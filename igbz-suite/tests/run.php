@@ -78,6 +78,7 @@ $cases = [
 	'ShippingSyncTest',
 	'MarketplaceSyncTest',
 	'SeoAdsTest',
+	'IntlCommerceTest',
 ];
 
 foreach ( $cases as $case ) {

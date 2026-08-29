@@ -101,6 +101,9 @@ final class Schema {
 			'themes',
 			'ig_ad_campaigns',
 			'ig_seo_activity',
+			'ig_translation_memory',
+			'ig_glossary_terms',
+			'ig_intl_consents',
 		];
 	}
 
@@ -1540,6 +1543,42 @@ final class Schema {
 			count INT NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
 			UNIQUE KEY tenant_date (tenant_id,activity_date)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_translation_memory (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			target_language VARCHAR(16) NOT NULL DEFAULT '',
+			source_hash VARCHAR(64) NOT NULL DEFAULT '',
+			source_text TEXT NOT NULL,
+			translated_text TEXT NOT NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_lang_hash (tenant_id,target_language,source_hash)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_glossary_terms (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			language VARCHAR(16) NOT NULL DEFAULT '',
+			term VARCHAR(191) NOT NULL DEFAULT '',
+			translation VARCHAR(191) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_lang_term (tenant_id,language,term)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_intl_consents (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			purpose VARCHAR(64) NOT NULL DEFAULT '',
+			granted TINYINT NOT NULL DEFAULT 0,
+			granted_at DATETIME NULL,
+			revoked_at DATETIME NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_user_purpose (tenant_id,user_id,purpose)
 		) {$charset};";
 
 		return $sql;
