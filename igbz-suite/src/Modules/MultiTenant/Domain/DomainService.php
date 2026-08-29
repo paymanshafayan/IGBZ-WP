@@ -15,6 +15,13 @@ defined( 'ABSPATH' ) || exit;
  */
 final class DomainService {
 
+	// Phase 39 lifecycle: active → grace → redemption → released. Pending and registered
+	// flows keep their own statuses; the sweep only walks this ladder.
+	public const STATUS_ACTIVE     = 'active';
+	public const STATUS_GRACE      = 'grace';
+	public const STATUS_REDEMPTION = 'redemption';
+	public const STATUS_RELEASED   = 'released';
+
 	public function __construct(
 		private Db $db,
 		private Http $http,
@@ -204,6 +211,233 @@ final class DomainService {
 		return $this->db->results(
 			'SELECT * FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE tenant_id = %d ORDER BY id DESC',
 			$tenant_id
+		);
+	}
+
+	/**
+	 * Phase 39 — renew one domain, tenant-scoped. The row must belong to the
+	 * caller's tenant (BOLA guard) and must not already be released. When a
+	 * provider is configured the renewal goes through it first — a provider
+	 * failure means no local extension, because the registry never moved.
+	 * Without a provider the operator manages the registry elsewhere and the
+	 * local bookkeeping is extended deliberately (manual path, journaled).
+	 *
+	 * @return array{ok:bool,expires_at:string,error:string}
+	 */
+	public function renew( int $tenant_id, int $domain_id, int $years = 1, bool $auto = false ): array {
+		$years = max( 1, min( 10, $years ) );
+		$row   = $this->db->row(
+			'SELECT * FROM ' . $this->db->table( 'ig_domains' ) . ' WHERE id = %d AND tenant_id = %d',
+			$domain_id,
+			$tenant_id
+		);
+		if ( null === $row ) {
+			return [ 'ok' => false, 'expires_at' => '', 'error' => 'domain_not_found' ];
+		}
+		if ( self::STATUS_RELEASED === (string) $row['status'] ) {
+			return [ 'ok' => false, 'expires_at' => '', 'error' => 'released' ];
+		}
+
+		if ( $this->is_configured() && '' !== (string) $row['provider_ref'] ) {
+			$base     = rtrim( igbz()->settings()->string( 'domain.provider_base_url' ), '/' );
+			$response = $this->http->post(
+				$base . '/v1/domains/' . rawurlencode( (string) $row['provider_ref'] ) . '/renew',
+				[
+					'json'    => [ 'years' => $years, 'api_key' => igbz()->settings()->string( 'domain.provider_api_key' ) ],
+					'headers' => $this->headers(),
+					'channel' => 'domain',
+					'timeout' => 60,
+				]
+			);
+			if ( ! $response->ok() ) {
+				$this->logger->error( 'domain', 'Provider renewal failed, nothing extended', [ 'domain_id' => $domain_id, 'error' => $response->error_message() ] );
+				return [ 'ok' => false, 'expires_at' => '', 'error' => $response->error_message() ];
+			}
+		}
+
+		$now     = time();
+		$current = strtotime( (string) ( $row['expires_at'] ?? '' ) . ' UTC' );
+		$base    = max( $now, false === $current ? $now : $current );
+		$expires = gmdate( 'Y-m-d H:i:s', $base + $years * YEAR_IN_SECONDS );
+
+		$this->db->update(
+			'ig_domains',
+			[
+				'status'     => self::STATUS_ACTIVE,
+				'expires_at' => $expires,
+				'auto_renew' => $auto ? 1 : (int) ( $row['auto_renew'] ?? 0 ),
+				'updated_at' => current_time( 'mysql', true ),
+			],
+			[ 'id' => $domain_id, 'tenant_id' => $tenant_id ]
+		);
+		$this->journal( $tenant_id, $domain_id, 'renewed', $expires );
+		$this->logger->info( 'domain', 'Domain renewed', [ 'domain_id' => $domain_id, 'tenant_id' => $tenant_id, 'years' => $years, 'expires_at' => $expires ] );
+
+		return [ 'ok' => true, 'expires_at' => $expires, 'error' => '' ];
+	}
+
+	/**
+	 * Phase 39 — renewal warnings for active domains expiring within
+	 * domain.renewal_warning_days (default 14). Idempotent per expiry date:
+	 * the journal carries the date, and a second run in the same cycle adds
+	 * nothing.
+	 *
+	 * @return array<int,int> domain ids warned this run
+	 */
+	public function notify_renewals(): array {
+		$window = max( 1, igbz()->settings()->int( 'domain.renewal_warning_days', 14 ) );
+		$rows   = $this->db->results(
+			'SELECT * FROM ' . $this->db->table( 'ig_domains' ) . '\n\t\t\t WHERE status = %s AND expires_at IS NOT NULL AND expires_at <= %s',
+			self::STATUS_ACTIVE,
+			gmdate( 'Y-m-d H:i:s', time() + $window * DAY_IN_SECONDS )
+		);
+
+		$warned = [];
+		foreach ( $rows as $row ) {
+			if ( strtotime( (string) $row['expires_at'] . ' UTC' ) < time() ) {
+				continue; // Already expired — the expiry sweep owns it now.
+			}
+			$expires = (string) $row['expires_at'];
+			$already = (int) $this->db->scalar(
+				'SELECT COUNT(*) FROM ' . $this->db->table( 'ig_domain_journal' ) . '\n\t\t\t\t WHERE order_id = %d AND event = %s AND detail = %s',
+				(int) $row['id'],
+				'renewal_warning',
+				$expires
+			);
+			if ( $already > 0 ) {
+				continue;
+			}
+			$this->journal( (int) $row['tenant_id'], (int) $row['id'], 'renewal_warning', $expires );
+			$this->logger->info( 'domain', 'Renewal warning sent', [ 'domain_id' => (int) $row['id'], 'tenant_id' => (int) $row['tenant_id'], 'expires_at' => $expires ] );
+			$warned[] = (int) $row['id'];
+		}
+
+		return $warned;
+	}
+
+	/**
+	 * Phase 39 — the expiry ladder, walked once and only forward:
+	 * expired active → grace → redemption → released. Each rung is journaled;
+	 * release also drops the tenant mapping's verification so a dead domain
+	 * stops gating anything. Transitions are status-gated, so a re-run is inert.
+	 *
+	 * @return array{grace:int,redemption:int,released:int}
+	 */
+	public function run_expiry_sweep(): array {
+		$grace_days       = max( 0, igbz()->settings()->int( 'domain.grace_days', 30 ) );
+		$redemption_days  = max( 1, igbz()->settings()->int( 'domain.redemption_days', 30 ) );
+		$now              = time();
+		$out              = [ 'grace' => 0, 'redemption' => 0, 'released' => 0 ];
+
+		$rows = $this->db->results(
+			'SELECT * FROM ' . $this->db->table( 'ig_domains' ) . "\n\t\t\t WHERE status IN ('active','grace','redemption') AND expires_at IS NOT NULL"
+		);
+
+		foreach ( $rows as $row ) {
+			$expired_at = strtotime( (string) $row['expires_at'] . ' UTC' );
+			if ( false === $expired_at || $expired_at > $now ) {
+				continue;
+			}
+
+			$status = (string) $row['status'];
+			if ( self::STATUS_ACTIVE === $status ) {
+				$this->transition( $row, self::STATUS_GRACE, 'grace' );
+				++$out['grace'];
+				continue;
+			}
+
+			if ( self::STATUS_GRACE === $status && $now >= $expired_at + $grace_days * DAY_IN_SECONDS ) {
+				$this->transition( $row, self::STATUS_REDEMPTION, 'redemption' );
+				++$out['redemption'];
+				continue;
+			}
+
+			if ( self::STATUS_REDEMPTION === $status && $now >= $expired_at + ( $grace_days + $redemption_days ) * DAY_IN_SECONDS ) {
+				$this->transition( $row, self::STATUS_RELEASED, 'released' );
+				$this->db->update(
+					'tenant_domains',
+					[ 'verified_at' => null ],
+					[ 'tenant_id' => (int) $row['tenant_id'], 'domain' => (string) $row['name'] ]
+				);
+				++$out['released'];
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Phase 39 — reconciliation against the provider: for every registered
+	 * domain with a provider ref, ask the registry for its expiry and compare.
+	 * Mismatches are REPORTED, never silently fixed — the operator decides.
+	 * Without a configured provider the sweep is honest about doing nothing.
+	 *
+	 * @return array{scanned:int,mismatches:array<int,array<string,mixed>>,errors:int}
+	 */
+	public function reconcile(): array {
+		$out = [ 'scanned' => 0, 'mismatches' => [], 'errors' => 0 ];
+		if ( ! $this->is_configured() ) {
+			return $out;
+		}
+
+		$base = rtrim( igbz()->settings()->string( 'domain.provider_base_url' ), '/' );
+		$rows = $this->db->results(
+			"SELECT * FROM " . $this->db->table( 'ig_domains' ) . "\n\t\t\t WHERE type IN ('registered','transferred') AND provider_ref <> '' AND status <> %s",
+			self::STATUS_RELEASED
+		);
+
+		foreach ( $rows as $row ) {
+			++$out['scanned'];
+			$response = $this->http->get(
+				$base . '/v1/domains/' . rawurlencode( (string) $row['provider_ref'] ),
+				[ 'headers' => $this->headers(), 'channel' => 'domain', 'timeout' => 25 ]
+			);
+			if ( ! $response->ok() ) {
+				++$out['errors'];
+				$this->logger->warning( 'domain', 'Reconcile query failed', [ 'domain_id' => (int) $row['id'], 'error' => $response->error_message() ] );
+				continue;
+			}
+
+			$body     = $response->json();
+			$provider = strtotime( (string) ( $body['expires_at'] ?? '' ) . ' UTC' );
+			$local    = strtotime( (string) ( $row['expires_at'] ?? '' ) . ' UTC' );
+			if ( false === $provider || false === $local || abs( $provider - $local ) > DAY_IN_SECONDS ) {
+				$out['mismatches'][] = [
+					'domain_id'      => (int) $row['id'],
+					'tenant_id'      => (int) $row['tenant_id'],
+					'name'           => (string) $row['name'],
+					'local_expires'  => (string) $row['expires_at'],
+					'provider_expires' => (string) ( $body['expires_at'] ?? '' ),
+				];
+				$this->journal( (int) $row['tenant_id'], (int) $row['id'], 'reconcile_mismatch', (string) ( $body['expires_at'] ?? '' ) );
+			}
+		}
+
+		return $out;
+	}
+
+	/** @param array<string,mixed> $row */
+	private function transition( array $row, string $status, string $event ): void {
+		$this->db->update(
+			'ig_domains',
+			[ 'status' => $status, 'updated_at' => current_time( 'mysql', true ) ],
+			[ 'id' => (int) $row['id'], 'tenant_id' => (int) $row['tenant_id'] ]
+		);
+		$this->journal( (int) $row['tenant_id'], (int) $row['id'], $event, (string) $row['expires_at'] );
+		$this->logger->info( 'domain', 'Domain lifecycle transition', [ 'domain_id' => (int) $row['id'], 'status' => $status ] );
+	}
+
+	/** Phase 39 journal — ig_domain_journal doubles as the per-domain event log (order_id carries the domain id). */
+	private function journal( int $tenant_id, int $subject_id, string $event, string $detail ): void {
+		$this->db->insert(
+			'ig_domain_journal',
+			[
+				'tenant_id'  => $tenant_id,
+				'order_id'   => $subject_id,
+				'event'      => $event,
+				'detail'     => mb_substr( $detail, 0, 255 ),
+				'created_at' => gmdate( 'Y-m-d H:i:s' ),
+			]
 		);
 	}
 

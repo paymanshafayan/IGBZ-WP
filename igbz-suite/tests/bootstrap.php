@@ -17,6 +17,7 @@ define( 'IGBZ_VERSION', '1.0.0' );
 define( 'AUTH_KEY', 'test-auth-key-0123456789abcdefghijklmnop' );
 define( 'SECURE_AUTH_SALT', 'test-secure-salt-0123456789abcdefghijkl' );
 define( 'DAY_IN_SECONDS', 86400 );
+define( 'YEAR_IN_SECONDS', 365 * DAY_IN_SECONDS );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'OBJECT', 'OBJECT' );

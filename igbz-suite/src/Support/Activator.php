@@ -107,6 +107,7 @@ final class Activator {
 			28 => [ self::class, 'migrate_to_v28' ],
 			29 => [ self::class, 'migrate_to_v29' ],
 			30 => [ self::class, 'migrate_to_v30' ],
+			31 => [ self::class, 'migrate_to_v31' ],
 		];
 	}
 
@@ -200,6 +201,14 @@ final class Activator {
 	 */
 	public static function migrate_to_v30(): void {
 		// Pure dbDelta work; see the ig_domain_journal table.
+	}
+
+	/**
+	 * v31 (phase 39): `ig_domains.auto_renew` — the tenant's opt-in for automatic renewal,
+	 * carried on the domain row itself so the expiry sweep can honour it. Pure dbDelta work.
+	 */
+	public static function migrate_to_v31(): void {
+		// Pure dbDelta work; see the ig_domains table.
 	}
 
 	/**

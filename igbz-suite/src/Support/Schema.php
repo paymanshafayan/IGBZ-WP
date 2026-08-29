@@ -1248,6 +1248,7 @@ final class Schema {
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			provider_ref VARCHAR(191) NOT NULL DEFAULT '',
 			dns_verified TINYINT(1) NOT NULL DEFAULT 0,
+			auto_renew TINYINT(1) NOT NULL DEFAULT 0,
 			expires_at DATETIME NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,

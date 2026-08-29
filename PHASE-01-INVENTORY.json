@@ -293,7 +293,7 @@
     "all_plugin_php_count": 281
   },
   "database": {
-    "version": 30,
+    "version": 31,
     "table_count": 76,
     "tables": [
       "tenants",
