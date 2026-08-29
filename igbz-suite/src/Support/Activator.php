@@ -113,6 +113,7 @@ final class Activator {
 			34 => [ self::class, 'migrate_to_v34' ],
 			35 => [ self::class, 'migrate_to_v35' ],
 			36 => [ self::class, 'migrate_to_v36' ],
+			37 => [ self::class, 'migrate_to_v37' ],
 		];
 	}
 
@@ -266,6 +267,17 @@ final class Activator {
 	 */
 	public static function migrate_to_v36(): void {
 		// Pure dbDelta work; see the ig_translation_memory, ig_glossary_terms and ig_intl_consents tables.
+	}
+
+	/**
+	 * v37 (phase 49): Zernio connection registry — exactly one row per tenant holds the
+	 * profile/account/Instagram mapping the backend enforces, the profile-scoped key and
+	 * webhook secret (both encrypted at rest), the rotation counter and the revoke stamp.
+	 * The central Zernio key never lands in this table; it stays in the settings secret
+	 * store. No data back-fill.
+	 */
+	public static function migrate_to_v37(): void {
+		// Pure dbDelta work; see the ig_zernio_profiles table.
 	}
 
 	/**

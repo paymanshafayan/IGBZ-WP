@@ -79,6 +79,7 @@ $cases = [
 	'MarketplaceSyncTest',
 	'SeoAdsTest',
 	'IntlCommerceTest',
+	'ZernioConnectTest',
 ];
 
 foreach ( $cases as $case ) {

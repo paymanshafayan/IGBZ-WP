@@ -61,6 +61,8 @@ final class Settings {
 		'translation.api_key',
 		// Found during phase 05: generated signing token, was never registered.
 		'vip.media_hmac_secret',
+		// Phase 49: the central Zernio account key (profile keys live in ig_zernio_profiles).
+		'zernio.central_api_key',
 	];
 
 	/** @return array<string,mixed> */

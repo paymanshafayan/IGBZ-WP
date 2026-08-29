@@ -104,6 +104,7 @@ final class Schema {
 			'ig_translation_memory',
 			'ig_glossary_terms',
 			'ig_intl_consents',
+			'ig_zernio_profiles',
 		];
 	}
 
@@ -1579,6 +1580,24 @@ final class Schema {
 			revoked_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY tenant_user_purpose (tenant_id,user_id,purpose)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}ig_zernio_profiles (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			profile_id VARCHAR(64) NOT NULL DEFAULT '',
+			account_id VARCHAR(64) NOT NULL DEFAULT '',
+			instagram_account_id VARCHAR(64) NOT NULL DEFAULT '',
+			status VARCHAR(16) NOT NULL DEFAULT 'pending',
+			key_enc TEXT NULL,
+			key_version INT NOT NULL DEFAULT 0,
+			webhook_secret_enc TEXT NULL,
+			connected_at DATETIME NULL,
+			revoked_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant (tenant_id)
 		) {$charset};";
 
 		return $sql;

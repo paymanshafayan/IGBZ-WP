@@ -27,6 +27,7 @@ final class TenantOffboarding {
 		'ig_master_withdrawals', 'ig_master_agreements', 'ig_nid_verifications', 'ig_legal_agreements',
 		'ig_domains', 'ig_domain_orders', 'ig_web_presence', 'ig_couriers', 'ig_label_groups',
 		'ig_cod_payments', 'ig_courier_routes', 'ig_courier_tracking', 'ig_courier_chat',
+		'ig_zernio_profiles',
 		'approval_requests', 'themes',
 	];
 

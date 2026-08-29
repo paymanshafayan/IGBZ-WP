@@ -58,6 +58,7 @@ final class SettingsPage {
 		if ( Modules::enabled( Modules::INSTAGRAM ) ) {
 			$tabs['manus']    = __( 'Manus', 'igbz-suite' );
 			$tabs['manychat'] = __( 'ManyChat', 'igbz-suite' );
+			$tabs['zernio']   = __( 'Zernio', 'igbz-suite' );
 			$tabs['dm']       = __( 'Direct messages', 'igbz-suite' );
 			$tabs['intake']   = __( 'Product registration', 'igbz-suite' );
 			$tabs['vip']      = __( 'VIP channel', 'igbz-suite' );
@@ -396,6 +397,15 @@ final class SettingsPage {
 						'label' => __( 'Webhook URL', 'igbz-suite' ),
 						'type'  => 'readonly',
 					],
+				];
+
+			case 'zernio':
+				return [
+					[ 'key' => 'zernio.central_api_key', 'label' => __( 'Central Zernio API key', 'igbz-suite' ), 'type' => 'password', 'help' => __( 'The one IGBZ payment account key (ADR-0004). It only ever provisions profiles; stores receive profile-scoped keys and never see this one.', 'igbz-suite' ) ],
+					[ 'key' => 'zernio.base_url', 'label' => __( 'Zernio API base URL', 'igbz-suite' ), 'placeholder' => 'https://api.zernio.com' ],
+					[ 'key' => 'zernio.profiles_path', 'label' => __( 'Profiles path', 'igbz-suite' ), 'placeholder' => '/v1/profiles' ],
+					[ 'key' => 'zernio.profile_keys_path', 'label' => __( 'Profile keys path', 'igbz-suite' ), 'placeholder' => '/v1/profiles' ],
+					[ 'key' => 'zernio.auth_scheme', 'label' => __( 'Auth scheme', 'igbz-suite' ), 'placeholder' => 'Bearer' ],
 				];
 
 			case 'dm':

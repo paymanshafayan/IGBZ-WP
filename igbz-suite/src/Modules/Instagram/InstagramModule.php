@@ -139,6 +139,8 @@ final class InstagramModule implements ModuleInterface {
 	private function bind_services( Plugin $plugin ): void {
 		$plugin->bind( 'ig.prompts', static fn () => new PromptBuilder() );
 		$plugin->bind( 'ig.credentials', static fn ( Plugin $c ) => new AccountCredentials( $c->db() ) );
+		$plugin->bind( 'ig.zernio_client', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\Instagram\Gateways\ZernioClient( $c->http(), $c->logger() ) );
+		$plugin->bind( 'ig.zernio', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\Instagram\Services\ZernioConnectionService( $c->db(), $c->logger(), $c->get( 'ig.zernio_client' ) ) );
 		$plugin->bind( 'ig.manus_client', static fn ( Plugin $c ) => new ManusClient( $c->http(), $c->logger() ) );
 		$plugin->bind(
 			'ig.manus',
