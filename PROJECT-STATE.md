@@ -1993,3 +1993,43 @@ production، نه تزئین.
    کرومیوم واقعی روی صفحهٔ VIP ادمین — صفر سرریز، صفر خطای JS؛ تنها تصویر خراب=
    gravatar (شبکهٔ سندباکس)؛ اسکرین‌شات در `visual-testing/phase-54/` (بینایی تصویر این
    جلسه خاموش بود؛ بازبینی با DOM/CSS طبق §۸ هندآف).
+
+### ۱۱.۱۱ فاز ۵۵ — قرعه‌کشی قابل‌ممیزی، insights با provenance و ورودی رقبا — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+۱. **قرعه‌کشی commit–reveal** (`GiveawayDrawService`، بایند `ig.giveaways`): seed تصادفی
+   هنگام ساخت (فقط تعهد SHA-256 منتشر؛ seed با Crypto رمزنگاری‌شده)، فریز و هش استخر
+   ورودی‌ها هنگام قرعه، فاش‌شدن seed، و شمارهٔ برنده با تابع مستند: 
+   `digest = HMAC-SHA256(seed, pool_hash)`؛ پنجره‌های ۱۳-هگز (۵۲ بیت) چپ‌به‌راست؛ اولین
+   پنجرهٔ زیر `floor(2^52/N)*N`؛ `winner = floor(n/floor(2^52/N)) + 1`؛ در رد کامل همهٔ
+   پنجره‌ها (احتمال < 2^-40) digest با SHA-256 باززنجیر می‌شود. بستهٔ ممیزی روی ردیف
+   می‌ماند و `verify_audit` آن را از استخر بازمشتق می‌کند (تست: بستهٔ دستکاری‌شده و
+   استخر ناقص رد می‌شوند).
+۲. **ضدتقلب ساختاری:** UNIQUE `(giveaway, subscriber)` + بازیابی صادقانه؛ پنجرهٔ
+   ورود (starts/ends) در بک‌اند؛ ورود فقط در وضعیت open؛ قرعه/کانسل = فلیپ شرطی —
+   بازندهٔ مسابقه `already_drawn`/`not_open` می‌گیرد و برندهٔ اول نمی‌خورد.
+۳. **Insights** (`InsightService`، بایند `ig.growth_insights` — نام `ig.insights` به‌خاطر
+   گارد SocialArchitecture ممنوع بود): ردیف‌ها با `source` (manual/zernio) و
+   `provider_ref`؛ ingestion رسمی از `analytics` پروفایل متصل (LIVE دود: فروشگاه بدون
+   اتصال = `not_connected` صادقانه، صفر سطر)؛ binding به `ig_accounts` فروشگاه؛
+   اصلاح upsert-یدست (select→update/insert) چون SQLite `ON DUPLICATE` ندارد؛ retention
+   روزانه با `ig.insights.prune` (پیش‌فرض ۷۳۰ روز، کف ۹۰).
+۴. **رقبا** (`CompetitorService`، بایند `ig.competitors`): هندل عمومی مدیر (نرمال @/case)
+   + اسنپ‌شات روزانهٔ زمان‌دار با evidence_url و یادداشت؛ سنجه‌های غیرقابل‌دانست فیلد
+   نیستند؛ tenant-scoped؛ حذف رقیب = حذف شواهد.
+۵. **REST:** `GrowthIntelController` — ۱۸ مسیر owner-scoped (۸ قرعه‌کشی شامل
+   `audit/verify`، ۳ insights، ۵ رقبا + DELETE)؛ webhook جدیدی نیست.
+۶. **اسکیمای v43 (۹۵ جدول):** `ig_giveaway_entries` (UNIQUE giveaway_subscriber)،
+   `ig_competitors` (UNIQUE tenant_platform_handle)، `ig_competitor_snapshots` (UNIQUE
+   competitor_day)؛ ستون‌های ممیزی روی `ig_giveaways` (starts/ends/seed/hash/pool/drawn/
+   audit/winner_entry_id)؛ ستون‌های provenance روی `ig_insights`. `migrate_to_v43` علاوه بر
+   جدول‌های جدید، جدول `ig_publish_events` را روی سایت‌های مستقرِ dbv=42 ( گرفتارِ نقطهٔ
+   فاز ۵۴) idempotent بازمی‌سازد — در دود زنده اثبات شد: دراپ → dbv=42 → maybe_upgrade →
+   جدول برگشت، dbv=43، ۹۵ جدول.
+۷. **تست:** `GrowthIntelTest` (۱۲ سناریو: تعهد/seed مخفی، دوباره‌ورود + ریس UNIQUE، پنجره/
+   بسته، بازمشتق ممیزی + دستکاری رد، قرعه‌کشی دوم، استخر خالی، کانسل، provenance دستی،
+   ingestion رسمی + امتناع صادقانه، retention، جداسازی tenant رقبا) + سناریوی جدید
+   CronJobsTest (صف روزانه + یک‌بار‌اجرا). تست **۱۳۹۸۴/۶۹** · لینت ۳۱۱/۰ · DriftGuard ۹۵/۴۳.
+۸. **تأیید زنده:** پلی‌گراند — دود ۷گامی all_green؛ REST با کوکی+nonce از curl و مرورگر
+   واقعی ۲۰۰ (فهرست قرعه‌کشی، verify بازمشتق، insights، رقبا). **تست ویژوال (قاعدهٔ ۱۲):**
+   کرومیوم واقعی — پیشخوان سالم (سرریز ۰، خطای JS ۰) + fetch زندهٔ REST از مرورگر؛
+   اسکرین‌شات در `visual-testing/phase-55/` (بینایی این جلسه خاموش؛ بازبینی DOM/CSS طبق §۸).

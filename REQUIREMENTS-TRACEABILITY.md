@@ -360,7 +360,7 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 | IG-003 | comment-to-DM رسمی با policy بک‌اند | ADR-0004؛ طراحی Zernio | ChatPlace/ManyChat/Funnel legacy | شکاف: webhook امضاشده، dedup، opt-out و delivery واقعی Zernio پیاده نشده |
 | IG-004 | ثبت محصول ۱۳مرحله‌ای | MODULES/Apps | intake services؛ ۱۸ تست | پیاده‌شدهٔ قابل توجه؛ providerها و E2E زنده کامل نیست |
 | IG-005 | VIP کامل و امن | DESIGN-VIP/EXPIRY | ۱۰ جدول VIP؛ ۲۶ تست | پیاده‌شدهٔ پایه؛ اپ، provider پرداخت و بار/امنیت زنده باز است |
-| IG-006 | Giveaway، Insight و تحلیل رسمی/دستی رقبا | ADR-0004؛ Growth prompt | services؛ test قرعه‌کشی | شکاف: ingestion Zernio/provenance کامل نیست؛ Business Discovery و Hashtag Search تا endpoint رسمی backlog هستند |
+| IG-006 | Giveaway، Insight و تحلیل رسمی/دستی رقبا | ADR-0004؛ Growth prompt؛ DESIGN-LEGAL-AUTH §۷.۷.۵۵ | GiveawayDrawService + InsightService + CompetitorService؛ ۱۸ مسیر REST (GrowthIntelController)؛ GrowthIntelTest ۱۲ سناریو؛ دود زنده | ✅ فاز ۵۵: قرعه‌کشی commit–reveal قابل بازمشیق، provenance (manual/zernio) + retention، رقبا با evidence. باقی‌ماندهٔ PV: Business Discovery و Hashtag Search تا endpoint رسمی Zernio backlog هستند |
 
 ### ۶.۹ پادو
 

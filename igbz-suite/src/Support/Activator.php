@@ -118,6 +118,7 @@ final class Activator {
 			40 => [ self::class, 'migrate_to_v40' ],
 			41 => [ self::class, 'migrate_to_v41' ],
 			42 => [ self::class, 'migrate_to_v42' ],
+			43 => [ self::class, 'migrate_to_v43' ],
 		];
 	}
 
@@ -342,6 +343,22 @@ final class Activator {
 	 */
 	public static function migrate_to_v42(): void {
 		// Pure dbDelta work; see the payments and vip_posts tables in Schema::statements().
+	}
+
+	/**
+	 * v43 (phase 55): the growth-intel tables — `ig_giveaway_entries` (the frozen pool an
+	 * auditable draw is derived from), `ig_competitors` + `ig_competitor_snapshots` (manual,
+	 * evidence-linked competitor tracking) — plus the draw-audit columns on `ig_giveaways`
+	 * and the provenance columns on `ig_insights`.
+	 *
+	 * It also backfills `ig_publish_events`: sites that ran the v42 step before the phase-54
+	 * fix landed carry db version 42 without the table, because a stray dot at the end of its
+	 * CREATE statement made dbDelta silently skip it (fresh installs came up 91/92). The fix
+	 * removed the dot; this step re-runs dbDelta so the table finally exists everywhere.
+	 * Idempotent: install_tables() only creates what is missing.
+	 */
+	public static function migrate_to_v43(): void {
+		self::install_tables();
 	}
 
 	/**

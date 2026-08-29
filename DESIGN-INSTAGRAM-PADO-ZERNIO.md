@@ -214,6 +214,17 @@ comment.received
 - `Business Discovery` و `Hashtag Search` از Zernio درخواست می‌شوند و تا وجود endpoint
   مستند و آزموده، در محصول وعده داده نمی‌شوند.
 
+### وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۵ ✅)
+
+نسخهٔ اول همان‌طور که بالا بسته شد اجرا شد: مدیر رقیب را معرفی می‌کند
+(`ig_competitors`، هندل نرمال‌شده)، اسنپ‌شات‌های زمان‌دار دستی با لینک evidence در
+`ig_competitor_snapshots` می‌نشیند (یکی در روز، اصلاح‌پذیر) و تاریخچهٔ رشد فقط از همین
+اسنپ‌شات‌ها ساخته می‌شود؛ ستون‌های غیرقابل‌دانست اصلاً وجود ندارند و دادهٔ عمومی از
+insight حساب متصل جدا می‌ماند. insight خودِ حساب با provenance
+(`manual|zernio`) و retention روزانه در `ig_insights` نشسته و ingestion رسمی از
+`analytics` پروفایل متصل Zernio می‌آید (`InsightService::ingest`). قرعه‌کشی
+commit–reveal قابل‌ممیزی هم در همین فاز بسته شد (جزئیات: `DESIGN-LEGAL-AUTH §۷.۷.۵۵`).
+
 ### منابع دیگر
 
 جست‌وجوی وب، RSS و APIهای رسمی عمومی می‌توانند ورودی پادو باشند. scraper، session، cookie،

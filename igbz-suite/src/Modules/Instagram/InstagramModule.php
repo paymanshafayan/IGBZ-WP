@@ -3,6 +3,9 @@ namespace IGBZ\Suite\Modules\Instagram;
 
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioAdapterInterface;
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioClient;
+use IGBZ\Suite\Modules\Instagram\Growth\CompetitorService;
+use IGBZ\Suite\Modules\Instagram\Growth\GiveawayDrawService;
+use IGBZ\Suite\Modules\Instagram\Growth\InsightService;
 use IGBZ\Suite\Modules\Instagram\Services\ContentPublishService;
 use IGBZ\Suite\Modules\Instagram\Services\InboxService;
 use IGBZ\Suite\Modules\Instagram\Services\ProductRegistrationService;
@@ -39,7 +42,7 @@ defined( 'ABSPATH' ) || exit;
  *     identity) and the tenant-facing social facade;
  *   - the controlled legacy→Zernio migration (journal + hourly round);
  *   - the building blocks the rebuilt flows land on (phase 51 inbox/DM,
- *     52 product registration, 53 publishing/voice, 55 giveaway/insights);
+ *     52 product registration, 53 publishing/voice, 54 VIP, 55 giveaway/insights);
  *   - the VIP channel (phase 54) and the config-driven AI media studio.
  */
 final class InstagramModule implements ModuleInterface {
@@ -153,6 +156,15 @@ final class InstagramModule implements ModuleInterface {
 			)
 		);
 
+		// Phase 55 — the growth-intel trio: auditable giveaways, provenance-tagged
+		// insights with retention, and manual competitor snapshots with evidence.
+		$plugin->bind( 'ig.giveaways', static fn ( Plugin $c ) => new GiveawayDrawService( $c->db(), $c->logger() ) );
+		$plugin->bind( 'ig.competitors', static fn ( Plugin $c ) => new CompetitorService( $c->db(), $c->logger() ) );
+		$plugin->bind(
+			'ig.growth_insights',
+			static fn ( Plugin $c ) => new InsightService( $c->db(), $c->logger(), $c->settings(), $c->get( 'ig.zernio_social' ) )
+		);
+
 		// --------------------------- building blocks for the rebuilt flows
 
 		// Product registration (phase 52) and listing translation keep their
@@ -234,6 +246,11 @@ final class InstagramModule implements ModuleInterface {
 			igbz()->get( 'ig.content_publish' )->reconcile();
 		} );
 
+		// Phase 55 — retention: insights older than the configured window go away.
+		$jobs->register( 'ig.insights.prune', static function (): void {
+			igbz()->get( 'ig.growth_insights' )->prune();
+		} );
+
 		// Phase 50 — the controlled legacy→Zernio migration, one bounded round per
 		// beat with the canonical continuation contract: a full round queues the
 		// next one (capped), a short round ends the wave.
@@ -255,6 +272,9 @@ final class InstagramModule implements ModuleInterface {
 		// Phase 54: the VIP reconcile rides the daily beat; the daily slot key absorbs
 		// duplicate beats and the handler carries its own continuation contract.
 		igbz()->get( 'jobs' )->enqueue( 'ig.vip.reconcile', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
+
+		// Phase 55: insight retention — a bounded delete of rows past the window.
+		igbz()->get( 'jobs' )->enqueue( 'ig.insights.prune', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
 	}
 
 	// ---------------------------------------------------------------- health

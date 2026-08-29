@@ -75,6 +75,9 @@ final class Schema {
 			'ig_abandoned_carts',
 			'ig_ai_credit_ledger',
 			'ig_giveaways',
+			'ig_giveaway_entries',
+			'ig_competitors',
+			'ig_competitor_snapshots',
 			'ig_master_payments',
 			'ig_master_disputes',
 			'ig_master_withdrawals',
@@ -591,9 +594,12 @@ final class Schema {
 			dimension VARCHAR(64) NOT NULL DEFAULT '',
 			value DECIMAL(18,4) NOT NULL DEFAULT 0,
 			captured_for DATE NOT NULL,
+			source VARCHAR(20) NOT NULL DEFAULT 'manual',
+			provider_ref VARCHAR(191) NOT NULL DEFAULT '',
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
-			UNIQUE KEY account_metric_day (account_id,metric,dimension,captured_for)
+			UNIQUE KEY account_metric_day (account_id,metric,dimension,captured_for),
+			KEY tenant_source (tenant_id,source)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}ig_funnels (
@@ -1169,11 +1175,73 @@ final class Schema {
 			status VARCHAR(20) NOT NULL DEFAULT 'open',
 			winner_subscriber VARCHAR(191) NOT NULL DEFAULT '',
 			winner_user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			winner_entry_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			entries_count INT NOT NULL DEFAULT 0,
+			starts_at DATETIME NULL,
+			ends_at DATETIME NULL,
+			server_seed TEXT NULL,
+			server_seed_hash VARCHAR(64) NOT NULL DEFAULT '',
+			pool_hash VARCHAR(64) NOT NULL DEFAULT '',
+			drawn_at DATETIME NULL,
+			audit LONGTEXT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY tenant_status (tenant_id,status)
+		) {$charset};";
+
+		// Phase 55 — the frozen entry pool a draw is derived from. One row per person per
+		// giveaway (UNIQUE), provenance for the entry source, and no inserts once the
+		// giveaway leaves `open` (the service refuses them).
+		$sql[] = "CREATE TABLE {$p}ig_giveaway_entries (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			giveaway_id BIGINT UNSIGNED NOT NULL,
+			subscriber VARCHAR(191) NOT NULL DEFAULT '',
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			source VARCHAR(20) NOT NULL DEFAULT 'manual',
+			entry_ref VARCHAR(191) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY giveaway_subscriber (giveaway_id,subscriber),
+			KEY tenant_id (tenant_id)
+		) {$charset};";
+
+		// Phase 55 — competitor tracking, first version: the manager introduces public
+		// professional handles and records timed manual snapshots. Growth history is built
+		// only from these snapshots (DESIGN-INSTAGRAM-PADO-ZERNIO §11); public data never
+		// mixes with the connected account's insights.
+		$sql[] = "CREATE TABLE {$p}ig_competitors (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			platform VARCHAR(16) NOT NULL DEFAULT 'instagram',
+			handle VARCHAR(64) NOT NULL DEFAULT '',
+			display_name VARCHAR(191) NOT NULL DEFAULT '',
+			notes LONGTEXT NULL,
+			is_active TINYINT(1) NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_platform_handle (tenant_id,platform,handle)
+		) {$charset};";
+
+		// Phase 55 — one timed snapshot per competitor per day; evidence link + free-form
+		// note keep the manager's proof with the number. Metrics the operator cannot know
+		// (reach, saves, sales of a competitor) simply stay NULL — never guessed.
+		$sql[] = "CREATE TABLE {$p}ig_competitor_snapshots (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			competitor_id BIGINT UNSIGNED NOT NULL,
+			captured_for DATE NOT NULL,
+			followers INT NOT NULL DEFAULT 0,
+			posts INT NOT NULL DEFAULT 0,
+			engagement_rate DECIMAL(8,4) NOT NULL DEFAULT 0,
+			evidence_url VARCHAR(255) NOT NULL DEFAULT '',
+			note TEXT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY competitor_day (competitor_id,captured_for),
+			KEY tenant_id (tenant_id)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}ig_master_payments (

@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 233,
-    "source_php_sha256": "62adf2871421d48cfa8f94f1b3425c5651c037da079fd44192ecd5a0dd947a9b",
+    "source_php_count": 237,
+    "source_php_sha256": "369bff7b2aa845ff826a3de1eaba69d7823ad19439e9f8bcece0b257c8552d04",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -99,6 +99,9 @@
       "igbz-suite/src/Modules/Instagram/Gateways/SocialProviders.php",
       "igbz-suite/src/Modules/Instagram/Gateways/ZernioAdapterInterface.php",
       "igbz-suite/src/Modules/Instagram/Gateways/ZernioClient.php",
+      "igbz-suite/src/Modules/Instagram/Growth/CompetitorService.php",
+      "igbz-suite/src/Modules/Instagram/Growth/GiveawayDrawService.php",
+      "igbz-suite/src/Modules/Instagram/Growth/InsightService.php",
       "igbz-suite/src/Modules/Instagram/InstagramModule.php",
       "igbz-suite/src/Modules/Instagram/Services/ContentPublishService.php",
       "igbz-suite/src/Modules/Instagram/Services/InboxService.php",
@@ -240,6 +243,7 @@
       "igbz-suite/src/Modules/RestApi/Controllers/DeviceController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/DomainController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/FxController.php",
+      "igbz-suite/src/Modules/RestApi/Controllers/GrowthIntelController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/InboxController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/ProductRegistrationController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/SocialMigrationController.php",
@@ -289,17 +293,17 @@
       "Domain": 3,
       "Fx": 17,
       "Hub": 11,
-      "Instagram": 36,
+      "Instagram": 39,
       "MultiTenant": 102,
       "Pado": 6,
-      "RestApi": 26
+      "RestApi": 27
     },
     "support_php_count": 32,
-    "all_plugin_php_count": 306
+    "all_plugin_php_count": 311
   },
   "database": {
-    "version": 42,
-    "table_count": 92,
+    "version": 43,
+    "table_count": 95,
     "tables": [
       "tenants",
       "tenant_domains",
@@ -356,6 +360,9 @@
       "ig_abandoned_carts",
       "ig_ai_credit_ledger",
       "ig_giveaways",
+      "ig_giveaway_entries",
+      "ig_competitors",
+      "ig_competitor_snapshots",
       "ig_master_payments",
       "ig_master_disputes",
       "ig_master_withdrawals",
@@ -398,8 +405,8 @@
     "version_source": "igbz-suite/igbz-suite.php"
   },
   "rest_api": {
-    "registration_calls": 155,
-    "files_with_registration": 17,
+    "registration_calls": 171,
+    "files_with_registration": 18,
     "files": [
       {
         "file": "igbz-suite/src/Modules/Hub/Rest/HubController.php",
@@ -449,6 +456,11 @@
       {
         "file": "igbz-suite/src/Modules/RestApi/Controllers/FxController.php",
         "registration_calls": 6,
+        "direct_permission_callback_mentions": 0
+      },
+      {
+        "file": "igbz-suite/src/Modules/RestApi/Controllers/GrowthIntelController.php",
+        "registration_calls": 16,
         "direct_permission_callback_mentions": 0
       },
       {
@@ -704,19 +716,19 @@
       {
         "hook_reference": "HOOK_FIVE_MINUTES",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "87",
+        "line": "90",
         "registration": "add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'run_five_minutes' ] );"
       },
       {
         "hook_reference": "HOOK_HOURLY",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "88",
+        "line": "91",
         "registration": "add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );"
       },
       {
         "hook_reference": "HOOK_DAILY",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "89",
+        "line": "92",
         "registration": "add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );"
       },
       {
@@ -764,7 +776,7 @@
       {
         "hook_reference": "HOOK_DAILY",
         "file": "igbz-suite/src/Modules/RestApi/RestApiModule.php",
-        "line": "82",
+        "line": "83",
         "registration": "add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );"
       },
       {
@@ -844,7 +856,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 71,
+    "php_file_count": 72,
     "php_files": [
       "igbz-suite/tests/AffiliateHardenTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
@@ -870,6 +882,7 @@
       "igbz-suite/tests/GamificationTest.php",
       "igbz-suite/tests/GatewayHardeningTest.php",
       "igbz-suite/tests/GatewayTest.php",
+      "igbz-suite/tests/GrowthIntelTest.php",
       "igbz-suite/tests/HourlyJobsTest.php",
       "igbz-suite/tests/HposOrderFlowTest.php",
       "igbz-suite/tests/InboxTest.php",
@@ -918,7 +931,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 68,
+    "main_case_count": 69,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -987,7 +1000,8 @@
       "InboxTest",
       "ProductRegistrationTest",
       "ContentPublishTest",
-      "VipChannelTest"
+      "VipChannelTest",
+      "GrowthIntelTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

@@ -81,6 +81,7 @@ $cases = [
 	'ProductRegistrationTest',
 	'ContentPublishTest',
 	'VipChannelTest',
+	'GrowthIntelTest',
 ];
 
 foreach ( $cases as $case ) {

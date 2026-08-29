@@ -13,6 +13,7 @@ use IGBZ\Suite\Modules\RestApi\Controllers\CatalogController;
 use IGBZ\Suite\Modules\RestApi\Controllers\DeviceController;
 use IGBZ\Suite\Modules\RestApi\Controllers\FxController;
 use IGBZ\Suite\Modules\RestApi\Controllers\ContentPublishController;
+use IGBZ\Suite\Modules\RestApi\Controllers\GrowthIntelController;
 use IGBZ\Suite\Modules\RestApi\Controllers\InboxController;
 use IGBZ\Suite\Modules\RestApi\Controllers\ProductRegistrationController;
 
@@ -159,6 +160,12 @@ final class RestApiModule implements ModuleInterface {
 		// self-authenticating post lifecycle webhook.
 		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.content_publish' ) ) {
 			$controllers[] = new ContentPublishController();
+		}
+
+		// Phase 55: the growth-intel surface — auditable giveaways, insights with
+		// provenance/retention, manual competitor tracking. Owner-scoped throughout.
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.giveaways' ) ) {
+			$controllers[] = new GrowthIntelController();
 		}
 
 		// Same story for the VIP channel: the posts, the paywall and the member inbox are owned
