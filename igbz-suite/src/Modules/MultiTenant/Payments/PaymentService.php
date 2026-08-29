@@ -175,16 +175,40 @@ final class PaymentService {
 		// (the previous attempt died before it could talk to the PSP), we reuse that row instead
 		// of stacking duplicates. Anything already sent to the PSP is never reused — a stale
 		// authority re-sent is how double charges are born.
-		$existing   = $this->db->row(
-			'SELECT id FROM ' . $this->db->table( 'payments' ) .
-			' WHERE tenant_id = %d AND order_id = %d AND purpose = %s AND gateway = %s AND amount = %f AND status = %s ORDER BY id DESC',
-			$tenant_id,
-			$order_id,
-			$purpose,
-			$gateway->id(),
-			$amount,
-			self::STATUS_CREATED
-		);
+		//
+		// Phase 54: the match is scoped to the payer. Purposes without an order (VIP
+		// memberships, single posts, tips) used to match on tenant+purpose+amount alone, so two
+		// shoppers buying the same-price plan in the same minute could be handed the *same*
+		// payment row — the second shopper's money activating the first shopper's purchase.
+		// A caller may also pass a `dedupe_key` in the context (VIP does: the membership or
+		// post it is paying for), stored in the dedicated column and matched exactly, so a
+		// repeated tap reuses its own row and nothing else's.
+		$user_id = (int) ( $context['user_id'] ?? get_current_user_id() );
+		$dedupe  = isset( $context['dedupe_key'] ) ? mb_substr( (string) $context['dedupe_key'], 0, 191 ) : '';
+
+		if ( '' !== $dedupe ) {
+			$existing = $this->db->row(
+				'SELECT id FROM ' . $this->db->table( 'payments' ) .
+				' WHERE tenant_id = %d AND user_id = %d AND purpose = %s AND idempotency_key = %s AND status = %s ORDER BY id DESC',
+				$tenant_id,
+				$user_id,
+				$purpose,
+				$dedupe,
+				self::STATUS_CREATED
+			);
+		} else {
+			$existing = $this->db->row(
+				'SELECT id FROM ' . $this->db->table( 'payments' ) .
+				' WHERE tenant_id = %d AND user_id = %d AND order_id = %d AND purpose = %s AND gateway = %s AND amount = %f AND status = %s ORDER BY id DESC',
+				$tenant_id,
+				$user_id,
+				$order_id,
+				$purpose,
+				$gateway->id(),
+				$amount,
+				self::STATUS_CREATED
+			);
+		}
 		$payment_id = (int) ( $existing['id'] ?? 0 );
 		if ( $payment_id > 0 ) {
 			$this->db->update( 'payments', [ 'meta' => wp_json_encode( $context ), 'updated_at' => $now ], [ 'id' => $payment_id ] );
@@ -192,17 +216,18 @@ final class PaymentService {
 			$payment_id = $this->db->insert(
 				'payments',
 				[
-					'tenant_id'  => $tenant_id,
-					'user_id'    => (int) ( $context['user_id'] ?? get_current_user_id() ),
-					'order_id'   => $order_id,
-					'gateway'    => $gateway->id(),
-					'purpose'    => $purpose,
-					'amount'     => $amount,
-					'currency'   => igbz()->settings()->string( 'general.default_currency', 'IRT' ),
-					'status'     => self::STATUS_CREATED,
-					'meta'       => wp_json_encode( $context ),
-					'created_at' => $now,
-					'updated_at' => $now,
+					'tenant_id'        => $tenant_id,
+					'user_id'          => $user_id,
+					'order_id'         => $order_id,
+					'gateway'          => $gateway->id(),
+					'purpose'          => $purpose,
+					'amount'           => $amount,
+					'currency'         => igbz()->settings()->string( 'general.default_currency', 'IRT' ),
+					'status'           => self::STATUS_CREATED,
+					'meta'             => wp_json_encode( $context ),
+					'idempotency_key'  => '' !== $dedupe ? $dedupe : null,
+					'created_at'       => $now,
+					'updated_at'       => $now,
 				]
 			);
 		}

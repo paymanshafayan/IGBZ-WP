@@ -156,9 +156,18 @@ final class VipPostService {
 		return $this->db->update( 'vip_posts', $fields, [ 'id' => $post_id ] ) >= 0;
 	}
 
+	/**
+	 * Phase 54: the publish transitions are a state machine, not a free-for-all. Only
+	 * `draft` and `scheduled` may go live; an expired or deleted post answers false instead
+	 * of silently resurrecting (its media may already be shredded), and the flip is
+	 * conditional so a double beat produces one publish and one hook.
+	 */
 	public function publish( int $post_id ): bool {
 		$post = $this->post( $post_id );
-		if ( ! $post || self::STATUS_PUBLISHED === $post['status'] ) {
+		if ( ! $post ) {
+			return false;
+		}
+		if ( ! in_array( (string) $post['status'], [ self::STATUS_DRAFT, self::STATUS_SCHEDULED ], true ) ) {
 			return false;
 		}
 
@@ -174,15 +183,17 @@ final class VipPostService {
 			}
 		}
 
-		$done = $this->db->update(
-			'vip_posts',
-			[
-				'status'       => self::STATUS_PUBLISHED,
-				'published_at' => $now,
-				'expires_at'   => $expires,
-				'updated_at'   => $now,
-			],
-			[ 'id' => $post_id ]
+		$done = $this->db->query(
+			'UPDATE ' . $this->db->table( 'vip_posts' ) . '
+			 SET status = %s, published_at = %s, expires_at = %s, updated_at = %s
+			 WHERE id = %d AND status IN (%s, %s)',
+			self::STATUS_PUBLISHED,
+			$now,
+			$expires,
+			$now,
+			$post_id,
+			self::STATUS_DRAFT,
+			self::STATUS_SCHEDULED
 		) > 0;
 
 		if ( $done ) {
@@ -194,23 +205,30 @@ final class VipPostService {
 
 	public function delete( int $post_id, bool $purge_media = true ): bool {
 		$post = $this->post( $post_id );
-		if ( ! $post ) {
+		if ( ! $post || self::STATUS_DELETED === (string) $post['status'] ) {
 			return false;
 		}
 
+		$now    = current_time( 'mysql', true );
+		$media  = $this->decode_media( $post );
+		$fields = [
+			'status'     => self::STATUS_DELETED,
+			'updated_at' => $now,
+		];
+
+		// Phase 54: the media JSON is the purge ledger. It is cleared only when the files are
+		// really gone; a partial purge keeps the list so `reconcile()` can retry the rest —
+		// access is already dead (the status flip below is what denies it), so keeping the
+		// row's bytes costs nothing and loses nothing.
 		if ( $purge_media ) {
-			$this->media->purge( $this->decode_media( $post ) );
+			$this->media->purge( $media );
+			if ( $this->media->purge_complete( $media ) ) {
+				$fields['media']          = wp_json_encode( [] );
+				$fields['media_purged_at'] = $now;
+			}
 		}
 
-		return $this->db->update(
-			'vip_posts',
-			[
-				'status'     => self::STATUS_DELETED,
-				'media'      => $purge_media ? wp_json_encode( [] ) : $post['media'],
-				'updated_at' => current_time( 'mysql', true ),
-			],
-			[ 'id' => $post_id ]
-		) > 0;
+		return $this->db->update( 'vip_posts', $fields, [ 'id' => $post_id ] ) > 0;
 	}
 
 	// ------------------------------------------------------------------- cron
@@ -261,20 +279,49 @@ final class VipPostService {
 			$action  = (string) $post['expiry_action'];
 			$purge   = $this->settings->bool( 'vip.purge_media_on_expiry', true );
 
+			$media  = $this->decode_media( $post );
+			$fields = [
+				'status'     => self::EXPIRY_DELETE === $action ? self::STATUS_DELETED : self::STATUS_EXPIRED,
+				'expired_at' => $now,
+				'updated_at' => $now,
+			];
+
 			if ( $purge ) {
-				$this->media->purge( $this->decode_media( $post ) );
+				$this->media->purge( $media );
+				if ( $this->media->purge_complete( $media ) ) {
+					$fields['media']           = wp_json_encode( [] );
+					$fields['media_purged_at'] = $now;
+				}
 			}
 
-			$this->db->update(
-				'vip_posts',
-				[
-					'status'     => self::EXPIRY_DELETE === $action ? self::STATUS_DELETED : self::STATUS_EXPIRED,
-					'media'      => $purge ? wp_json_encode( [] ) : $post['media'],
-					'expired_at' => $now,
-					'updated_at' => $now,
-				],
-				[ 'id' => $post_id ]
-			);
+			// Phase 54: conditional flip — the sweep racing itself (or an admin unpublishing)
+			// must not fire the expiry hook twice, and a row that changed underneath the
+			// SELECT is left to the next round. Media columns are written only when they
+			// actually changed, so a purge-disabled row keeps its ledger untouched.
+			$sets   = [ 'status = %s', 'expired_at = %s', 'updated_at = %s' ];
+			$args   = [ (string) $fields['status'], $now, $now ];
+			if ( array_key_exists( 'media', $fields ) ) {
+				$sets[] = 'media = %s';
+				$args[] = (string) $fields['media'];
+			}
+			if ( array_key_exists( 'media_purged_at', $fields ) ) {
+				$sets[] = 'media_purged_at = %s';
+				$args[] = (string) $fields['media_purged_at'];
+			}
+			$args[] = $post_id;
+			$args[] = self::STATUS_PUBLISHED;
+			$args[] = $now;
+
+			$won = $this->db->query(
+				'UPDATE ' . $this->db->table( 'vip_posts' ) . '
+				 SET ' . implode( ', ', $sets ) . '
+				 WHERE id = %d AND status = %s AND expires_at IS NOT NULL AND expires_at <= %s',
+				...$args
+			) > 0;
+
+			if ( ! $won ) {
+				continue;
+			}
 
 			do_action( 'igbz_vip_post_expired', $post_id, $action );
 			++$count;
@@ -285,6 +332,107 @@ final class VipPostService {
 		}
 
 		return $count;
+	}
+
+	/**
+	 * Phase 54: the daily safety net for the channel.
+	 *
+	 * Two honest failures the sweeps cannot catch in the moment: a media purge that only
+	 * partly succeeded (the file list survives in the row, so the retry knows exactly what
+	 * is left), and denormalised counts drifting when moderation removes rows outside the
+	 * toggle path. Both are bounded; a full batch means the caller continues the round.
+	 *
+	 * @return int rows acted upon — drives the queue's continuation contract.
+	 */
+	public function reconcile( int $limit = 50 ): int {
+		$now    = current_time( 'mysql', true );
+		$acted  = 0;
+
+		// 1) Retry purges: retired rows whose media is not provably gone yet.
+		$rows = $this->db->results(
+			'SELECT * FROM ' . $this->db->table( 'vip_posts' ) . '
+			 WHERE status IN (%s, %s) AND media_purged_at IS NULL
+			 ORDER BY expired_at ASC, id ASC
+			 LIMIT %d',
+			self::STATUS_EXPIRED,
+			self::STATUS_DELETED,
+			$limit
+		);
+
+		foreach ( $rows as $post ) {
+			$media = $this->decode_media( $post );
+			if ( [] === $media ) {
+				// Nothing left to purge (a pre-phase-54 row already cleared its JSON): stamp
+				// it so the sweep stops carrying the row.
+				$this->db->update(
+					'vip_posts',
+					[ 'media_purged_at' => $now, 'updated_at' => $now ],
+					[ 'id' => (int) $post['id'] ]
+				);
+				++$acted;
+				continue;
+			}
+
+			$this->media->purge( $media );
+			if ( $this->media->purge_complete( $media ) ) {
+				$this->db->update(
+					'vip_posts',
+					[ 'media' => wp_json_encode( [] ), 'media_purged_at' => $now, 'updated_at' => $now ],
+					[ 'id' => (int) $post['id'] ]
+				);
+				++$acted;
+				$this->logger->info( 'vip', 'VIP media purge completed on retry', [ 'post_id' => (int) $post['id'] ] );
+			}
+		}
+
+		// 2) Count drift: likes and visible comments are recounted from their tables so the
+		// denormalised columns cannot lie forever after a moderation action.
+		$acted += $this->recount_drift( $limit );
+
+		return $acted;
+	}
+
+	/** Recount likes/comments for published posts whose stored counts drifted. Bounded. */
+	private function recount_drift( int $limit ): int {
+		$rows = $this->db->results(
+			'SELECT id, likes_count, comments_count FROM ' . $this->db->table( 'vip_posts' ) . '
+			 WHERE status = %s
+			 ORDER BY id ASC
+			 LIMIT %d',
+			self::STATUS_PUBLISHED,
+			$limit
+		);
+
+		$acted = 0;
+		foreach ( $rows as $row ) {
+			$post_id = (int) $row['id'];
+
+			$likes = (int) $this->db->scalar(
+				'SELECT COUNT(*) FROM ' . $this->db->table( 'vip_post_likes' ) . ' WHERE post_id = %d',
+				$post_id
+			);
+			$comments = (int) $this->db->scalar(
+				'SELECT COUNT(*) FROM ' . $this->db->table( 'vip_post_comments' ) . '
+				 WHERE post_id = %d AND status = %s',
+				$post_id,
+				'visible'
+			);
+
+			if ( $likes !== (int) $row['likes_count'] || $comments !== (int) $row['comments_count'] ) {
+				$this->db->update(
+					'vip_posts',
+					[
+						'likes_count'    => $likes,
+						'comments_count' => $comments,
+						'updated_at'     => current_time( 'mysql', true ),
+					],
+					[ 'id' => $post_id ]
+				);
+				++$acted;
+			}
+		}
+
+		return $acted;
 	}
 
 	// ------------------------------------------------------------------ reads

@@ -49,7 +49,7 @@
   },
   "code": {
     "source_php_count": 233,
-    "source_php_sha256": "abcc4184f17c594769a8581c8867a1c078712114ab83b99f2289846d2082d502",
+    "source_php_sha256": "62adf2871421d48cfa8f94f1b3425c5651c037da079fd44192ecd5a0dd947a9b",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -298,7 +298,7 @@
     "all_plugin_php_count": 306
   },
   "database": {
-    "version": 41,
+    "version": 42,
     "table_count": 92,
     "tables": [
       "tenants",
@@ -704,14 +704,20 @@
       {
         "hook_reference": "HOOK_FIVE_MINUTES",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "84",
+        "line": "87",
         "registration": "add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'run_five_minutes' ] );"
       },
       {
         "hook_reference": "HOOK_HOURLY",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "85",
+        "line": "88",
         "registration": "add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );"
+      },
+      {
+        "hook_reference": "HOOK_DAILY",
+        "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
+        "line": "89",
+        "registration": "add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );"
       },
       {
         "hook_reference": "igbz_cron_hourly",
@@ -912,7 +918,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 67,
+    "main_case_count": 68,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -980,7 +986,8 @@
       "SocialArchitectureGuardTest",
       "InboxTest",
       "ProductRegistrationTest",
-      "ContentPublishTest"
+      "ContentPublishTest",
+      "VipChannelTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

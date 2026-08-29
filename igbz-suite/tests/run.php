@@ -80,6 +80,7 @@ $cases = [
 	'InboxTest',
 	'ProductRegistrationTest',
 	'ContentPublishTest',
+	'VipChannelTest',
 ];
 
 foreach ( $cases as $case ) {

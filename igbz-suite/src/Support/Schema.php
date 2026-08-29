@@ -478,12 +478,14 @@ final class Schema {
 			error_message VARCHAR(255) NOT NULL DEFAULT '',
 			verified_at DATETIME NULL,
 			meta LONGTEXT NULL,
+			idempotency_key VARCHAR(191) NULL DEFAULT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY authority (authority),
 			KEY order_id (order_id),
-			KEY gateway_status (gateway,status)
+			KEY gateway_status (gateway,status),
+			UNIQUE KEY tenant_purpose_idem (tenant_id,purpose,idempotency_key)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}otp_codes (
@@ -879,6 +881,7 @@ final class Schema {
 			expires_at DATETIME NULL,
 			expiry_action VARCHAR(20) NOT NULL DEFAULT 'hide',
 			expired_at DATETIME NULL,
+			media_purged_at DATETIME NULL,
 			likes_count INT NOT NULL DEFAULT 0,
 			comments_count INT NOT NULL DEFAULT 0,
 			views_count INT NOT NULL DEFAULT 0,
@@ -888,7 +891,8 @@ final class Schema {
 			UNIQUE KEY shortcode (shortcode),
 			KEY feed (tenant_id,status,published_at),
 			KEY expiry (status,expires_at),
-			KEY schedule (status,publish_at)
+			KEY schedule (status,publish_at),
+			KEY purge_retry (status,media_purged_at)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}vip_post_likes (
@@ -1764,7 +1768,7 @@ final class Schema {
 			UNIQUE KEY event (profile_id,event_id),
 			KEY tenant (tenant_id),
 			KEY provider_post (provider_post_id)
-		) {$charset}.";
+		) {$charset}";
 
 		return $sql;
 	}

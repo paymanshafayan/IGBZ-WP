@@ -117,6 +117,7 @@ final class Activator {
 			39 => [ self::class, 'migrate_to_v39' ],
 			40 => [ self::class, 'migrate_to_v40' ],
 			41 => [ self::class, 'migrate_to_v41' ],
+			42 => [ self::class, 'migrate_to_v42' ],
 		];
 	}
 
@@ -329,6 +330,18 @@ final class Activator {
 	 */
 	public static function migrate_to_v21(): void {
 		self::seed_defaults();
+	}
+
+	/**
+	 * v42 (phase 54): the VIP channel hardening columns — `payments.idempotency_key` (creation
+	 * idempotency per tenant+purpose, so a repeated VIP purchase start reuses its row) and
+	 * `vip_posts.media_purged_at` (the purge ledger marker the daily reconcile retries on).
+	 *
+	 * Pure dbDelta work — install_tables() creates both from Schema::statements(); existing
+	 * rows keep the NULL default, which the UNIQUE key permits.
+	 */
+	public static function migrate_to_v42(): void {
+		// Pure dbDelta work; see the payments and vip_posts tables in Schema::statements().
 	}
 
 	/**

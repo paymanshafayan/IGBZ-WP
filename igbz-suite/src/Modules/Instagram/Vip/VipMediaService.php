@@ -81,6 +81,11 @@ final class VipMediaService {
 	 * handed to a filter instead: we have no business issuing deletes against a bucket whose
 	 * credentials and lifecycle rules belong to the shop owner.
 	 *
+	 * Phase 54: a local file is shredded before it is unlinked — overwritten in place with
+	 * random bytes — so the paid-for bytes do not linger on the block device after the row
+	 * says they are gone. Best effort: on a filesystem that refuses the rewrite the unlink
+	 * still runs, because availability of the delete matters more than its thoroughness.
+	 *
 	 * @param array<int,array<string,mixed>> $media
 	 */
 	public function purge( array $media ): int {
@@ -111,22 +116,117 @@ final class VipMediaService {
 				continue;
 			}
 
-			$full = path_is_absolute( $path ) ? $path : $basedir . ltrim( $path, '/' );
-			$real = realpath( $full );
-
-			// Refuse anything that resolves outside uploads. A crafted "../../wp-config.php" in a
-			// media row must never become a delete.
-			if ( false === $real || ! str_starts_with( $real, (string) realpath( $basedir ) ) ) {
+			$real = $this->contained_path( $path, $basedir );
+			if ( null === $real ) {
 				$this->logger->warning( 'vip', 'Refused to purge media outside uploads', [ 'path' => $path ] );
 				continue;
 			}
 
-			if ( is_file( $real ) && wp_delete_file_from_directory( $real, $basedir ) ) {
+			if ( is_file( $real ) ) {
+				$this->shred( $real );
+				if ( wp_delete_file_from_directory( $real, $basedir ) ) {
+					++$removed;
+				}
+			} else {
+				// Already gone: an idempotent retry must not count it as outstanding work.
 				++$removed;
 			}
 		}
 
 		return $removed;
+	}
+
+	/**
+	 * Phase 54: the honest completion signal for a post's media purge.
+	 *
+	 * `purge()` reports how many items it acted on, not whether the disk is actually clean —
+	 * a refused path (outside uploads) or a failed unlink still leaves the file behind. The
+	 * reconcile sweep needs the truth, so this re-checks every local path against the
+	 * filesystem. Items owned by a filter or an attachment are treated as handled: their
+	 * storage is not ours to re-inspect.
+	 *
+	 * @param array<int,array<string,mixed>> $media
+	 */
+	public function purge_complete( array $media ): bool {
+		$uploads = wp_get_upload_dir();
+		$basedir = trailingslashit( (string) ( $uploads['basedir'] ?? '' ) );
+
+		foreach ( $media as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+
+			if ( (int) ( $item['attachment_id'] ?? 0 ) > 0 ) {
+				continue;
+			}
+
+			$path = (string) ( $item['path'] ?? '' );
+			if ( '' === $path ) {
+				continue;
+			}
+
+			$real = $this->contained_path( $path, $basedir );
+			if ( null === $real ) {
+				// Not ours to delete — but also never cleanable by us; treat as complete so
+				// reconcile does not hammer an unresolvable row forever.
+				continue;
+			}
+
+			if ( file_exists( $real ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Resolve a stored path to a real path inside uploads, or null when it escapes.
+	 *
+	 * Refuse anything that resolves outside uploads: a crafted "../../wp-config.php" in a
+	 * media row must never become a delete.
+	 */
+	private function contained_path( string $path, string $basedir ): ?string {
+		if ( '' === $basedir ) {
+			return null;
+		}
+
+		$full = path_is_absolute( $path ) ? $path : $basedir . ltrim( $path, '/' );
+		$real = realpath( $full );
+
+		if ( false === $real || ! str_starts_with( $real, (string) realpath( $basedir ) ) ) {
+			return null;
+		}
+
+		return $real;
+	}
+
+	/**
+	 * Overwrite a file with random bytes before it disappears.
+	 *
+	 * Same length, single pass: this is not forensic resistance against a state actor, it is
+	 * honesty about "deleted" — the agreed VIP ceiling is Close-Friends grade, not LMS grade.
+	 */
+	private function shred( string $real ): void {
+		$handle = @fopen( $real, 'r+' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- best effort by design
+		if ( ! is_resource( $handle ) ) {
+			return;
+		}
+
+		$size = (int) filesize( $real );
+		if ( $size > 0 ) {
+			try {
+				$chunk = 64 * 1024;
+				for ( $written = 0; $written < $size; $written += $chunk ) {
+					fwrite( $handle, random_bytes( min( $chunk, $size - $written ) ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+				}
+				fflush( $handle );
+			} catch ( \Exception $e ) {
+				// A failed rewrite must not spare the file from the unlink that follows.
+			}
+		}
+
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 	}
 
 	/**
