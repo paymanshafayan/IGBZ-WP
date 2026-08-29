@@ -92,6 +92,7 @@ $cases = [
 	'GrowthPlaybookTest',
 	'AdversarialPadoTest',
 	'ApiContractTest',
+	'ApiAuthDeviceTest',
 ];
 
 foreach ( $cases as $case ) {

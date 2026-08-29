@@ -38,6 +38,17 @@ final class TokenService {
 	}
 
 	/**
+	 * Phase 66: the rotation overlap window. A mobile client on a flaky network can
+	 * have its refresh response die in transit — the old token is already burned and
+	 * the user is logged out for no reason. Within this window a replayed
+	 * ROTATED token gets one fresh pair instead of killing the device; outside it
+	 * (or for explicitly revoked tokens) the theft response stays total. 0 disables.
+	 */
+	public function refresh_grace_seconds(): int {
+		return max( 0, min( 300, igbz()->settings()->int( 'api.refresh_grace_seconds', 30 ) ) );
+	}
+
+	/**
 	 * Issue a fresh pair.
 	 *
 	 * @return array{
@@ -152,7 +163,30 @@ final class TokenService {
 			return [ 'ok' => false, 'error' => 'unknown_refresh_token', 'tokens' => [] ];
 		}
 		if ( null !== $row['revoked_at'] ) {
-			// A revoked refresh token being replayed means the value leaked: kill the whole device.
+			// A revoked refresh token being replayed means the value leaked — unless it was
+			// consumed by ROTATION moments ago and the response never reached the client.
+			// Rotation stamps rotated_at; an explicit revoke (logout / device kill) never does,
+			// so the theft response stays total for everything except a fresh rotation.
+			if ( null !== $row['rotated_at'] && $this->refresh_grace_seconds() > 0 ) {
+				$age = time() - (int) strtotime( (string) $row['rotated_at'] . ' UTC' );
+				if ( $age >= 0 && $age <= $this->refresh_grace_seconds() ) {
+					// Consume the grace marker atomically: exactly ONE retry per rotation.
+					$consumed = (int) $this->db->query(
+						'UPDATE ' . $this->db->table( 'api_tokens' ) . ' SET rotated_at = NULL WHERE id = %d AND rotated_at IS NOT NULL',
+						(int) $row['id']
+					);
+					if ( $consumed >= 1 ) {
+						$this->logger->warning( 'api', 'Refresh token replayed inside the grace window — reissuing once', [ 'user_id' => (int) $row['user_id'], 'age' => $age ] );
+						return [
+							'ok'     => true,
+							'error'  => '',
+							'tokens' => $this->issue( (int) $row['user_id'], (int) $row['tenant_id'], '' !== $device_id ? $device_id : (string) $row['device_id'] ),
+						];
+					}
+				}
+			}
+
+			// Everything else is theft: kill the whole device.
 			$this->revoke_device( (int) $row['user_id'], (string) $row['device_id'] );
 			$this->logger->warning( 'api', 'Refresh token replay detected', [ 'user_id' => (int) $row['user_id'] ] );
 			return [ 'ok' => false, 'error' => 'refresh_token_revoked', 'tokens' => [] ];
@@ -164,12 +198,21 @@ final class TokenService {
 		// Atomic claim: exactly one request can burn this refresh token. Two parallel
 		// presentations race on the UPDATE; the loser sees zero affected rows, which is the
 		// same evidence as a replay, so the whole device goes down with it.
-		$claimed = (int) $this->db->query(
-			'UPDATE ' . $this->db->table( 'api_tokens' ) . ' SET revoked_at = %s WHERE id = %d AND revoked_at IS NULL',
-			current_time( 'mysql', true ),
+		$now_mysql = current_time( 'mysql', true );
+		$claimed   = (int) $this->db->query(
+			'UPDATE ' . $this->db->table( 'api_tokens' ) . ' SET revoked_at = %s, rotated_at = %s WHERE id = %d AND revoked_at IS NULL',
+			$now_mysql,
+			$now_mysql,
 			(int) $row['id']
 		);
 		if ( $claimed < 1 ) {
+			// The row was claimed between our read and this write — the classic double
+			// refresh of a flaky client. The winner's stamp is now on the row, so one
+			// grace retry answers the loser honestly instead of killing the device.
+			$fresh = $this->db->row( 'SELECT * FROM ' . $this->db->table( 'api_tokens' ) . ' WHERE id = %d', (int) $row['id'] );
+			if ( $fresh && null !== $fresh['rotated_at'] ) {
+				return $this->refresh( $refresh_token, $device_id ); // re-enters on the rotated row → grace path
+			}
 			$this->revoke_device( (int) $row['user_id'], (string) $row['device_id'] );
 			$this->logger->warning( 'api', 'Concurrent refresh token reuse detected', [ 'user_id' => (int) $row['user_id'] ] );
 			return [ 'ok' => false, 'error' => 'refresh_token_revoked', 'tokens' => [] ];

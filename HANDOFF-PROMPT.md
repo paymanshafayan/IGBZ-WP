@@ -3,7 +3,7 @@
 > **این فایل را در چت جدید بفرست (یا بگو «`HANDOFF-PROMPT.md` را بخوان»).**
 > به‌روزرسانی: ۱۴۰۶/۰۶/۰۹ (۲۹ اوت ۲۰۲۶) · شاخهٔ ثابت آخرین جلسه:
 > `arena/01a04b9c-igbz-wp` (هر جلسه شاخهٔ arena خودش را دارد؛ فقط روی همان کار کن).
-> **وضعیت: فازهای ۰۱ تا ۶۵ تمام و پوش‌شده؛ فاز بعدی ۶۶ است (احراز API و دستگاه — موج هشت).** جزئیات دقیق در بخش
+> **وضعیت: فازهای ۰۱ تا ۶۶ تمام و پوش‌شده؛ فاز بعدی ۶۷ است (رفتار API موبایل — موج هشت).** جزئیات دقیق در بخش
 > «📍 نقطهٔ دقیق ادامهٔ کار» همین‌جاست.
 > معماری جاری: پادوی Playbookمحور، DeepInfra مستقل هر فروشگاه و Zernio مرکزی/چندپروفایلی
 > به‌عنوان تنها provider اجتماعی؛ Manus، ChatPlace، ManyChat و Ayrshare حذف‌اند و پیشنهاد session اینستاگرام در Agent Reach رد شده است.
@@ -126,18 +126,28 @@
   `breaking_changes` با ۸ نوع نقض؛ خط پایهٔ پین‌شده
   `igbz-suite/contracts/api-v1.json`؛ سرصفحه‌های Deprecation/Sunset/Link برای
   عملیات‌های منسوخ. جزئیات: `PROJECT-STATE §۱۱.۲۱`.
-- معیارهای سبز: تست **۱۵۲۹۰ اظهارنظر در ۷۹ کیس** · لینت **۵۰۱۶ فایل/صفر خطا** ·
-  دیتابیس **v46 با ۹۹ جدول**.
+- **فاز ۶۶ — احراز API و دستگاه:** ممیزی کامل زیرساخت موجود (JWT/چرخش/بازپخش/
+  ابطال/دستگاه/scopes/tenant) + پنجرهٔ مهلت چرخش با ستون `rotated_at` (v47):
+  بازپخش توکن چرخیده در ≤۳۰s یک‌بار جفت تازه می‌گیرد (`api.refresh_grace_seconds`)،
+  بار سوم/بیرون پنجره/خروج = ابطال دستگاه؛ بازندهٔ مسابقه پاسخ می‌گیرد. جزئیات:
+  `PROJECT-STATE §۱۱.۲۲`.
+- معیارهای سبز: تست **۱۵۳۳۱ اظهارنظر در ۸۰ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
+  دیتابیس **v47 با ۹۹ جدول (ستون جدید api_tokens.rotated_at)**.
 
 ### از کجا باید ادامه داد
 
-- **فاز بعدی: ۶۶ — احراز API و دستگاه.** شرح در `PROJECT-COMPLETION-PLAN.md §۲۳.۱۱`:
-  JWT، refresh rotation، replay، revoke، device lifecycle، capability و tenant
-  ownership. زیرساخت موجود: TokenService/DeviceRepository/BaseController (احراز
-  نشست/دستگاه از فازهای قبل) + قرارداد پین‌شدهٔ ۶۵ برای هر تغییر API (گیت
-  breaking_changes را در تست بنشانید). باقی‌ماندهٔ ۵۳/۵۵ به PV (trending-audio واقعی،
-  Business Discovery، Hashtag Search تا `PV-ZERNIO-*`)؛ اجرای واقعی مدل پادو در
-  تولید پشت گیت فعال‌سازی/بنچمارک باقی است.
+- **فاز بعدی: ۶۷ — رفتار API موبایل.** شرح در `PROJECT-COMPLETION-PLAN.md §۲۳.۱۱`:
+  cursor pagination، limit، idempotency نوشتن، upload، push، retry/offline conflict و
+  contract test. قرارداد پین‌شدهٔ ۶۵ (`contracts/api-v1.json` + گیت breaking_changes)
+  مبنای هر تغییر API است — پس از هر تغییر سند را بازتولید و پین کنید.
+- **بازسازی سندباکس (روال اثبات‌شده):** گیت به پایه برمی‌گردد → `git fetch origin
+  arena/01a04e8d-igbz-wp && git reset --mixed FETCH_HEAD`؛ محیط با
+  `bash _devenv/setup.sh` و `bash _devenv/run.sh`؛ کرومیوم از npm
+  `@sparticuz/chromium` (brotli به /tmp/chromium-extract + LD_LIBRARY_PATH از
+  al2023.tar) — CDN پلی‌رایت/دبیان بسته است، فقط npm باز است؛ پلی‌گراند مستأجر
+  ندارد و دود باید مستأجر خودش را بسازد.
+- باقی‌ماندهٔ ۵۳/۵۵ به PV (trending-audio واقعی، Business Discovery، Hashtag Search
+  تا `PV-ZERNIO-*`)؛ اجرای واقعی مدل پادو در تولید پشت گیت فعال‌سازی/بنچمارک باقی است.
 - **باقی‌مانده از ۵۳ (صادقانه):** endpoint واقعی trending-audio هنوز در
   `PV-ZERNIO-*` راستی‌آزمایی نشده — تا آن زمان صدا فقط از `voice_url`ِ
   registration می‌آید و گیت `igbz.publisher_audio` خاموش می‌ماند. اتصال agent

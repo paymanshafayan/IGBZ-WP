@@ -17,3 +17,14 @@ namespace IGBZ\Suite\Modules\Instagram\Vip;
 function header( string $header, bool $replace = true, int $response_code = 0 ): void {
 	$GLOBALS['igbz_test_headers'][] = $header;
 }
+
+
+namespace IGBZ\Suite\Modules\RestApi\Auth;
+
+/**
+ * The token payload reads the stored phone; the global harness has no usermeta
+ * table, so the double answers from the test-scoped map (empty by default).
+ */
+function get_user_meta( int $user_id, string $key, bool $single = false ) {
+	return $GLOBALS['igbz_test_usermeta'][ $user_id ][ $key ] ?? '';
+}

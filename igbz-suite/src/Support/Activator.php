@@ -122,6 +122,7 @@ final class Activator {
 			44 => [ self::class, 'migrate_to_v44' ],
 			45 => [ self::class, 'migrate_to_v45' ],
 			46 => [ self::class, 'migrate_to_v46' ],
+			47 => [ self::class, 'migrate_to_v47' ],
 		];
 	}
 
@@ -387,6 +388,15 @@ final class Activator {
 	 * Pure dbDelta work; see Schema's pado_playbooks / pado_playbook_runs blocks.
 	 */
 	public static function migrate_to_v46(): void {
+		self::install_tables();
+	}
+
+	/**
+	 * v47 (phase 66): rotation marker on api_tokens — the refresh-grace window
+	 * needs to tell a rotation apart from an explicit revoke. dbDelta adds the
+	 * nullable column; nothing else moves.
+	 */
+	public static function migrate_to_v47(): void {
 		self::install_tables();
 	}
 

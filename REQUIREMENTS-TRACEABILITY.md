@@ -377,7 +377,7 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| API-001 | قرارداد نسخه‌دار و قابل تولید کلاینت | APPS/MODULES؛ PLAN §۲۳.۱۱ (فاز ۶۵) | ApiContractService + GET /igbz/v1/contract: سند OpenAPI 3.1 از ۱۷۰ مسیر واقعی، تاکسونومی خطای هفت‌کدی، دو پاکت خطای مستند، گیت breaking_changes با ۸ نوع نقض، خط پایهٔ پین‌شده contracts/api-v1.json، سرصفحه‌های Deprecation/Sunset/Link | ✅ فاز ۶۵ (قرارداد + سیاست سازگاری + sunset). فازهای بعدی موج هشت: احراز دستگاه (۶۶)، رفتار موبایل (۶۷) |
+| API-001 | قرارداد نسخه‌دار و قابل تولید کلاینت | APPS/MODULES؛ PLAN §۲۳.۱۱ (فاز ۶۵) | ApiContractService + GET /igbz/v1/contract: سند OpenAPI 3.1 از ۱۷۰ مسیر واقعی، تاکسونومی خطای هفت‌کدی، دو پاکت خطای مستند، گیت breaking_changes با ۸ نوع نقض، خط پایهٔ پین‌شده contracts/api-v1.json، سرصفحه‌های Deprecation/Sunset/Link | ✅ فاز ۶۵ (قرارداد + سیاست سازگاری + sunset). احراز دستگاه ✅ (۶۶: ممیزی کامل + پنجرهٔ مهلت چرخش v47) |
 | API-002 | pagination/idempotency/upload/push | APPS | BaseController/controllers/FCM | پیاده‌شدهٔ ناهمگون؛ ماتریس مسیر کامل نیست |
 | UX-001 | فارسی کامل طبق دامنهٔ مصوب | تصمیم کارفرما؛ POT | POT ۲۳۵۱ رشته | شکاف: `fa_IR.po/mo` نهایی ندارد |
 | UX-002 | RTL، دسترس‌پذیری و نقش‌ها | قانون ویژوال | ۳۵ تصویر | شکاف: checkout `US/CA`، glyph مربعی و متن انگلیسی |

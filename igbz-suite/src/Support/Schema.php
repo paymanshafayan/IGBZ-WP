@@ -748,6 +748,7 @@ final class Schema {
 			refresh_expires_at DATETIME NULL,
 			revoked_at DATETIME NULL,
 			last_used_at DATETIME NULL,
+			rotated_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY jti (jti),
 			KEY user_id (user_id),
