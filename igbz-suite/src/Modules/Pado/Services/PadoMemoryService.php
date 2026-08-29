@@ -132,17 +132,21 @@ class PadoMemoryService {
 			return $refuse( 'invalid_source' );
 		}
 
-		// Layer 1 of the poisoning defence: memory is data, never commands.
-		foreach ( self::INSTRUCTION_PATTERNS as $pattern ) {
-			if ( preg_match( $pattern, $content ) ) {
-				$this->logger->warning( 'pado', 'Refused a memory entry that looked like instructions, not data', [ 'tenant' => $tenant_id, 'layer' => $layer, 'pattern' => $pattern ] );
-				return $refuse( 'content_is_instructions_not_data' );
+		// Layer 1 of the poisoning defence: memory is data, never commands — and the
+		// title flows back into prompts as readily as the content, so both ride the
+		// same gate (the title is checked as its own string: its ^ anchors must work).
+		foreach ( [ $content, $title ] as $field ) {
+			foreach ( self::INSTRUCTION_PATTERNS as $pattern ) {
+				if ( preg_match( $pattern, $field ) ) {
+					$this->logger->warning( 'pado', 'Refused a memory entry that looked like instructions, not data', [ 'tenant' => $tenant_id, 'layer' => $layer, 'pattern' => $pattern ] );
+					return $refuse( 'content_is_instructions_not_data' );
+				}
 			}
-		}
-		// Credentials never enter the store.
-		foreach ( self::SECRET_PATTERNS as $pattern ) {
-			if ( preg_match( $pattern, $content ) ) {
-				return $refuse( 'content_looks_like_a_secret' );
+			// Credentials never enter the store — through the title either.
+			foreach ( self::SECRET_PATTERNS as $pattern ) {
+				if ( preg_match( $pattern, $field ) ) {
+					return $refuse( 'content_looks_like_a_secret' );
+				}
 			}
 		}
 

@@ -58,6 +58,31 @@ class GrowthPlaybookService {
 	/** The prompt's §۱ data-contract types — nothing else may enter a run. */
 	public const FACT_TYPES = [ 'connected_account', 'public', 'admin_input', 'estimate', 'model_inference', 'unavailable' ];
 
+	/**
+	 * Phase 64 hardening — the same data/command separation the memory layer enforces.
+	 * A fact VALUE that tries to be a command (direct or indirect prompt injection) is
+	 * refused at the gate instead of riding into the model's context.
+	 */
+	private const INJECTION_PATTERNS = [
+		'/ignore\s+(all\s+)?(previous|prior|above)/i',
+		'/disregard\s+(the\s+)?(previous|prior|above)/i',
+		'/^system\s*:/im',
+		'/^assistant\s*:/im',
+		'/new\s+instructions?\s*:/i',
+		'/you\s+are\s+now/i',
+		'/<\?php/i',
+		'/<script/i',
+		'/act\s+as\s+(if|an?)/i',
+	];
+
+	/** Phase 64 hardening — model output that echoes a secret is refused, never journalled as valid. */
+	private const SECRET_ECHO_PATTERNS = [
+		'/-----BEGIN [A-Z ]*PRIVATE KEY-----/',
+		'/\b(sk|pk|rk)-[A-Za-z0-9]{16,}/',
+		'/\bAKIA[0-9A-Z]{16}\b/',
+		'/(api[_-]?key|secret|password|token)\s*[:=]\s*\S{8,}/i',
+	];
+
 	/** Connected-account data must stay separate from public competitor data. */
 	public const COMPETITOR_TYPES = [ 'public', 'estimate' ];
 
@@ -235,6 +260,11 @@ class GrowthPlaybookService {
 			if ( preg_match( '/[\w.+-]+@[\w-]+\.[\w.]+|\b09\d{9}\b/', (string) ( $fact['value'] ?? '' ) ) ) {
 				return $this->record_rejected( $tenant_id, $playbook, $facts, 'fact_contains_pii', $actor );
 			}
+			foreach ( self::INJECTION_PATTERNS as $pattern ) {
+				if ( preg_match( $pattern, (string) ( $fact['value'] ?? '' ) . ' ' . (string) ( $fact['source'] ?? '' ) ) ) {
+					return $this->record_rejected( $tenant_id, $playbook, $facts, 'fact_is_instructions_not_data', $actor );
+				}
+			}
 			$clean[ (string) $fact['id'] ] = $fact;
 		}
 
@@ -260,9 +290,28 @@ class GrowthPlaybookService {
 		}
 
 		$ctx = [ 'playbook' => $playbook, 'facts' => array_values( $clean ), 'context' => $context ];
-		$result = ( $this->executor )( $ctx );
+		try {
+			$result = ( $this->executor )( $ctx );
+		} catch ( \Throwable $e ) {
+			// Model outage: journal the failure honestly, never leave a half-run behind.
+			$run_id = $this->insert_run( $tenant_id, $playbook, $facts, [], [ 'error' => $e->getMessage() ], $actor, self::RUN_FAILED, self::VERDICT_REJECTED, 'provider_error' );
+			$this->logger->error( 'pado', 'Playbook run failed on a provider error', [ 'tenant' => $tenant_id, 'kind' => $kind, 'error' => $e->getMessage() ] );
+			return [ 'ok' => false, 'run_id' => $run_id, 'status' => self::RUN_FAILED, 'verdict' => self::VERDICT_REJECTED, 'error' => 'provider_error', 'output' => [] ];
+		}
 		$output = is_array( $result['output'] ?? null ) ? $result['output'] : [];
 		$usage  = is_array( $result['usage'] ?? null ) ? $result['usage'] : [];
+
+		// Phase 64 hardening: output that echoes a credential is refused no matter how
+		// well-cited it is — the journal must never become a secret store.
+		foreach ( self::SECRET_ECHO_PATTERNS as $pattern ) {
+			if ( preg_match( $pattern, (string) wp_json_encode( $output, JSON_UNESCAPED_UNICODE ) ) ) {
+				// The journal records THAT a secret was echoed and why it was refused —
+				// never the bytes themselves. The run log must not become a secret store.
+				$redacted = [ 'redacted' => true, 'reason' => 'output_contains_secret' ];
+				$run_id = $this->insert_run( $tenant_id, $playbook, $facts, $redacted, $usage, $actor, self::RUN_DONE, self::VERDICT_REJECTED, 'output_contains_secret' );
+				return [ 'ok' => false, 'run_id' => $run_id, 'status' => self::RUN_DONE, 'verdict' => self::VERDICT_REJECTED, 'error' => 'output_contains_secret', 'output' => [] ];
+			}
+		}
 
 		// ---- the output contract (prompt §۸), enforced by the backend
 		$violation = $this->output_violation( $output, $clean );
