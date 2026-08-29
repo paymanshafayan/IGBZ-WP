@@ -100,6 +100,8 @@ final class Schema {
 			'ig_courier_tracking',
 			'ig_courier_chat',
 			'logs',
+			'pado_memory',
+			'pado_memory_access',
 			'approval_requests',
 			'themes',
 			'ig_ad_campaigns',
@@ -1584,6 +1586,51 @@ final class Schema {
 			KEY kind (kind),
 			KEY created_at (created_at),
 			KEY expiry (status,expires_at)
+		) {$charset};";
+
+		// ---------------------------------------------------------------------
+		// v45 (phase 62): Pado's memory — the three persistent layers of
+		// DESIGN-PADO §لایهٔ ۴ plus the transient working memory. One row per
+		// entry with layer/domain/provenance/trust/digest; episodic rows store
+		// their content ENCRYPTED at rest (Support\Crypto) and every read of them
+		// is audited in pado_memory_access below. Retention is enforced by the
+		// daily sweep (working TTL, episodic retention window).
+		$sql[] = "CREATE TABLE {$p}pado_memory (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			layer VARCHAR(20) NOT NULL DEFAULT '',
+			domain VARCHAR(40) NOT NULL DEFAULT '',
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			content LONGTEXT NULL,
+			provenance LONGTEXT NULL,
+			trust TINYINT UNSIGNED NOT NULL DEFAULT 50,
+			digest CHAR(64) NOT NULL DEFAULT '',
+			status VARCHAR(20) NOT NULL DEFAULT 'active',
+			hits INT UNSIGNED NOT NULL DEFAULT 0,
+			expires_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_layer_digest (tenant_id,layer,digest),
+			KEY tenant_layer_status (tenant_id,layer,status),
+			KEY expires_at (expires_at)
+		) {$charset};";
+
+		// Every memory operation (write/read/promote/expire/refuse/erase) lands
+		// here with its actor — full lifecycle observability, and the read audit
+		// for the episodic layer.
+		$sql[] = "CREATE TABLE {$p}pado_memory_access (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			memory_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			action VARCHAR(20) NOT NULL DEFAULT '',
+			actor VARCHAR(64) NOT NULL DEFAULT '',
+			note VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY memory_id (memory_id),
+			KEY tenant_action (tenant_id,action),
+			KEY created_at (created_at)
 		) {$charset};";
 
 		// Theme artefacts produced by Pado (or uploaded) and validated by

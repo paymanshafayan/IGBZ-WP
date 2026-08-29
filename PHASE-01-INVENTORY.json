@@ -307,8 +307,8 @@
     "all_plugin_php_count": 318
   },
   "database": {
-    "version": 44,
-    "table_count": 95,
+    "version": 45,
+    "table_count": 97,
     "tables": [
       "tenants",
       "tenant_domains",

@@ -121,6 +121,16 @@ final class PadoModule implements ModuleInterface {
 				$c->get( 'payments' )
 			)
 		);
+		// Phase 62 — Pado's memory: four layers, provenance, tenant scope,
+		// retention and poisoning defence.
+		$plugin->bind(
+			'pado.memory',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\PadoMemoryService => new \IGBZ\Suite\Modules\Pado\Services\PadoMemoryService(
+				$c->db(),
+				$c->logger()
+			)
+		);
+
 		// Phase 61 — the signed-artefact release pipeline (sign / verify / diff).
 		$plugin->bind(
 			'pado.theme_releases',

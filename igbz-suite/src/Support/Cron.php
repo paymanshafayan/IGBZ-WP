@@ -95,6 +95,10 @@ final class Cron {
 		igbz()->logger()->prune( $settings->int( 'log.retention_days', 30 ) );
 
 		// Phase 57: pending approval requests whose decision window passed expire honestly.
+		// Phase 62: memory retention — working TTL, episodic window, stale knowledge.
+		if ( igbz()->has( 'pado.memory' ) ) {
+			igbz()->get( 'pado.memory' )->sweep();
+		}
 		if ( igbz()->has( 'pado.approvals' ) ) {
 			igbz()->get( 'pado.approvals' )->expire_due();
 		}

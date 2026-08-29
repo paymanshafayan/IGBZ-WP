@@ -120,6 +120,7 @@ final class Activator {
 			42 => [ self::class, 'migrate_to_v42' ],
 			43 => [ self::class, 'migrate_to_v43' ],
 			44 => [ self::class, 'migrate_to_v44' ],
+			45 => [ self::class, 'migrate_to_v45' ],
 		];
 	}
 
@@ -369,6 +370,14 @@ final class Activator {
 	 * append-only audit trail. Pure dbDelta on `igbz_approval_requests`; no new tables.
 	 */
 	public static function migrate_to_v44(): void {
+		self::install_tables();
+	}
+
+	/**
+	 * v45 (phase 62): Pado's memory store — entries plus the access audit.
+	 * Pure dbDelta work; see Schema's pado_memory / pado_memory_access blocks.
+	 */
+	public static function migrate_to_v45(): void {
 		self::install_tables();
 	}
 
