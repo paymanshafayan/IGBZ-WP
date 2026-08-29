@@ -73,8 +73,10 @@ final class ThemeService {
 			'created_at'          => $now,
 			'updated_at'          => $now,
 		];
-		$this->db->insert( 'themes', $insert );
-		return (int) $this->db->insert_id;
+		// Phase 60 live-smoke finding: Db has no insert_id property (it wraps wpdb),
+		// so this used to read null and every real-stack ingest record reported
+		// failure. Db::insert() already returns the inserted id.
+		return $this->db->insert( 'themes', $insert );
 	}
 
 	/**
@@ -143,6 +145,24 @@ final class ThemeService {
 		if ( ! $validation['ok'] ) {
 			$this->remove_tree( $tmp );
 			return [ 'ok' => false, 'id' => 0, 'validation' => $validation, 'error' => implode( ' ', $validation['errors'] ) ];
+		}
+
+		/*
+		 * Phase 60: an artefact that declares itself a child of an approved block
+		 * parent is claiming the low-risk type-1 output — so it must pass the full
+		 * PHP-free FSE contract (no PHP/JS, required templates/parts, no network
+		 * addresses). Classic uploads without an approved parent header are judged
+		 * by the base rules only, exactly as before.
+		 */
+		$style_header = (string) @file_get_contents( $validation_dir . '/style.css' );
+		if ( preg_match( '/^\s*Template\s*:\s*([A-Za-z0-9\-_]+)/im', $style_header, $m )
+			&& in_array( strtolower( (string) $m[1] ), ThemeContract::APPROVED_PARENTS, true ) ) {
+			$strict = ( new ThemeContract( $validator ) )->validate_php_free( $validation_dir );
+			if ( ! $strict['ok'] ) {
+				$this->remove_tree( $tmp );
+				return [ 'ok' => false, 'id' => 0, 'validation' => $strict, 'error' => implode( ' ', $strict['errors'] ) ];
+			}
+			$validation = $strict;
 		}
 		$slug = sanitize_title( pathinfo( (string) $file['name'], PATHINFO_FILENAME ) ) . '-' . gmdate( 'YmdHis' );
 		$stored = $this->upload_dir . $slug . '.zip';

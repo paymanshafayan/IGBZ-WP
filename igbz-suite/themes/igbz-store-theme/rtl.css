@@ -1,0 +1,17 @@
+/*
+ * راست‌چین‌سازی قالب IGBZ Store (قرارداد پذیرش ADR-0003 نوع ۱).
+ * چیدمان عمداً با ویژگی‌های منطقی CSS (margin-inline، padding-inline، inset-inline)
+ * نوشته شده تا در هر دو جهت بی‌نیاز از بازنویسی باشد؛ این فایل فقط تنظیم‌های
+ * جهت‌دارِ باقی‌مانده و تضمین قرارداد RTL را حمل می‌کند.
+ */
+
+.site-header,
+.site-footer {
+	direction: rtl;
+	text-align: right;
+}
+
+/* ناوبری در چیدمان راست‌به‌چپ از لبهٔ راست شروع می‌شود */
+.wp-block-navigation {
+	justify-content: flex-start;
+}
