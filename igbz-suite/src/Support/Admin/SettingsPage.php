@@ -355,8 +355,13 @@ final class SettingsPage {
 					[ 'key' => 'zernio.dm_path', 'label' => __( 'Direct messages path', 'igbz-suite' ), 'placeholder' => '/messages' ],
 					[ 'key' => 'zernio.story_reply_path', 'label' => __( 'Story reply path', 'igbz-suite' ), 'placeholder' => '/messages/story-reply' ],
 					[ 'key' => 'zernio.inbox_path', 'label' => __( 'Inbox path (conversations, comments, mentions, reviews)', 'igbz-suite' ), 'placeholder' => '/inbox' ],
+					[ 'key' => 'zernio.comment_reply_path', 'label' => __( 'Comment reply path', 'igbz-suite' ), 'placeholder' => '/comments/{commentId}/reply' ],
 					[ 'key' => 'zernio.analytics_path', 'label' => __( 'Analytics path', 'igbz-suite' ), 'placeholder' => '/analytics' ],
 					[ 'key' => 'zernio.audio_path', 'label' => __( 'Trending audio path', 'igbz-suite' ), 'placeholder' => '/audio/trending', 'help' => __( 'Reserved for the catalog voice flow (phase 53); live semantics are verified in the PV-ZERNIO phase.', 'igbz-suite' ) ],
+					[ 'key' => 'igbz.inbox_auto_approve', 'label' => __( 'Auto-approve inbox replies', 'igbz-suite' ), 'type' => 'checkbox', 'help' => __( 'Off by default (phase 51): every rule-matched reply waits for a human approval before the provider is called. Turning this on sends matching replies without a human in the loop.', 'igbz-suite' ) ],
+					[ 'key' => 'igbz.inbox_rate_limit_tenant', 'label' => __( 'Inbox replies per store per hour', 'igbz-suite' ), 'type' => 'number', 'min' => 0, 'max' => 1000, 'help' => __( 'Default 20. Above this the event is stored but no reply is sent (status skipped_rate_limit). 0 disables the cap.', 'igbz-suite' ) ],
+					[ 'key' => 'igbz.inbox_rate_limit_sender', 'label' => __( 'Inbox replies per user per hour', 'igbz-suite' ), 'type' => 'number', 'min' => 0, 'max' => 100, 'help' => __( 'Default 3. Per-sender cap on top of the store cap. 0 disables it.', 'igbz-suite' ) ],
+					[ 'key' => 'igbz.inbox_optout_phrases', 'label' => __( 'Opt-out phrases (comma separated)', 'igbz-suite' ), 'help' => __( 'A direct message that matches one of these exactly registers a permanent opt-out for that user. Default: نه,نه,خیر,نه دیگه پیام ندهید,stop,no', 'igbz-suite' ) ],
 				];
 
 

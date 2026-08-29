@@ -77,6 +77,7 @@ $cases = [
 	'ZernioSocialAdapterTest',
 	'SocialMigrationTest',
 	'SocialArchitectureGuardTest',
+	'InboxTest',
 ];
 
 foreach ( $cases as $case ) {

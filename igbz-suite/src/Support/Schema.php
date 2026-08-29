@@ -106,6 +106,10 @@ final class Schema {
 			'ig_intl_consents',
 			'ig_zernio_profiles',
 			'ig_social_migration',
+			'ig_zernio_inbox',
+			'ig_inbox_rules',
+			'ig_inbox_actions',
+			'ig_inbox_optouts',
 		];
 	}
 
@@ -1620,6 +1624,83 @@ final class Schema {
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY tenant_step (tenant_id,step)
+		) {$charset};";
+
+		// Phase 51 (ADR-0004 §6): the Zernio inbox. Captured events are stored per
+		// profile; the server-side account->profile->tenant mapping decides ownership,
+		// so a webhook from an account we do not manage is refused before anything
+		// else. event_id is Zernio's stable event id (content hash when absent) and
+		// deduplicates retries per profile.
+		$sql[] = "CREATE TABLE {$p}ig_zernio_inbox (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			profile_id BIGINT UNSIGNED NOT NULL,
+			event_id VARCHAR(64) NOT NULL,
+			event VARCHAR(48) NOT NULL DEFAULT '',
+			source VARCHAR(16) NOT NULL DEFAULT 'other',
+			post_id VARCHAR(64) NOT NULL DEFAULT '',
+			sender_id VARCHAR(64) NOT NULL DEFAULT '',
+			sender_username VARCHAR(128) NOT NULL DEFAULT '',
+			text TEXT NULL,
+			occurred_at DATETIME NOT NULL,
+			received_at DATETIME NOT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'received',
+			PRIMARY KEY  (id),
+			UNIQUE KEY event (profile_id,event_id),
+			KEY tenant_time (tenant_id,received_at)
+		) {$charset};";
+
+		// Phase 51: the backend rule table. Decisions about what to answer and how
+		// stay in our database; no external automation is given business authority.
+		// keyword '' matches everything; template placeholders: {username}.
+		$sql[] = "CREATE TABLE {$p}ig_inbox_rules (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			name VARCHAR(128) NOT NULL,
+			source VARCHAR(16) NOT NULL DEFAULT 'any',
+			keyword VARCHAR(128) NOT NULL DEFAULT '',
+			action VARCHAR(16) NOT NULL DEFAULT 'ignore',
+			template TEXT NULL,
+			priority INT NOT NULL DEFAULT 100,
+			active TINYINT NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_priority (tenant_id,priority)
+		) {$charset};";
+
+		// Phase 51: one row per reply/DM decision. idempotency_key is stable across
+		// retries (inbox:<id>), so the provider can never receive the same answer
+		// twice; state tracks the delivery lifecycle end to end.
+		$sql[] = "CREATE TABLE {$p}ig_inbox_actions (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			inbox_id BIGINT UNSIGNED NOT NULL,
+			rule_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			kind VARCHAR(16) NOT NULL,
+			target VARCHAR(128) NOT NULL DEFAULT '',
+			text TEXT NULL,
+			idempotency_key VARCHAR(64) NOT NULL,
+			state VARCHAR(20) NOT NULL DEFAULT 'queued',
+			provider_ref VARCHAR(64) NOT NULL DEFAULT '',
+			error VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			delivered_at DATETIME NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY idem (idempotency_key),
+			KEY tenant_state (tenant_id,state)
+		) {$charset};";
+
+		// Phase 51: the opt-out register. A user who asked to stop is never messaged
+		// again by this tenant; the row outlives the conversation.
+		$sql[] = "CREATE TABLE {$p}ig_inbox_optouts (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL,
+			sender_id VARCHAR(64) NOT NULL,
+			sender_username VARCHAR(128) NOT NULL DEFAULT '',
+			note VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY sender (tenant_id,sender_id)
 		) {$charset};";
 
 		return $sql;

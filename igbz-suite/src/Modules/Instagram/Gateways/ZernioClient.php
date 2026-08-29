@@ -304,6 +304,41 @@ final class ZernioClient implements ZernioAdapterInterface {
 			: [ 'ok' => false, 'message_id' => '', 'error' => 'zernio_missing_message_id' ];
 	}
 
+	/**
+	 * Phase 51 — reply to a public comment from the store's own account.
+	 *
+	 * The path is settings-driven like every other inbox endpoint: the live
+	 * semantics belong to PV-ZERNIO-*, not to a guess in code.
+	 */
+	public function reply_to_comment( string $key, string $account_id, string $comment_id, string $text, string $idempotency_key = '' ): array {
+		if ( '' === $key || '' === $account_id || '' === $comment_id ) {
+			return [ 'ok' => false, 'comment_id' => '', 'error' => 'zernio_not_configured' ];
+		}
+
+		$headers = $this->profile_headers( $key );
+		if ( '' !== $idempotency_key ) {
+			$headers['Idempotency-Key'] = $idempotency_key;
+		}
+
+		$url      = str_replace( '{commentId}', rawurlencode( $comment_id ), $this->path( 'comment_reply_path', '/comments/{commentId}/reply' ) );
+		$response = $this->request(
+			'POST',
+			$url,
+			[ 'json' => [ 'accountId' => $account_id, 'content' => $text ], 'headers' => $headers, 'channel' => 'zernio', 'timeout' => 30 ]
+		);
+		$json     = $response->json();
+
+		if ( ! $response->ok() ) {
+			return [ 'ok' => false, 'comment_id' => '', 'error' => (string) ( $json['message'] ?? $json['error'] ?? $response->error_message() ) ];
+		}
+
+		$reply_id = (string) ( $json['commentId'] ?? $json['comment']['id'] ?? $json['id'] ?? '' );
+
+		return '' !== $reply_id
+			? [ 'ok' => true, 'comment_id' => $reply_id, 'error' => '' ]
+			: [ 'ok' => false, 'comment_id' => '', 'error' => 'zernio_missing_comment_id' ];
+	}
+
 	public function get_inbox( string $key, string $kind, string $cursor = '', int $limit = 50 ): array {
 		if ( '' === $key ) {
 			return [ 'ok' => false, 'items' => [], 'next_cursor' => '', 'error' => 'zernio_not_configured' ];

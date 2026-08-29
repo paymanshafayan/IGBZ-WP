@@ -1764,7 +1764,7 @@ visual-testing/design-instagram-pado-zernio.png
 visual-testing/prompt-instagram-growth-pado.png
 ```
 
-### ۱۱.۶ پلن فاز ۵۰ — مهاجرت به تنها provider اجتماعی (در جریان، مجوز کارفرما ۱۴۰۵/۰۶/۰۶ «شروع کن»)
+### ۱۱.۶ فاز ۵۰ — مهاجرت به تنها provider اجتماعی — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
 
 **هدف:** ساخت adapter رسمی Zernio برای تمام صفحهٔ اجتماعی، مهاجرت کنترل‌شدهٔ دادهٔ
 legacy، و حذف کامل Manus/ChatPlace/ManyChat و fallbackهای اجتماعی از container،
@@ -1798,3 +1798,35 @@ legacy، و حذف کامل Manus/ChatPlace/ManyChat و fallbackهای اجتم�
    (کلاس‌ها، bindingها، کلیدهای تنظیمات، مارکرهای session) + آزمون منفی runtime.
 6. به‌روزرسانی: DriftGuard (۸۶/۳۸)، offboarding، Fx metering (حذف شارژ legacy)،
    StatusPage/PlansPage/READMEها/ماتریس ردیابی.
+
+### ۱۱.۷ فاز ۵۱ — اینباکس و comment-to-DM با Zernio — ✅ تمام‌شده ۱۴۰۶/۰۶/۰۹
+
+**هدف:** اینباکس رسمی Zernio و خط لولهٔ کامنت‌به‌دایرکت کاملاً سمت بک‌اند: وب‌هوک
+امضاشده، deduplication، rule بک‌اند، opt-out، rate limit، approval انسانی، delivery
+state، idempotency و audit. هیچ تصمیم تجاری به automation بیرونی واگذار نمی‌شود
+(ADR-0004 §۶).
+
+**بخش‌های اجرا:**
+1. اسکیمای v39 (۹۰ جدول): `ig_zernio_inbox` (رویدادهای ثبت‌شده، dedupe روی
+   `(profile_id,event_id)`)، `ig_inbox_rules` (قواعد بک‌اند با priority)،
+   `ig_inbox_actions` (دفترچۀ delivery با کلید idempotency یکتا)، `ig_inbox_optouts`
+   (رجیستر opt-out). همه در `Schema`/`Activator`/`TenantOffboarding` و DriftGuard ثبت شد.
+2. `InboxService` — خط لولهٔ تصمیم: capture ← dedupe ← opt-out ← rule ← rate limit
+   (ساعتی، per-sender و per-tenant) ← approval (پیش‌فرض خاموش) ← delivery. هر گام
+   idempotent است. کلید idempotency به رویدادِ ثبت‌شده (`inbox:<event_id>`) لنگر می‌خورد،
+   نه به سطر action — پس هر رویداد هرگز دوباره delivered نمی‌شود.
+3. مالکیت سمت بک‌اند: accountId رویداد از طریق `ig_zernio_profiles` به profile و tenant
+   نگاشت می‌شود؛ رویدادِ account ناشناس قبل از هر ذخیره‌ای رد می‌شود. هویت = HMAC
+   روی payload+timestamp با رازِ خودِ پروفایل و پنجرۀ ۳۰۰ ثانیه (ضد replay). امضای متعلق
+   به مستأجر دیگر هرگز رد نمی‌شود.
+4. `ZernioClient::reply_to_comment` افزوده شد (مسیر config-driven). ارسال با کلیدِ
+   scoped خودِ فروشگاه (نه کلید مرکزی) و با هدر `Idempotency-Key`.
+5. `InboxController` — وب‌هوک `POST /igbz/v1/zernio/inbox` (خوداحراز با HMAC، بدون JWT،
+   زیر پیشوند `/zernio/` که در Authenticator whitelist است) + سطح تصمیمِ ادمین
+   (`/igbz/v1/ig/inbox*`: events، actions، approve، reject، retry، optout، rules).
+6. تنظیمات: `igbz.inbox_auto_approve` (پیش‌فرض خاموش)، سقف ساعتی per-tenant/per-sender،
+   و عبارات opt-out — هر سه در تب Zernio فرم تنظیمات.
+7. `InboxTest` با ۱۳ سناریو: رد account ناشناس، رد امضای بیگانه/کهنه، dedupe،
+   approval پیش‌فرض، reject نهایی، rule بدون تطبیق، opt-out ماندگار، rate-limit
+   (sender و tenant)، retry شکست با همان کلید، reply روی کامنت، و عایق‌بندی
+   tenant. تست **۱۳۲۵۳/۶۵** · لینت صفر خطا.

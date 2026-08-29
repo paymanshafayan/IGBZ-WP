@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 226,
-    "source_php_sha256": "76f369c688af2b769792c8953c6fa864597db235ed9700a846d19ace3ed25cd4",
+    "source_php_count": 228,
+    "source_php_sha256": "491a7f2fcc2f760c533c97e74a44fc8cf46d41792339eecff5fa2ada2f28d0cf",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -100,6 +100,7 @@
       "igbz-suite/src/Modules/Instagram/Gateways/ZernioAdapterInterface.php",
       "igbz-suite/src/Modules/Instagram/Gateways/ZernioClient.php",
       "igbz-suite/src/Modules/Instagram/InstagramModule.php",
+      "igbz-suite/src/Modules/Instagram/Services/InboxService.php",
       "igbz-suite/src/Modules/Instagram/Services/PostIdentity.php",
       "igbz-suite/src/Modules/Instagram/Services/SkuGenerator.php",
       "igbz-suite/src/Modules/Instagram/Services/SocialMigrationService.php",
@@ -235,6 +236,7 @@
       "igbz-suite/src/Modules/RestApi/Controllers/DeviceController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/DomainController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/FxController.php",
+      "igbz-suite/src/Modules/RestApi/Controllers/InboxController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/SocialMigrationController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/StoreAdminController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/VipAdminController.php",
@@ -282,17 +284,17 @@
       "Domain": 3,
       "Fx": 17,
       "Hub": 11,
-      "Instagram": 32,
+      "Instagram": 33,
       "MultiTenant": 102,
       "Pado": 6,
-      "RestApi": 23
+      "RestApi": 24
     },
     "support_php_count": 32,
-    "all_plugin_php_count": 296
+    "all_plugin_php_count": 299
   },
   "database": {
-    "version": 38,
-    "table_count": 86,
+    "version": 39,
+    "table_count": 90,
     "tables": [
       "tenants",
       "tenant_domains",
@@ -379,14 +381,18 @@
       "ig_glossary_terms",
       "ig_intl_consents",
       "ig_zernio_profiles",
-      "ig_social_migration"
+      "ig_social_migration",
+      "ig_zernio_inbox",
+      "ig_inbox_rules",
+      "ig_inbox_actions",
+      "ig_inbox_optouts"
     ],
     "schema_source": "igbz-suite/src/Support/Schema.php",
     "version_source": "igbz-suite/igbz-suite.php"
   },
   "rest_api": {
-    "registration_calls": 135,
-    "files_with_registration": 14,
+    "registration_calls": 145,
+    "files_with_registration": 15,
     "files": [
       {
         "file": "igbz-suite/src/Modules/Hub/Rest/HubController.php",
@@ -434,6 +440,11 @@
         "direct_permission_callback_mentions": 0
       },
       {
+        "file": "igbz-suite/src/Modules/RestApi/Controllers/InboxController.php",
+        "registration_calls": 10,
+        "direct_permission_callback_mentions": 0
+      },
+      {
         "file": "igbz-suite/src/Modules/RestApi/Controllers/SocialMigrationController.php",
         "registration_calls": 2,
         "direct_permission_callback_mentions": 0
@@ -463,8 +474,8 @@
   },
   "settings_and_secrets": {
     "source": "igbz-suite/src/Support/Admin/SettingsPage.php",
-    "field_entries": 259,
-    "unique_field_keys": 259,
+    "field_entries": 264,
+    "unique_field_keys": 264,
     "duplicate_field_keys": [],
     "password_fields": [
       "api.fcm_service_account",
@@ -676,13 +687,13 @@
       {
         "hook_reference": "HOOK_FIVE_MINUTES",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "76",
+        "line": "81",
         "registration": "add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'run_five_minutes' ] );"
       },
       {
         "hook_reference": "HOOK_HOURLY",
         "file": "igbz-suite/src/Modules/Instagram/InstagramModule.php",
-        "line": "77",
+        "line": "82",
         "registration": "add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );"
       },
       {
@@ -730,7 +741,7 @@
       {
         "hook_reference": "HOOK_DAILY",
         "file": "igbz-suite/src/Modules/RestApi/RestApiModule.php",
-        "line": "79",
+        "line": "80",
         "registration": "add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );"
       },
       {
@@ -810,7 +821,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 68,
+    "php_file_count": 69,
     "php_files": [
       "igbz-suite/tests/AffiliateHardenTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
@@ -837,6 +848,7 @@
       "igbz-suite/tests/GatewayTest.php",
       "igbz-suite/tests/HourlyJobsTest.php",
       "igbz-suite/tests/HposOrderFlowTest.php",
+      "igbz-suite/tests/InboxTest.php",
       "igbz-suite/tests/IntlCommerceTest.php",
       "igbz-suite/tests/IpgAdaptersTest.php",
       "igbz-suite/tests/JobQueueTest.php",
@@ -881,7 +893,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 64,
+    "main_case_count": 65,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -946,7 +958,8 @@
       "ZernioConnectTest",
       "ZernioSocialAdapterTest",
       "SocialMigrationTest",
-      "SocialArchitectureGuardTest"
+      "SocialArchitectureGuardTest",
+      "InboxTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

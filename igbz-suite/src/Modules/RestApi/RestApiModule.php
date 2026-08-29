@@ -12,6 +12,7 @@ use IGBZ\Suite\Modules\RestApi\Controllers\BaseController;
 use IGBZ\Suite\Modules\RestApi\Controllers\CatalogController;
 use IGBZ\Suite\Modules\RestApi\Controllers\DeviceController;
 use IGBZ\Suite\Modules\RestApi\Controllers\FxController;
+use IGBZ\Suite\Modules\RestApi\Controllers\InboxController;
 
 use IGBZ\Suite\Modules\RestApi\Controllers\StoreAdminController;
 use IGBZ\Suite\Modules\RestApi\Controllers\WebhookController;
@@ -137,6 +138,12 @@ final class RestApiModule implements ModuleInterface {
 		// surface — store owners read their state and run their own round.
 		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.social_migration' ) ) {
 			$controllers[] = new SocialMigrationController();
+		}
+
+		// Phase 51: the Zernio inbox — the self-authenticating webhook plus the
+		// store's decision surface (events, ledger, approval, opt-out, rules).
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.inbox' ) ) {
+			$controllers[] = new InboxController();
 		}
 
 		// Same story for the VIP channel: the posts, the paywall and the member inbox are owned

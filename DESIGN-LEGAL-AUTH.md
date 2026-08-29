@@ -1384,6 +1384,53 @@ ChatPlace و fallbackهای اجتماعی) از کد بیرون رفت.
   (۵ سناریو: موج اول، idempotency موج دوم، انتظار صادقانه بدون کلید مرکزی، خروج از فهرست
   بعد از پایان، گزارش وضعیت). تست ۱۳۰۷۳/۶۴ · لینت ۲۹۶/۰.
 
+### ۷.۷.۵۱ وضعیت اجرا — ۱۴۰۶/۰۶/۰۹ (فاز ۵۱ ✅)
+
+اینباکس رسمی Zernio و خط لولهٔ کامنت‌به‌دایرکت؛ کل تصمیم‌گیری در بک‌اند، طبق ADR-0004 §۶.
+
+- **ورودی (`POST /igbz/v1/zernio/inbox`):** خوداحراز — بدون JWT. زرنیو webhookهای
+  team-level می‌فرستد، پس هر event برای همهٔ حساب‌های تیم می‌آید؛ مالکیت را ما می‌سازیم:
+  `accountId` از payload فقط با نگاشت بک‌اند `ig_zernio_profiles` (account→profile→
+  tenant) تبدیل به مستأجر می‌شود و eventِ حساب ناشناس **قبل از هر ذخیره‌ای** رد می‌شود
+  (404، بدون فاش‌کردن اینکه کدام حساب‌ها تحت مدیریت‌اند). هویت، همان معماری فاز ۴۹:
+  HMAC-SHA256 روی «بار + نقطه + مهر زمانی» با **راز خودِ پروفایل** و پنجرهٔ ۳۰۰ ثانیه‌ای؛
+  امضای متعلق به مستأجر دیگر یا مهر کهنه رد می‌شود (401).
+- **capture + dedupe:** رویداد در `ig_zernio_inbox` با کلید یکتای `(profile_id,
+  event_id)` ثبت می‌شود (event_id از payload، در نبودش hash بار). retryِ پرووایدر
+  `duplicate` برمی‌گردد و هیچ‌چیز دوباره پردازش نمی‌شود.
+- **خط لولهٔ تصمیم (`InboxService::process_event`):** (۱) opt-out — پیام DM که دقیقاً
+  یکی از عبارات opt-out باشد (`igbz.inbox_optout_phrases`) رجیستر `ig_inbox_optouts` را
+  پر می‌کند و کاربر **برای همیشه** از پاسخ‌دهی خارج می‌شود؛ (۲) rule — اولین rule فعال
+  مطابق priority که source و keyword (خالی = همه) ب‌خورد؛ عملیات‌ها `ignore|dm|reply`
+  با template و placeholder `{username}`؛ (۳) rate limit — سقف ساعتی per-sender
+  (`igbz.inbox_rate_limit_sender`، پیش‌فرض ۳) و per-tenant (`igbz.inbox_rate_limit_tenant`،
+  پیش‌فرض ۲۰)؛ عبور از سقف = event ذخیره می‌شود ولی ارسال نمی‌شود (`skipped_rate_limit`)؛
+  (۴) approval — `igbz.inbox_auto_approve` پیش‌فرض **خاموش**: هر پاسخ `pending_approval`
+  می‌ماند تا اپراتور از سطح ادمین تأیید یا رد کند؛ (۵) delivery — فقط حالا به پرووایدر.
+- **idempotency و delivery:** هر تصمیم یک سطر در `ig_inbox_actions` با کلید یکتای
+  `inbox:<event_id>` — لنگر به **رویداد** است نه سطر action، پس هیچ رویدادی هرگز
+  دوباره delivered نمی‌شود، حتی اگر مسیر approval چند بار طی شود. ارسال با کلید
+  scoped خودِ فروشگاه (هرگز کلید مرکزی) و هدر `Idempotency-Key`. DM از
+  `send_direct_message`، پاسخ عمومی کامنت از `reply_to_comment` (مسیر config-driven).
+  شکست با خطای پرووایدر در دفترچه می‌ماند و با `retry` همان کلید تکرار می‌شود.
+- **سطح ادمین (scoped به مستأجر):** `GET /igbz/v1/ig/inbox` (رویدادها)،
+  `GET /igbz/v1/ig/inbox/actions` (دفترچۀ delivery)، `POST .../approve`، `.../reject`
+  (رد نهایی و قابل ممیزی)، `.../retry`، `.../optout`، `GET/POST .../rules` و
+  `.../rules/active`. عملیات‌های cross-tenant هرگز رد نمی‌شوند (تست‌شده).
+- **صداقت پرووایدر:** پنجرهٔ ۲۴ ساعتی اینستاگرام یعنی Zernio cold DM باز نمی‌کند؛
+  کامنت به‌عنوان تعاملِ خودِ کاربر، DM به کاربر پست ما می‌رود. تأیید زندهٔ شکل‌های
+  پاسخ و رفتار پنجره با `PV-ZERNIO-*` است — تا آن زمان approval انسانی پیش‌فرض مانده
+  و بدون تأیید چیزی بیرون نمی‌رود.
+- **پوشش:** `InboxTest` با ۱۳ سناریو — رد account ناشناس/امضای بیگانه/مهر کهنه، dedupe،
+  approval پیش‌فرض + یکباری آن، reject نهایی، rule بدون تطبیق، opt-out ماندگار و
+  خودتشخیص، rate-limit هر دو سطح، retry شکست با همان کلید، reply روی کامنت، عایق‌بندی
+  tenant. تست ۱۳۲۵۳/۶۵ · لینت صفر خطا.
+- **اسموک زندهٔ پلی‌گراند:** همهٔ ۹ مسیر ثبت شدند؛ webhook روی رویدادِ آزمایشی
+  `unmapped account refused` را در لاگ ثبت کرد (مالکیت قبل از ذخیره) و مسیرهای
+  ادمین بدون JWT صحتاً 401 دادند. همین سموک یک باگ واقعی را هم روشن کرد:
+  `InstagramModule` چهار import (VipAccessService/VipPostService/VipSocialService/
+  VipMessageService) را نداشت و bindingها هنگام resolve fatal می‌شدند — اصلاح شد.
+
 ---
 
 ## ۸. فازبندی پیاده‌سازی (پس از تأیید)

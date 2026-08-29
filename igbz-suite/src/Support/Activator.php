@@ -114,6 +114,7 @@ final class Activator {
 			36 => [ self::class, 'migrate_to_v36' ],
 			37 => [ self::class, 'migrate_to_v37' ],
 			38 => [ self::class, 'migrate_to_v38' ],
+			39 => [ self::class, 'migrate_to_v39' ],
 		];
 	}
 
@@ -291,6 +292,14 @@ final class Activator {
 	 */
 	public static function migrate_to_v38(): void {
 		// Pure dbDelta work; see the ig_zernio_profiles, ig_accounts and ig_social_migration tables.
+	}
+
+	/**
+	 * v39 (phase 51): the Zernio inbox — captured events, backend rules, the
+	 * delivery ledger with its stable idempotency keys and the opt-out register.
+	 * Pure dbDelta work.
+	 */
+	public static function migrate_to_v39(): void {
 	}
 
 	/**

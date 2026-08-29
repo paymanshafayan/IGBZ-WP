@@ -3,14 +3,19 @@ namespace IGBZ\Suite\Modules\Instagram;
 
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioAdapterInterface;
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioClient;
+use IGBZ\Suite\Modules\Instagram\Services\InboxService;
 use IGBZ\Suite\Modules\Instagram\Services\SocialMigrationService;
 use IGBZ\Suite\Modules\Instagram\Services\TranslationBridge;
 use IGBZ\Suite\Modules\Instagram\Services\SkuGenerator;
 use IGBZ\Suite\Modules\Instagram\Services\ZernioConnectionService;
 use IGBZ\Suite\Modules\Instagram\Services\ZernioSocialService;
+use IGBZ\Suite\Modules\Instagram\Vip\VipAccessService;
 use IGBZ\Suite\Modules\Instagram\Vip\VipBillingService;
 use IGBZ\Suite\Modules\Instagram\Vip\VipLandingPage;
 use IGBZ\Suite\Modules\Instagram\Vip\VipMediaService;
+use IGBZ\Suite\Modules\Instagram\Vip\VipMessageService;
+use IGBZ\Suite\Modules\Instagram\Vip\VipPostService;
+use IGBZ\Suite\Modules\Instagram\Vip\VipSocialService;
 use IGBZ\Suite\Support\Cron;
 use IGBZ\Suite\Support\Jobs\JobContext;
 use IGBZ\Suite\Support\Jobs\JobQueue;
@@ -107,6 +112,16 @@ final class InstagramModule implements ModuleInterface {
 		$plugin->bind(
 			'ig.social_migration',
 			static fn ( Plugin $c ) => new SocialMigrationService( $c->db(), $c->logger(), $c->get( 'ig.zernio' ) )
+		);
+		$plugin->bind(
+			'ig.inbox',
+			static fn ( Plugin $c ) => new InboxService(
+				$c->db(),
+				$c->logger(),
+				$c->get( 'ig.zernio' ),
+				$c->get( 'ig.zernio_client' ),
+				$c->settings()
+			)
 		);
 
 		// --------------------------- building blocks for the rebuilt flows

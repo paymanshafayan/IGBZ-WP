@@ -1536,10 +1536,24 @@ fallbackهای اجتماعی از container، تنظیمات، endpoint، UI و
 کانال session — را در کل `src/` نگه می‌دارد تا بازگشت هر بخشِ قدیمی تست را می‌شکند.
 تست ۱۳۰۷۳/۶۴ · لینت ۲۹۶/۰. جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۰`.
 
-#### فاز ۵۱ — Inbox و comment-to-DM با Zernio
+#### فاز ۵۱ — Inbox و comment-to-DM با Zernio — ✅ تمام‌شده در ۱۴۰۶/۰۶/۰۹
 
 webhook امضاشده، deduplication، rule بک‌اند، opt-out، rate limit، approval، delivery state،
 idempotency و audit؛ هیچ تصمیم تجاری به automation بیرونی واگذار نمی‌شود.
+
+**نتیجهٔ محقق‌شده:** اینباکس (`POST /igbz/v1/zernio/inbox`) خوداحرازش با HMAC
+رویداد — رویداد روی account بیگانه قبل از هر ذخیره‌ای رد می‌شود و امضا با راز
+خودِ پروفایل و در پنجرهٔ ۳۰۰ ثانیه‌ای چک می‌شود. خط لولهٔ تصمیم کاملاً در بک‌اند
+(`InboxService`): capture با dedupe روی `(profile, event)` ← opt-out (ماندگار و
+خودتشخیص از پیام کاربر) ← rule بک‌اند با priority ← rate limit ساعتی (per-sender
+و per-tenant) ← approval انسانی (پیش‌فرض خاموش) ← delivery با کلید idempotency
+لنگر‌داده‌شده به رویداد (`inbox:<event_id>`) — ارسال با کلید scoped فروشگاه و
+بدون کلید مرکزی. شکست‌ها در دفترچۀ `ig_inbox_actions` با همان کلید retry می‌شوند.
+سطح ادمین (`/igbz/v1/ig/inbox*`) رویدادها، دفترچۀ delivery و approve/reject/retry،
+optout و قواعد را به صاحب فروشگاه می‌دهد (scoped). اسکیمای ۳۹ با ۹۰ جدول.
+آزمون زندهٔ ارسال (پنجرهٔ ۲۴ ساعتی اینستاگرام و شکل‌های واقعی پاسخ) با
+`PV-ZERNIO-*`؛ تا آن زمان پیش‌فرض approval انسانی است و چیزی بدون تأیید بیرون
+نمی‌رود. تست ۱۳۲۵۳/۶۵ · لینت صفر خطا. جزئیات: `DESIGN-LEGAL-AUTH.md §۷.۷.۵۱`.
 
 #### فاز ۵۲ — ثبت محصول ۱۳مرحله‌ای
 
