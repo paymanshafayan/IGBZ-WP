@@ -105,6 +105,7 @@ final class Activator {
 			26 => [ self::class, 'migrate_to_v26' ],
 			27 => [ self::class, 'migrate_to_v27' ],
 			28 => [ self::class, 'migrate_to_v28' ],
+			29 => [ self::class, 'migrate_to_v29' ],
 		];
 	}
 
@@ -180,6 +181,15 @@ final class Activator {
 	 */
 	public static function migrate_to_v28(): void {
 		// Pure dbDelta work; see the fx_rates table.
+	}
+
+	/**
+	 * v29 (phase 37): domain commerce — `ig_domain_quotes` (a quote is a price with a
+	 * deadline) and `ig_domain_orders.idempotency_key` with a per-tenant unique key (a
+	 * replayed order request can never create a second reservation). Pure dbDelta work.
+	 */
+	public static function migrate_to_v29(): void {
+		// Pure dbDelta work; see the ig_domain_quotes / ig_domain_orders tables.
 	}
 
 	/**

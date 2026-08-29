@@ -82,6 +82,7 @@ final class Schema {
 			'ig_nid_verifications',
 			'ig_legal_agreements',
 			'ig_domains',
+			'ig_domain_quotes',
 			'ig_domain_orders',
 			'ig_web_presence',
 			'ig_couriers',
@@ -1254,6 +1255,18 @@ final class Schema {
 			KEY name (name)
 		) {$charset};";
 
+		$sql[] = "CREATE TABLE {$p}ig_domain_quotes (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			name VARCHAR(191) NOT NULL DEFAULT '',
+			price DECIMAL(18,4) NOT NULL DEFAULT 0,
+			currency VARCHAR(8) NOT NULL DEFAULT 'USD',
+			expires_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_name (tenant_id,name)
+		) {$charset};";
+
 		$sql[] = "CREATE TABLE {$p}ig_domain_orders (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
@@ -1262,8 +1275,10 @@ final class Schema {
 			amount DECIMAL(18,4) NOT NULL DEFAULT 0,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			provider_ref VARCHAR(191) NOT NULL DEFAULT '',
+			idempotency_key VARCHAR(191) DEFAULT NULL,
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_key (tenant_id,idempotency_key),
 			KEY tenant (tenant_id),
 			KEY domain (domain_id)
 		) {$charset};";
