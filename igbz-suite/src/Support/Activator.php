@@ -110,6 +110,7 @@ final class Activator {
 			31 => [ self::class, 'migrate_to_v31' ],
 			32 => [ self::class, 'migrate_to_v32' ],
 			33 => [ self::class, 'migrate_to_v33' ],
+			34 => [ self::class, 'migrate_to_v34' ],
 		];
 	}
 
@@ -229,6 +230,18 @@ final class Activator {
 	 */
 	public static function migrate_to_v33(): void {
 		// Pure dbDelta work; see the ig_shipments table.
+	}
+
+	/**
+	 * v34 (phase 46): durable marketplace sync — `marketplace_links.payload_hash` /
+	 * `remote_rev` remember what we last published and what revision the marketplace
+	 * acknowledged, so unchanged products are never re-pushed and foreign edits surface
+	 * as conflicts instead of being silently overwritten; `ig_marketplace_sync.not_before`
+	 * is the rate-limit/backoff gate that keeps a throttled row invisible until its due
+	 * time. No data back-fill.
+	 */
+	public static function migrate_to_v34(): void {
+		// Pure dbDelta work; see the marketplace_links and ig_marketplace_sync tables.
 	}
 
 	/**

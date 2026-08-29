@@ -58,15 +58,21 @@ final class HttpMarketplaceAdapter implements MarketplaceAdapterInterface {
 		$body = $response->json();
 
 		if ( ! $response->ok() ) {
-			return [ 'ok' => false, 'remote_id' => '', 'message' => (string) ( $body['message'] ?? $body['error'] ?? 'marketplace_request_failed' ) ];
+			return [
+				'ok'          => false,
+				'remote_id'   => '',
+				'message'     => (string) ( $body['message'] ?? $body['error'] ?? 'marketplace_request_failed' ),
+				'http_status' => $response->status,
+				'retry_after' => $this->retry_after_of( $response ),
+			];
 		}
 
 		$remote = (string) ( $body['id'] ?? $body['product_id'] ?? $body['data']['id'] ?? '' );
 		if ( '' === $remote ) {
-			return [ 'ok' => false, 'remote_id' => '', 'message' => __( 'The marketplace did not return a product id.', 'igbz-suite' ) ];
+			return [ 'ok' => false, 'remote_id' => '', 'message' => __( 'The marketplace did not return a product id.', 'igbz-suite' ), 'http_status' => $response->status, 'retry_after' => 0 ];
 		}
 
-		return [ 'ok' => true, 'remote_id' => $remote, 'message' => '' ];
+		return [ 'ok' => true, 'remote_id' => $remote, 'message' => '', 'http_status' => $response->status, 'retry_after' => 0, 'remote_rev' => $this->etag_of( $response ) ];
 	}
 
 	public function update_price_stock( string $remote_id, float $price_irt, int $stock ): array {
@@ -86,8 +92,8 @@ final class HttpMarketplaceAdapter implements MarketplaceAdapterInterface {
 		);
 
 		return $response->ok()
-			? [ 'ok' => true, 'message' => '' ]
-			: [ 'ok' => false, 'message' => $response->error_message() ];
+			? [ 'ok' => true, 'message' => '', 'http_status' => $response->status, 'retry_after' => 0 ]
+			: [ 'ok' => false, 'message' => $response->error_message(), 'http_status' => $response->status, 'retry_after' => $this->retry_after_of( $response ) ];
 	}
 
 	private function key(): string {
@@ -99,6 +105,27 @@ final class HttpMarketplaceAdapter implements MarketplaceAdapterInterface {
 	}
 
 	/** @return array<string,string> */
+	/** The ETag the marketplace stamped on its answer, when any. */
+	private function etag_of( \IGBZ\Suite\Support\HttpResponse $response ): string {
+		foreach ( $response->headers as $name => $value ) {
+			if ( 'etag' === strtolower( (string) $name ) ) {
+				return (string) ( is_array( $value ) ? ( $value[0] ?? '' ) : $value );
+			}
+		}
+		return '';
+	}
+
+	/** The Retry-After the marketplace asked for, in seconds (0 when it did not). */
+	private function retry_after_of( \IGBZ\Suite\Support\HttpResponse $response ): int {
+		foreach ( $response->headers as $name => $value ) {
+			if ( 'retry-after' === strtolower( (string) $name ) ) {
+				$seconds = (int) ( is_array( $value ) ? ( $value[0] ?? 0 ) : $value );
+				return max( 0, min( $seconds, 3600 ) );
+			}
+		}
+		return 0;
+	}
+
 	private function headers(): array {
 		$scheme = igbz()->settings()->string( $this->settings_prefix . '_auth_scheme', 'Bearer' );
 		return [ 'Authorization' => ( '' === $scheme ? '' : $scheme . ' ' ) . $this->key(), 'Accept' => 'application/json' ];
