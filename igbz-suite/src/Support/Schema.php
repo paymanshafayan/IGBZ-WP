@@ -1065,6 +1065,8 @@ final class Schema {
 			carrier VARCHAR(64) NOT NULL DEFAULT '',
 			tracking_code VARCHAR(191) NOT NULL DEFAULT '',
 			delivery_pin VARCHAR(8) NOT NULL DEFAULT '',
+			pod_ref VARCHAR(191) NOT NULL DEFAULT '',
+			pod_at DATETIME NULL,
 			status VARCHAR(20) NOT NULL DEFAULT 'draft',
 			route_type VARCHAR(32) NOT NULL DEFAULT '',
 			cost_irt DECIMAL(18,4) NOT NULL DEFAULT 0,

@@ -19,7 +19,7 @@
 defined( 'ABSPATH' ) || exit;
 
 define( 'IGBZ_VERSION', '1.0.0' );
-define( 'IGBZ_DB_VERSION', 32 );
+define( 'IGBZ_DB_VERSION', 33 );
 define( 'IGBZ_FILE', __FILE__ );
 define( 'IGBZ_DIR', plugin_dir_path( __FILE__ ) );
 define( 'IGBZ_URL', plugin_dir_url( __FILE__ ) );

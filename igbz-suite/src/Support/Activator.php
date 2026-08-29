@@ -109,6 +109,7 @@ final class Activator {
 			30 => [ self::class, 'migrate_to_v30' ],
 			31 => [ self::class, 'migrate_to_v31' ],
 			32 => [ self::class, 'migrate_to_v32' ],
+			33 => [ self::class, 'migrate_to_v33' ],
 		];
 	}
 
@@ -219,6 +220,15 @@ final class Activator {
 	 */
 	public static function migrate_to_v32(): void {
 		// Pure dbDelta work; see the ig_points_ledger / ig_point_rewards / ig_reward_redemptions tables.
+	}
+
+	/**
+	 * v33 (phase 44): proof of delivery — `ig_shipments.pod_ref` / `pod_at` keep the evidence
+	 * that a delivery actually happened (photo reference, signature id, or whatever the courier
+	 * app captured), so a COD dispute can be answered from the row itself. Pure dbDelta work.
+	 */
+	public static function migrate_to_v33(): void {
+		// Pure dbDelta work; see the ig_shipments table.
 	}
 
 	/**
