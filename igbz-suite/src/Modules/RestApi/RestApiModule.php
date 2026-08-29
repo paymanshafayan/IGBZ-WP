@@ -72,6 +72,15 @@ final class RestApiModule implements ModuleInterface {
 		$authenticator = $plugin->get( 'api.auth' );
 		$authenticator->register();
 
+		// Phase 65: the OpenAPI contract — one document generated from the
+		// registered routes, plus the runtime Deprecation/Sunset headers.
+		$plugin->bind(
+			'api.contract',
+			static fn (): \IGBZ\Suite\Modules\RestApi\Contract\ApiContractService => new \IGBZ\Suite\Modules\RestApi\Contract\ApiContractService()
+		);
+		add_filter( 'rest_pre_serve_request', [ $this, 'send_deprecation_headers' ], 10, 4 );
+
+		( new Controllers\ContractController( $plugin->get( 'api.contract' ) ) )->register();
 		foreach ( $this->controllers( $plugin ) as $controller ) {
 			$controller->register();
 		}
@@ -191,6 +200,32 @@ final class RestApiModule implements ModuleInterface {
 		}
 
 		return $controllers;
+	}
+
+	/**
+	 * Phase 65: deprecated operations announce themselves at runtime — the
+	 * Deprecation, Sunset (RFC 8594) and successor-version Link headers on
+	 * every response of a route the contract marks deprecated.
+	 *
+	 * @param bool|mixed $served
+	 * @param mixed $result
+	 * @param mixed $request
+	 * @param mixed $server
+	 * @return bool|mixed
+	 */
+	public function send_deprecation_headers( $served, $result, $request, $server ) {
+		if ( ! $request instanceof \WP_REST_Request ) {
+			return $served;
+		}
+		/** @var \IGBZ\Suite\Modules\RestApi\Contract\ApiContractService $contract */
+		$contract = igbz()->get( 'api.contract' );
+		$route    = (string) $request->get_route();
+		foreach ( $request->get_method() ? [ $request->get_method() ] : [] as $method ) {
+			foreach ( $contract->deprecation_headers( $route, (string) $method ) as $header => $value ) {
+				header( $header . ': ' . $value );
+			}
+		}
+		return $served;
 	}
 
 	/** The API can run with the MultiTenant module switched off, so build a fallback instance. */
