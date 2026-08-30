@@ -190,13 +190,13 @@
   "info": {
     "description": "قرارداد نسخهٔ یک API موبایل. سیاست سازگاری: تغییرات فقط افزودنی‌اند (مسیر/پارامتر اختیاری/فیلد پاسخ جدید، یا شل‌شدن مجوز)؛ هر شکست سازگاری (حذف مسیر/متد/پارامتر، اجباری‌شدن پارامتر، تغییر نوع، سخت‌شدن مجوز) یعنی گشودن igbz/v2 — هرگز وصله روی v1. عملیات‌های منسوخ با deprecated و x-sunset و در زمان اجرا با سرصفحه‌های Deprecation/Sunset/Link اعلام می‌شوند.",
     "title": "IGBZ Suite Mobile API",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "openapi": "3.1.0",
   "paths": {
     "/account/affiliate": {
-      "1": {
-        "operationId": "1_account_affiliate",
+      "GET": {
+        "operationId": "get_account_affiliate",
         "responses": {
           "200": {
             "content": {
@@ -225,8 +225,8 @@
       }
     },
     "/account/certificates": {
-      "1": {
-        "operationId": "1_account_certificates",
+      "GET": {
+        "operationId": "get_account_certificates",
         "responses": {
           "200": {
             "content": {
@@ -255,8 +255,8 @@
       }
     },
     "/account/courses": {
-      "1": {
-        "operationId": "1_account_courses",
+      "GET": {
+        "operationId": "get_account_courses",
         "responses": {
           "200": {
             "content": {
@@ -285,8 +285,18 @@
       }
     },
     "/account/courses/progress": {
-      "1": {
-        "operationId": "1_account_courses_progress",
+      "POST": {
+        "operationId": "post_account_courses_progress",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -315,8 +325,8 @@
       }
     },
     "/account/courses/{id}/quizzes": {
-      "1": {
-        "operationId": "1_account_courses__id__quizzes",
+      "GET": {
+        "operationId": "get_account_courses__id__quizzes",
         "parameters": [
           {
             "in": "path",
@@ -355,8 +365,8 @@
       }
     },
     "/account/instalments": {
-      "1": {
-        "operationId": "1_account_instalments",
+      "GET": {
+        "operationId": "get_account_instalments",
         "responses": {
           "200": {
             "content": {
@@ -385,8 +395,8 @@
       }
     },
     "/account/instalments/{id}/pay": {
-      "1": {
-        "operationId": "1_account_instalments__id__pay",
+      "POST": {
+        "operationId": "post_account_instalments__id__pay",
         "parameters": [
           {
             "in": "path",
@@ -397,6 +407,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -425,8 +445,28 @@
       }
     },
     "/account/orders": {
-      "1": {
-        "operationId": "1_account_orders",
+      "GET": {
+        "operationId": "get_account_orders",
+        "parameters": [
+          {
+            "description": "Opaque cursor from the previous page (keyset pagination; stable under inserts).",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size for cursor pagination (1–100).",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -455,8 +495,8 @@
       }
     },
     "/account/orders/{id}": {
-      "1": {
-        "operationId": "1_account_orders__id",
+      "GET": {
+        "operationId": "get_account_orders__id",
         "parameters": [
           {
             "in": "path",
@@ -495,8 +535,8 @@
       }
     },
     "/account/payments": {
-      "1": {
-        "operationId": "1_account_payments",
+      "GET": {
+        "operationId": "get_account_payments",
         "responses": {
           "200": {
             "content": {
@@ -525,8 +565,57 @@
       }
     },
     "/account/profile": {
-      "1": {
-        "operationId": "1_account_profile",
+      "GET": {
+        "operationId": "get_account_profile",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/account/profile",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_account_profile",
+        "parameters": [
+          {
+            "description": "The profile revision the client last saw; a mismatch answers 409 so an offline edit cannot silently overwrite a newer one.",
+            "in": "query",
+            "name": "expected_revision",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -555,8 +644,8 @@
       }
     },
     "/account/quizzes/{id}/submit": {
-      "1": {
-        "operationId": "1_account_quizzes__id__submit",
+      "POST": {
+        "operationId": "post_account_quizzes__id__submit",
         "parameters": [
           {
             "in": "path",
@@ -567,6 +656,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -595,8 +694,28 @@
       }
     },
     "/account/wallet": {
-      "1": {
-        "operationId": "1_account_wallet",
+      "GET": {
+        "operationId": "get_account_wallet",
+        "parameters": [
+          {
+            "description": "Opaque cursor from the previous page (keyset pagination; stable under inserts).",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size for cursor pagination (1–100).",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -625,8 +744,18 @@
       }
     },
     "/account/wallet/topup": {
-      "1": {
-        "operationId": "1_account_wallet_topup",
+      "POST": {
+        "operationId": "post_account_wallet_topup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -655,8 +784,18 @@
       }
     },
     "/admin/categories": {
-      "1": {
-        "operationId": "1_admin_categories",
+      "POST": {
+        "operationId": "post_admin_categories",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -685,8 +824,8 @@
       }
     },
     "/admin/categories/tree": {
-      "1": {
-        "operationId": "1_admin_categories_tree",
+      "GET": {
+        "operationId": "get_admin_categories_tree",
         "responses": {
           "200": {
             "content": {
@@ -715,8 +854,8 @@
       }
     },
     "/admin/categories/{id}": {
-      "1": {
-        "operationId": "1_admin_categories__id",
+      "DELETE": {
+        "operationId": "delete_admin_categories__id",
         "parameters": [
           {
             "in": "path",
@@ -755,8 +894,8 @@
       }
     },
     "/admin/customers": {
-      "1": {
-        "operationId": "1_admin_customers",
+      "GET": {
+        "operationId": "get_admin_customers",
         "responses": {
           "200": {
             "content": {
@@ -785,8 +924,8 @@
       }
     },
     "/admin/customers/{id}": {
-      "1": {
-        "operationId": "1_admin_customers__id",
+      "GET": {
+        "operationId": "get_admin_customers__id",
         "parameters": [
           {
             "in": "path",
@@ -825,8 +964,8 @@
       }
     },
     "/admin/orders": {
-      "1": {
-        "operationId": "1_admin_orders",
+      "GET": {
+        "operationId": "get_admin_orders",
         "responses": {
           "200": {
             "content": {
@@ -855,8 +994,8 @@
       }
     },
     "/admin/orders/{id}/status": {
-      "1": {
-        "operationId": "1_admin_orders__id__status",
+      "POST": {
+        "operationId": "post_admin_orders__id__status",
         "parameters": [
           {
             "in": "path",
@@ -867,6 +1006,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -895,8 +1044,46 @@
       }
     },
     "/admin/products": {
-      "1": {
-        "operationId": "1_admin_products",
+      "GET": {
+        "operationId": "get_admin_products",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/admin/products",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_admin_products",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -925,8 +1112,8 @@
       }
     },
     "/admin/products/{id}": {
-      "1": {
-        "operationId": "1_admin_products__id",
+      "DELETE": {
+        "operationId": "delete_admin_products__id",
         "parameters": [
           {
             "in": "path",
@@ -962,11 +1149,59 @@
         ],
         "summary": "/admin/products/{id}",
         "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_admin_products__id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/admin/products/{id}",
+        "x-auth": "user"
       }
     },
     "/admin/products/{id}/downloads": {
-      "1": {
-        "operationId": "1_admin_products__id__downloads",
+      "GET": {
+        "operationId": "get_admin_products__id__downloads",
         "parameters": [
           {
             "in": "path",
@@ -1005,8 +1240,8 @@
       }
     },
     "/admin/products/{id}/downloads/upload": {
-      "1": {
-        "operationId": "1_admin_products__id__downloads_upload",
+      "POST": {
+        "operationId": "post_admin_products__id__downloads_upload",
         "parameters": [
           {
             "in": "path",
@@ -1017,6 +1252,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1045,8 +1290,8 @@
       }
     },
     "/admin/products/{id}/downloads/{key}": {
-      "1": {
-        "operationId": "1_admin_products__id__downloads__key",
+      "DELETE": {
+        "operationId": "delete_admin_products__id__downloads__key",
         "parameters": [
           {
             "in": "path",
@@ -1085,8 +1330,8 @@
       }
     },
     "/admin/products/{id}/image": {
-      "1": {
-        "operationId": "1_admin_products__id__image",
+      "POST": {
+        "operationId": "post_admin_products__id__image",
         "parameters": [
           {
             "in": "path",
@@ -1097,6 +1342,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1125,8 +1380,8 @@
       }
     },
     "/admin/summary": {
-      "1": {
-        "operationId": "1_admin_summary",
+      "GET": {
+        "operationId": "get_admin_summary",
         "responses": {
           "200": {
             "content": {
@@ -1155,8 +1410,8 @@
       }
     },
     "/ai/credits": {
-      "1": {
-        "operationId": "1_ai_credits",
+      "GET": {
+        "operationId": "get_ai_credits",
         "responses": {
           "200": {
             "content": {
@@ -1185,8 +1440,18 @@
       }
     },
     "/ai/studio/generate": {
-      "1": {
-        "operationId": "1_ai_studio_generate",
+      "POST": {
+        "operationId": "post_ai_studio_generate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1215,8 +1480,8 @@
       }
     },
     "/app/config": {
-      "1": {
-        "operationId": "1_app_config",
+      "GET": {
+        "operationId": "get_app_config",
         "responses": {
           "200": {
             "content": {
@@ -1241,8 +1506,18 @@
       }
     },
     "/app/resolve-store": {
-      "1": {
-        "operationId": "1_app_resolve_store",
+      "POST": {
+        "operationId": "post_app_resolve_store",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1267,8 +1542,8 @@
       }
     },
     "/auth/login-options": {
-      "1": {
-        "operationId": "1_auth_login_options",
+      "GET": {
+        "operationId": "get_auth_login_options",
         "responses": {
           "200": {
             "content": {
@@ -1293,8 +1568,18 @@
       }
     },
     "/auth/logout": {
-      "1": {
-        "operationId": "1_auth_logout",
+      "POST": {
+        "operationId": "post_auth_logout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1323,8 +1608,8 @@
       }
     },
     "/auth/me": {
-      "1": {
-        "operationId": "1_auth_me",
+      "GET": {
+        "operationId": "get_auth_me",
         "responses": {
           "200": {
             "content": {
@@ -1353,8 +1638,18 @@
       }
     },
     "/auth/otp/request": {
-      "1": {
-        "operationId": "1_auth_otp_request",
+      "POST": {
+        "operationId": "post_auth_otp_request",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1379,8 +1674,18 @@
       }
     },
     "/auth/otp/verify": {
-      "1": {
-        "operationId": "1_auth_otp_verify",
+      "POST": {
+        "operationId": "post_auth_otp_verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1405,8 +1710,18 @@
       }
     },
     "/auth/password": {
-      "1": {
-        "operationId": "1_auth_password",
+      "POST": {
+        "operationId": "post_auth_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1431,8 +1746,18 @@
       }
     },
     "/auth/refresh": {
-      "1": {
-        "operationId": "1_auth_refresh",
+      "POST": {
+        "operationId": "post_auth_refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1457,8 +1782,8 @@
       }
     },
     "/auth/sessions": {
-      "1": {
-        "operationId": "1_auth_sessions",
+      "GET": {
+        "operationId": "get_auth_sessions",
         "responses": {
           "200": {
             "content": {
@@ -1487,8 +1812,18 @@
       }
     },
     "/auth/sessions/revoke": {
-      "1": {
-        "operationId": "1_auth_sessions_revoke",
+      "POST": {
+        "operationId": "post_auth_sessions_revoke",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1517,8 +1852,8 @@
       }
     },
     "/catalog/categories": {
-      "1": {
-        "operationId": "1_catalog_categories",
+      "GET": {
+        "operationId": "get_catalog_categories",
         "responses": {
           "200": {
             "content": {
@@ -1543,8 +1878,28 @@
       }
     },
     "/catalog/products": {
-      "1": {
-        "operationId": "1_catalog_products",
+      "GET": {
+        "operationId": "get_catalog_products",
+        "parameters": [
+          {
+            "description": "Opaque cursor from the previous page (keyset pagination; stable under inserts).",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size for cursor pagination (1–100).",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -1569,8 +1924,8 @@
       }
     },
     "/catalog/products/{id}": {
-      "1": {
-        "operationId": "1_catalog_products__id",
+      "GET": {
+        "operationId": "get_catalog_products__id",
         "parameters": [
           {
             "in": "path",
@@ -1605,8 +1960,8 @@
       }
     },
     "/catalog/search-suggest": {
-      "1": {
-        "operationId": "1_catalog_search_suggest",
+      "GET": {
+        "operationId": "get_catalog_search_suggest",
         "responses": {
           "200": {
             "content": {
@@ -1631,8 +1986,18 @@
       }
     },
     "/checkout/cod-pay": {
-      "1": {
-        "operationId": "1_checkout_cod_pay",
+      "POST": {
+        "operationId": "post_checkout_cod_pay",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1661,8 +2026,8 @@
       }
     },
     "/contract": {
-      "1": {
-        "operationId": "1_contract",
+      "GET": {
+        "operationId": "get_contract",
         "responses": {
           "200": {
             "content": {
@@ -1687,8 +2052,8 @@
       }
     },
     "/courier/chat/{id}": {
-      "1": {
-        "operationId": "1_courier_chat__id",
+      "GET": {
+        "operationId": "get_courier_chat__id",
         "parameters": [
           {
             "in": "path",
@@ -1727,8 +2092,8 @@
       }
     },
     "/courier/chat/{id}/send": {
-      "1": {
-        "operationId": "1_courier_chat__id__send",
+      "POST": {
+        "operationId": "post_courier_chat__id__send",
         "parameters": [
           {
             "in": "path",
@@ -1739,6 +2104,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1767,8 +2142,8 @@
       }
     },
     "/courier/me": {
-      "1": {
-        "operationId": "1_courier_me",
+      "GET": {
+        "operationId": "get_courier_me",
         "responses": {
           "200": {
             "content": {
@@ -1797,8 +2172,18 @@
       }
     },
     "/courier/routes/plan": {
-      "1": {
-        "operationId": "1_courier_routes_plan",
+      "POST": {
+        "operationId": "post_courier_routes_plan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1827,8 +2212,8 @@
       }
     },
     "/courier/shipments": {
-      "1": {
-        "operationId": "1_courier_shipments",
+      "GET": {
+        "operationId": "get_courier_shipments",
         "responses": {
           "200": {
             "content": {
@@ -1857,8 +2242,8 @@
       }
     },
     "/courier/shipments/{barcode}": {
-      "1": {
-        "operationId": "1_courier_shipments__barcode",
+      "GET": {
+        "operationId": "get_courier_shipments__barcode",
         "responses": {
           "200": {
             "content": {
@@ -1887,8 +2272,8 @@
       }
     },
     "/courier/shipments/{id}/arrived": {
-      "1": {
-        "operationId": "1_courier_shipments__id__arrived",
+      "POST": {
+        "operationId": "post_courier_shipments__id__arrived",
         "parameters": [
           {
             "in": "path",
@@ -1899,6 +2284,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1927,8 +2322,8 @@
       }
     },
     "/courier/shipments/{id}/cod": {
-      "1": {
-        "operationId": "1_courier_shipments__id__cod",
+      "POST": {
+        "operationId": "post_courier_shipments__id__cod",
         "parameters": [
           {
             "in": "path",
@@ -1939,6 +2334,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -1967,8 +2372,8 @@
       }
     },
     "/courier/shipments/{id}/deliver": {
-      "1": {
-        "operationId": "1_courier_shipments__id__deliver",
+      "POST": {
+        "operationId": "post_courier_shipments__id__deliver",
         "parameters": [
           {
             "in": "path",
@@ -1979,6 +2384,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2007,8 +2422,8 @@
       }
     },
     "/courier/tracking/{id}": {
-      "1": {
-        "operationId": "1_courier_tracking__id",
+      "POST": {
+        "operationId": "post_courier_tracking__id",
         "parameters": [
           {
             "in": "path",
@@ -2019,6 +2434,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2047,8 +2472,8 @@
       }
     },
     "/devices": {
-      "1": {
-        "operationId": "1_devices",
+      "GET": {
+        "operationId": "get_devices",
         "responses": {
           "200": {
             "content": {
@@ -2077,8 +2502,18 @@
       }
     },
     "/devices/register": {
-      "1": {
-        "operationId": "1_devices_register",
+      "POST": {
+        "operationId": "post_devices_register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2103,8 +2538,18 @@
       }
     },
     "/devices/test": {
-      "1": {
-        "operationId": "1_devices_test",
+      "POST": {
+        "operationId": "post_devices_test",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2133,8 +2578,18 @@
       }
     },
     "/devices/unregister": {
-      "1": {
-        "operationId": "1_devices_unregister",
+      "POST": {
+        "operationId": "post_devices_unregister",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2159,8 +2614,8 @@
       }
     },
     "/domains": {
-      "1": {
-        "operationId": "1_domains",
+      "GET": {
+        "operationId": "get_domains",
         "responses": {
           "200": {
             "content": {
@@ -2189,8 +2644,18 @@
       }
     },
     "/domains/register": {
-      "1": {
-        "operationId": "1_domains_register",
+      "POST": {
+        "operationId": "post_domains_register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2219,8 +2684,18 @@
       }
     },
     "/domains/search": {
-      "1": {
-        "operationId": "1_domains_search",
+      "POST": {
+        "operationId": "post_domains_search",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2249,8 +2724,18 @@
       }
     },
     "/domains/subdomain": {
-      "1": {
-        "operationId": "1_domains_subdomain",
+      "POST": {
+        "operationId": "post_domains_subdomain",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2279,8 +2764,18 @@
       }
     },
     "/domains/transfer": {
-      "1": {
-        "operationId": "1_domains_transfer",
+      "POST": {
+        "operationId": "post_domains_transfer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2309,8 +2804,8 @@
       }
     },
     "/domains/web-presence": {
-      "1": {
-        "operationId": "1_domains_web_presence",
+      "GET": {
+        "operationId": "get_domains_web_presence",
         "responses": {
           "200": {
             "content": {
@@ -2339,8 +2834,18 @@
       }
     },
     "/domains/web-presence/register": {
-      "1": {
-        "operationId": "1_domains_web_presence_register",
+      "POST": {
+        "operationId": "post_domains_web_presence_register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2369,8 +2874,8 @@
       }
     },
     "/domains/{id}/verify-dns": {
-      "1": {
-        "operationId": "1_domains__id__verify_dns",
+      "POST": {
+        "operationId": "post_domains__id__verify_dns",
         "parameters": [
           {
             "in": "path",
@@ -2381,6 +2886,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2409,8 +2924,8 @@
       }
     },
     "/fx/balance": {
-      "1": {
-        "operationId": "1_fx_balance",
+      "GET": {
+        "operationId": "get_fx_balance",
         "responses": {
           "200": {
             "content": {
@@ -2439,8 +2954,8 @@
       }
     },
     "/fx/bills": {
-      "1": {
-        "operationId": "1_fx_bills",
+      "GET": {
+        "operationId": "get_fx_bills",
         "responses": {
           "200": {
             "content": {
@@ -2469,8 +2984,28 @@
       }
     },
     "/fx/ledger": {
-      "1": {
-        "operationId": "1_fx_ledger",
+      "GET": {
+        "operationId": "get_fx_ledger",
+        "parameters": [
+          {
+            "description": "Opaque cursor from the previous page (keyset pagination; stable under inserts).",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page size for cursor pagination (1–100).",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -2499,8 +3034,18 @@
       }
     },
     "/fx/payout-webhook/{provider}": {
-      "1": {
-        "operationId": "1_fx_payout_webhook__provider",
+      "POST": {
+        "operationId": "post_fx_payout_webhook__provider",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2529,8 +3074,8 @@
       }
     },
     "/fx/prices": {
-      "1": {
-        "operationId": "1_fx_prices",
+      "GET": {
+        "operationId": "get_fx_prices",
         "responses": {
           "200": {
             "content": {
@@ -2559,8 +3104,18 @@
       }
     },
     "/fx/topup": {
-      "1": {
-        "operationId": "1_fx_topup",
+      "POST": {
+        "operationId": "post_fx_topup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2589,8 +3144,8 @@
       }
     },
     "/i18n/config": {
-      "1": {
-        "operationId": "1_i18n_config",
+      "GET": {
+        "operationId": "get_i18n_config",
         "responses": {
           "200": {
             "content": {
@@ -2619,8 +3174,46 @@
       }
     },
     "/ig/competitors": {
-      "1": {
-        "operationId": "1_ig_competitors",
+      "GET": {
+        "operationId": "get_ig_competitors",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/ig/competitors",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_ig_competitors",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2649,8 +3242,8 @@
       }
     },
     "/ig/competitors/{id}": {
-      "1": {
-        "operationId": "1_ig_competitors__id",
+      "DELETE": {
+        "operationId": "delete_ig_competitors__id",
         "parameters": [
           {
             "in": "path",
@@ -2689,8 +3282,8 @@
       }
     },
     "/ig/competitors/{id}/snapshots": {
-      "1": {
-        "operationId": "1_ig_competitors__id__snapshots",
+      "GET": {
+        "operationId": "get_ig_competitors__id__snapshots",
         "parameters": [
           {
             "in": "path",
@@ -2726,11 +3319,59 @@
         ],
         "summary": "/ig/competitors/{id}/snapshots",
         "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_ig_competitors__id__snapshots",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/ig/competitors/{id}/snapshots",
+        "x-auth": "user"
       }
     },
     "/ig/content": {
-      "1": {
-        "operationId": "1_ig_content",
+      "GET": {
+        "operationId": "get_ig_content",
         "parameters": [
           {
             "in": "query",
@@ -2769,8 +3410,8 @@
       }
     },
     "/ig/content/{id}": {
-      "1": {
-        "operationId": "1_ig_content__id",
+      "GET": {
+        "operationId": "get_ig_content__id",
         "parameters": [
           {
             "in": "path",
@@ -2809,8 +3450,8 @@
       }
     },
     "/ig/content/{id}/publish": {
-      "1": {
-        "operationId": "1_ig_content__id__publish",
+      "POST": {
+        "operationId": "post_ig_content__id__publish",
         "parameters": [
           {
             "in": "path",
@@ -2821,6 +3462,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2849,8 +3500,8 @@
       }
     },
     "/ig/content/{id}/retry": {
-      "1": {
-        "operationId": "1_ig_content__id__retry",
+      "POST": {
+        "operationId": "post_ig_content__id__retry",
         "parameters": [
           {
             "in": "path",
@@ -2861,6 +3512,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2889,8 +3550,8 @@
       }
     },
     "/ig/content/{id}/schedule": {
-      "1": {
-        "operationId": "1_ig_content__id__schedule",
+      "POST": {
+        "operationId": "post_ig_content__id__schedule",
         "parameters": [
           {
             "in": "query",
@@ -2909,6 +3570,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2937,8 +3608,56 @@
       }
     },
     "/ig/giveaways": {
-      "1": {
-        "operationId": "1_ig_giveaways",
+      "GET": {
+        "operationId": "get_ig_giveaways",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "args",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/ig/giveaways",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_ig_giveaways",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -2967,8 +3686,8 @@
       }
     },
     "/ig/giveaways/{id}": {
-      "1": {
-        "operationId": "1_ig_giveaways__id",
+      "GET": {
+        "operationId": "get_ig_giveaways__id",
         "parameters": [
           {
             "in": "path",
@@ -3007,8 +3726,8 @@
       }
     },
     "/ig/giveaways/{id}/audit/verify": {
-      "1": {
-        "operationId": "1_ig_giveaways__id__audit_verify",
+      "POST": {
+        "operationId": "post_ig_giveaways__id__audit_verify",
         "parameters": [
           {
             "in": "path",
@@ -3019,6 +3738,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3047,8 +3776,8 @@
       }
     },
     "/ig/giveaways/{id}/cancel": {
-      "1": {
-        "operationId": "1_ig_giveaways__id__cancel",
+      "POST": {
+        "operationId": "post_ig_giveaways__id__cancel",
         "parameters": [
           {
             "in": "path",
@@ -3059,6 +3788,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3087,8 +3826,8 @@
       }
     },
     "/ig/giveaways/{id}/draw": {
-      "1": {
-        "operationId": "1_ig_giveaways__id__draw",
+      "POST": {
+        "operationId": "post_ig_giveaways__id__draw",
         "parameters": [
           {
             "in": "path",
@@ -3099,6 +3838,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3127,8 +3876,8 @@
       }
     },
     "/ig/giveaways/{id}/entries": {
-      "1": {
-        "operationId": "1_ig_giveaways__id__entries",
+      "GET": {
+        "operationId": "get_ig_giveaways__id__entries",
         "parameters": [
           {
             "in": "path",
@@ -3164,11 +3913,59 @@
         ],
         "summary": "/ig/giveaways/{id}/entries",
         "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_ig_giveaways__id__entries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/ig/giveaways/{id}/entries",
+        "x-auth": "user"
       }
     },
     "/ig/inbox": {
-      "1": {
-        "operationId": "1_ig_inbox",
+      "GET": {
+        "operationId": "get_ig_inbox",
         "responses": {
           "200": {
             "content": {
@@ -3197,8 +3994,8 @@
       }
     },
     "/ig/inbox/actions": {
-      "1": {
-        "operationId": "1_ig_inbox_actions",
+      "GET": {
+        "operationId": "get_ig_inbox_actions",
         "responses": {
           "200": {
             "content": {
@@ -3227,8 +4024,18 @@
       }
     },
     "/ig/inbox/approve": {
-      "1": {
-        "operationId": "1_ig_inbox_approve",
+      "POST": {
+        "operationId": "post_ig_inbox_approve",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3257,8 +4064,18 @@
       }
     },
     "/ig/inbox/optout": {
-      "1": {
-        "operationId": "1_ig_inbox_optout",
+      "POST": {
+        "operationId": "post_ig_inbox_optout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3287,8 +4104,18 @@
       }
     },
     "/ig/inbox/reject": {
-      "1": {
-        "operationId": "1_ig_inbox_reject",
+      "POST": {
+        "operationId": "post_ig_inbox_reject",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3317,8 +4144,18 @@
       }
     },
     "/ig/inbox/retry": {
-      "1": {
-        "operationId": "1_ig_inbox_retry",
+      "POST": {
+        "operationId": "post_ig_inbox_retry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3347,8 +4184,46 @@
       }
     },
     "/ig/inbox/rules": {
-      "1": {
-        "operationId": "1_ig_inbox_rules",
+      "GET": {
+        "operationId": "get_ig_inbox_rules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/ig/inbox/rules",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_ig_inbox_rules",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3377,8 +4252,18 @@
       }
     },
     "/ig/inbox/rules/active": {
-      "1": {
-        "operationId": "1_ig_inbox_rules_active",
+      "POST": {
+        "operationId": "post_ig_inbox_rules_active",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3407,8 +4292,56 @@
       }
     },
     "/ig/insights": {
-      "1": {
-        "operationId": "1_ig_insights",
+      "GET": {
+        "operationId": "get_ig_insights",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "args",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/ig/insights",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_ig_insights",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3437,8 +4370,18 @@
       }
     },
     "/ig/insights/ingest": {
-      "1": {
-        "operationId": "1_ig_insights_ingest",
+      "POST": {
+        "operationId": "post_ig_insights_ingest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3467,8 +4410,18 @@
       }
     },
     "/ig/product-registrations": {
-      "1": {
-        "operationId": "1_ig_product_registrations",
+      "POST": {
+        "operationId": "post_ig_product_registrations",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3497,8 +4450,8 @@
       }
     },
     "/ig/product-registrations/{id}": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id",
+      "GET": {
+        "operationId": "get_ig_product_registrations__id",
         "parameters": [
           {
             "in": "path",
@@ -3537,8 +4490,8 @@
       }
     },
     "/ig/product-registrations/{id}/approve": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__approve",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__approve",
         "parameters": [
           {
             "in": "path",
@@ -3549,6 +4502,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3577,8 +4540,8 @@
       }
     },
     "/ig/product-registrations/{id}/await_kind": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__await_kind",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__await_kind",
         "parameters": [
           {
             "in": "path",
@@ -3589,6 +4552,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3617,8 +4590,8 @@
       }
     },
     "/ig/product-registrations/{id}/choose_kind": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__choose_kind",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__choose_kind",
         "parameters": [
           {
             "in": "path",
@@ -3629,6 +4602,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3657,8 +4640,8 @@
       }
     },
     "/ig/product-registrations/{id}/compensate": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__compensate",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__compensate",
         "parameters": [
           {
             "in": "path",
@@ -3669,6 +4652,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3697,8 +4690,8 @@
       }
     },
     "/ig/product-registrations/{id}/complete_compose": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__complete_compose",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__complete_compose",
         "parameters": [
           {
             "in": "path",
@@ -3709,6 +4702,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3737,8 +4740,8 @@
       }
     },
     "/ig/product-registrations/{id}/complete_grading": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__complete_grading",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__complete_grading",
         "parameters": [
           {
             "in": "path",
@@ -3749,6 +4752,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3777,8 +4790,8 @@
       }
     },
     "/ig/product-registrations/{id}/complete_image": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__complete_image",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__complete_image",
         "parameters": [
           {
             "in": "path",
@@ -3789,6 +4802,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3817,8 +4840,8 @@
       }
     },
     "/ig/product-registrations/{id}/complete_transcription": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__complete_transcription",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__complete_transcription",
         "parameters": [
           {
             "in": "path",
@@ -3829,6 +4852,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3857,8 +4890,8 @@
       }
     },
     "/ig/product-registrations/{id}/complete_writing": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__complete_writing",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__complete_writing",
         "parameters": [
           {
             "in": "path",
@@ -3869,6 +4902,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3897,8 +4940,8 @@
       }
     },
     "/ig/product-registrations/{id}/create_product": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__create_product",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__create_product",
         "parameters": [
           {
             "in": "path",
@@ -3909,6 +4952,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3937,8 +4990,8 @@
       }
     },
     "/ig/product-registrations/{id}/manual_composed": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__manual_composed",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__manual_composed",
         "parameters": [
           {
             "in": "path",
@@ -3949,6 +5002,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3977,8 +5040,8 @@
       }
     },
     "/ig/product-registrations/{id}/manual_copy": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__manual_copy",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__manual_copy",
         "parameters": [
           {
             "in": "path",
@@ -3989,6 +5052,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4017,8 +5090,8 @@
       }
     },
     "/ig/product-registrations/{id}/manual_grade": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__manual_grade",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__manual_grade",
         "parameters": [
           {
             "in": "path",
@@ -4029,6 +5102,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4057,8 +5140,8 @@
       }
     },
     "/ig/product-registrations/{id}/manual_prepared_image": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__manual_prepared_image",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__manual_prepared_image",
         "parameters": [
           {
             "in": "path",
@@ -4069,6 +5152,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4097,8 +5190,8 @@
       }
     },
     "/ig/product-registrations/{id}/manual_transcription": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__manual_transcription",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__manual_transcription",
         "parameters": [
           {
             "in": "path",
@@ -4109,6 +5202,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4137,8 +5240,8 @@
       }
     },
     "/ig/product-registrations/{id}/mark_edited": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__mark_edited",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__mark_edited",
         "parameters": [
           {
             "in": "path",
@@ -4149,6 +5252,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4177,8 +5290,8 @@
       }
     },
     "/ig/product-registrations/{id}/reject": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__reject",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__reject",
         "parameters": [
           {
             "in": "path",
@@ -4189,6 +5302,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4217,8 +5340,8 @@
       }
     },
     "/ig/product-registrations/{id}/retry": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__retry",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__retry",
         "parameters": [
           {
             "in": "path",
@@ -4229,6 +5352,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4257,8 +5390,8 @@
       }
     },
     "/ig/product-registrations/{id}/start_describing": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__start_describing",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__start_describing",
         "parameters": [
           {
             "in": "path",
@@ -4269,6 +5402,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4297,8 +5440,8 @@
       }
     },
     "/ig/product-registrations/{id}/start_grading": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__start_grading",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__start_grading",
         "parameters": [
           {
             "in": "path",
@@ -4309,6 +5452,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4337,8 +5490,8 @@
       }
     },
     "/ig/product-registrations/{id}/start_image": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__start_image",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__start_image",
         "parameters": [
           {
             "in": "path",
@@ -4349,6 +5502,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4377,8 +5540,8 @@
       }
     },
     "/ig/product-registrations/{id}/start_writing": {
-      "1": {
-        "operationId": "1_ig_product_registrations__id__start_writing",
+      "POST": {
+        "operationId": "post_ig_product_registrations__id__start_writing",
         "parameters": [
           {
             "in": "path",
@@ -4389,6 +5552,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4417,8 +5590,8 @@
       }
     },
     "/ig/publish/events": {
-      "1": {
-        "operationId": "1_ig_publish_events",
+      "GET": {
+        "operationId": "get_ig_publish_events",
         "parameters": [
           {
             "in": "query",
@@ -4457,8 +5630,18 @@
       }
     },
     "/ig/social/migrate": {
-      "1": {
-        "operationId": "1_ig_social_migrate",
+      "POST": {
+        "operationId": "post_ig_social_migrate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4487,8 +5670,8 @@
       }
     },
     "/ig/social/status": {
-      "1": {
-        "operationId": "1_ig_social_status",
+      "GET": {
+        "operationId": "get_ig_social_status",
         "responses": {
           "200": {
             "content": {
@@ -4517,8 +5700,8 @@
       }
     },
     "/legal/waiver": {
-      "1": {
-        "operationId": "1_legal_waiver",
+      "GET": {
+        "operationId": "get_legal_waiver",
         "responses": {
           "200": {
             "content": {
@@ -4547,8 +5730,18 @@
       }
     },
     "/legal/waiver/accept": {
-      "1": {
-        "operationId": "1_legal_waiver_accept",
+      "POST": {
+        "operationId": "post_legal_waiver_accept",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4577,8 +5770,8 @@
       }
     },
     "/master-payment": {
-      "1": {
-        "operationId": "1_master_payment",
+      "GET": {
+        "operationId": "get_master_payment",
         "responses": {
           "200": {
             "content": {
@@ -4607,8 +5800,18 @@
       }
     },
     "/master-payment/agreement": {
-      "1": {
-        "operationId": "1_master_payment_agreement",
+      "POST": {
+        "operationId": "post_master_payment_agreement",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4637,8 +5840,18 @@
       }
     },
     "/master-payment/withdraw": {
-      "1": {
-        "operationId": "1_master_payment_withdraw",
+      "POST": {
+        "operationId": "post_master_payment_withdraw",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4667,8 +5880,18 @@
       }
     },
     "/notifications/send": {
-      "1": {
-        "operationId": "1_notifications_send",
+      "POST": {
+        "operationId": "post_notifications_send",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4697,8 +5920,8 @@
       }
     },
     "/shipments/{id}/status": {
-      "1": {
-        "operationId": "1_shipments__id__status",
+      "GET": {
+        "operationId": "get_shipments__id__status",
         "parameters": [
           {
             "in": "path",
@@ -4737,8 +5960,8 @@
       }
     },
     "/shipments/{id}/tracking": {
-      "1": {
-        "operationId": "1_shipments__id__tracking",
+      "GET": {
+        "operationId": "get_shipments__id__tracking",
         "parameters": [
           {
             "in": "path",
@@ -4777,8 +6000,8 @@
       }
     },
     "/vip/admin/comments": {
-      "1": {
-        "operationId": "1_vip_admin_comments",
+      "GET": {
+        "operationId": "get_vip_admin_comments",
         "responses": {
           "200": {
             "content": {
@@ -4807,8 +6030,8 @@
       }
     },
     "/vip/admin/comments/{id}": {
-      "1": {
-        "operationId": "1_vip_admin_comments__id",
+      "DELETE": {
+        "operationId": "delete_vip_admin_comments__id",
         "responses": {
           "200": {
             "content": {
@@ -4837,8 +6060,18 @@
       }
     },
     "/vip/admin/comments/{id}/hide": {
-      "1": {
-        "operationId": "1_vip_admin_comments__id__hide",
+      "POST": {
+        "operationId": "post_vip_admin_comments__id__hide",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4867,8 +6100,18 @@
       }
     },
     "/vip/admin/comments/{id}/pin": {
-      "1": {
-        "operationId": "1_vip_admin_comments__id__pin",
+      "POST": {
+        "operationId": "post_vip_admin_comments__id__pin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4897,8 +6140,18 @@
       }
     },
     "/vip/admin/comments/{id}/reply": {
-      "1": {
-        "operationId": "1_vip_admin_comments__id__reply",
+      "POST": {
+        "operationId": "post_vip_admin_comments__id__reply",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4927,8 +6180,8 @@
       }
     },
     "/vip/admin/members": {
-      "1": {
-        "operationId": "1_vip_admin_members",
+      "GET": {
+        "operationId": "get_vip_admin_members",
         "responses": {
           "200": {
             "content": {
@@ -4957,8 +6210,46 @@
       }
     },
     "/vip/admin/plans": {
-      "1": {
-        "operationId": "1_vip_admin_plans",
+      "GET": {
+        "operationId": "get_vip_admin_plans",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/vip/admin/plans",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_vip_admin_plans",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -4987,8 +6278,46 @@
       }
     },
     "/vip/admin/plans/{id}": {
-      "1": {
-        "operationId": "1_vip_admin_plans__id",
+      "DELETE": {
+        "operationId": "delete_vip_admin_plans__id",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/vip/admin/plans/{id}",
+        "x-auth": "user"
+      },
+      "PUT": {
+        "operationId": "put_vip_admin_plans__id",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5017,8 +6346,46 @@
       }
     },
     "/vip/admin/posts": {
-      "1": {
-        "operationId": "1_vip_admin_posts",
+      "GET": {
+        "operationId": "get_vip_admin_posts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/vip/admin/posts",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_vip_admin_posts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5047,8 +6414,74 @@
       }
     },
     "/vip/admin/posts/{id}": {
-      "1": {
-        "operationId": "1_vip_admin_posts__id",
+      "DELETE": {
+        "operationId": "delete_vip_admin_posts__id",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/vip/admin/posts/{id}",
+        "x-auth": "user"
+      },
+      "GET": {
+        "operationId": "get_vip_admin_posts__id",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/vip/admin/posts/{id}",
+        "x-auth": "user"
+      },
+      "PUT": {
+        "operationId": "put_vip_admin_posts__id",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5077,8 +6510,8 @@
       }
     },
     "/vip/admin/posts/{id}/insights": {
-      "1": {
-        "operationId": "1_vip_admin_posts__id__insights",
+      "GET": {
+        "operationId": "get_vip_admin_posts__id__insights",
         "responses": {
           "200": {
             "content": {
@@ -5107,8 +6540,18 @@
       }
     },
     "/vip/admin/posts/{id}/publish": {
-      "1": {
-        "operationId": "1_vip_admin_posts__id__publish",
+      "POST": {
+        "operationId": "post_vip_admin_posts__id__publish",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5137,8 +6580,8 @@
       }
     },
     "/vip/admin/stats": {
-      "1": {
-        "operationId": "1_vip_admin_stats",
+      "GET": {
+        "operationId": "get_vip_admin_stats",
         "responses": {
           "200": {
             "content": {
@@ -5167,8 +6610,8 @@
       }
     },
     "/vip/admin/threads": {
-      "1": {
-        "operationId": "1_vip_admin_threads",
+      "GET": {
+        "operationId": "get_vip_admin_threads",
         "responses": {
           "200": {
             "content": {
@@ -5197,8 +6640,46 @@
       }
     },
     "/vip/admin/threads/{id}/messages": {
-      "1": {
-        "operationId": "1_vip_admin_threads__id__messages",
+      "GET": {
+        "operationId": "get_vip_admin_threads__id__messages",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/vip/admin/threads/{id}/messages",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_vip_admin_threads__id__messages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5227,8 +6708,8 @@
       }
     },
     "/vip/feed": {
-      "1": {
-        "operationId": "1_vip_feed",
+      "GET": {
+        "operationId": "get_vip_feed",
         "responses": {
           "200": {
             "content": {
@@ -5253,8 +6734,8 @@
       }
     },
     "/vip/membership": {
-      "1": {
-        "operationId": "1_vip_membership",
+      "GET": {
+        "operationId": "get_vip_membership",
         "responses": {
           "200": {
             "content": {
@@ -5283,8 +6764,18 @@
       }
     },
     "/vip/messages": {
-      "1": {
-        "operationId": "1_vip_messages",
+      "POST": {
+        "operationId": "post_vip_messages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5313,8 +6804,8 @@
       }
     },
     "/vip/plans": {
-      "1": {
-        "operationId": "1_vip_plans",
+      "GET": {
+        "operationId": "get_vip_plans",
         "responses": {
           "200": {
             "content": {
@@ -5339,8 +6830,8 @@
       }
     },
     "/vip/posts/{id}": {
-      "1": {
-        "operationId": "1_vip_posts__id",
+      "GET": {
+        "operationId": "get_vip_posts__id",
         "responses": {
           "200": {
             "content": {
@@ -5365,8 +6856,42 @@
       }
     },
     "/vip/posts/{id}/comments": {
-      "1": {
-        "operationId": "1_vip_posts__id__comments",
+      "GET": {
+        "operationId": "get_vip_posts__id__comments",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [],
+        "summary": "/vip/posts/{id}/comments",
+        "x-auth": "anonymous"
+      },
+      "POST": {
+        "operationId": "post_vip_posts__id__comments",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5395,8 +6920,18 @@
       }
     },
     "/vip/posts/{id}/like": {
-      "1": {
-        "operationId": "1_vip_posts__id__like",
+      "POST": {
+        "operationId": "post_vip_posts__id__like",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5425,8 +6960,8 @@
       }
     },
     "/vip/posts/{id}/media": {
-      "1": {
-        "operationId": "1_vip_posts__id__media",
+      "GET": {
+        "operationId": "get_vip_posts__id__media",
         "responses": {
           "200": {
             "content": {
@@ -5455,8 +6990,8 @@
       }
     },
     "/vip/posts/{id}/offline": {
-      "1": {
-        "operationId": "1_vip_posts__id__offline",
+      "GET": {
+        "operationId": "get_vip_posts__id__offline",
         "responses": {
           "200": {
             "content": {
@@ -5485,8 +7020,18 @@
       }
     },
     "/vip/posts/{id}/purchase": {
-      "1": {
-        "operationId": "1_vip_posts__id__purchase",
+      "POST": {
+        "operationId": "post_vip_posts__id__purchase",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5515,8 +7060,18 @@
       }
     },
     "/vip/posts/{id}/save": {
-      "1": {
-        "operationId": "1_vip_posts__id__save",
+      "POST": {
+        "operationId": "post_vip_posts__id__save",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5545,8 +7100,18 @@
       }
     },
     "/vip/posts/{id}/view": {
-      "1": {
-        "operationId": "1_vip_posts__id__view",
+      "POST": {
+        "operationId": "post_vip_posts__id__view",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5575,8 +7140,8 @@
       }
     },
     "/vip/saved": {
-      "1": {
-        "operationId": "1_vip_saved",
+      "GET": {
+        "operationId": "get_vip_saved",
         "responses": {
           "200": {
             "content": {
@@ -5605,8 +7170,18 @@
       }
     },
     "/vip/subscribe": {
-      "1": {
-        "operationId": "1_vip_subscribe",
+      "POST": {
+        "operationId": "post_vip_subscribe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5635,8 +7210,8 @@
       }
     },
     "/vip/threads": {
-      "1": {
-        "operationId": "1_vip_threads",
+      "GET": {
+        "operationId": "get_vip_threads",
         "responses": {
           "200": {
             "content": {
@@ -5665,8 +7240,46 @@
       }
     },
     "/vip/threads/{id}/messages": {
-      "1": {
-        "operationId": "1_vip_threads__id__messages",
+      "GET": {
+        "operationId": "get_vip_threads__id__messages",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "پاسخ موفق"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "/vip/threads/{id}/messages",
+        "x-auth": "user"
+      },
+      "POST": {
+        "operationId": "post_vip_threads__id__messages",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5695,8 +7308,18 @@
       }
     },
     "/vip/tip": {
-      "1": {
-        "operationId": "1_vip_tip",
+      "POST": {
+        "operationId": "post_vip_tip",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5721,8 +7344,18 @@
       }
     },
     "/webhook/{source}": {
-      "1": {
-        "operationId": "1_webhook__source",
+      "POST": {
+        "operationId": "post_webhook__source",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5747,8 +7380,18 @@
       }
     },
     "/zernio/inbox": {
-      "1": {
-        "operationId": "1_zernio_inbox",
+      "POST": {
+        "operationId": "post_zernio_inbox",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -5773,8 +7416,18 @@
       }
     },
     "/zernio/posts": {
-      "1": {
-        "operationId": "1_zernio_posts",
+      "POST": {
+        "operationId": "post_zernio_posts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {

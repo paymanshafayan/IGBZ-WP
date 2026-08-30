@@ -28,7 +28,7 @@ defined( 'ABSPATH' ) || exit;
 class ApiContractService {
 
 	public const NAMESPACE_V1   = 'igbz/v1';
-	public const CONTRACT_VERSION = '1.0.0';
+	public const CONTRACT_VERSION = '1.1.0';
 	public const OPENAPI_VERSION = '3.1.0';
 
 	/** Auth levels, weakest to strongest. Strengthening = breaking. */
@@ -92,9 +92,14 @@ class ApiContractService {
 				if ( ! is_array( $handler ) || empty( $handler['methods'] ) ) {
 					continue;
 				}
-				foreach ( (array) $handler['methods'] as $method ) {
-					$method = strtoupper( (string) $method );
-					if ( 'PATCH' === $method ) { continue; }
+			foreach ( (array) $handler['methods'] as $method_key => $method_flag ) {
+				// WordPress registers methods as an associative array ('GET' => true); the
+				// fixtures use a list. Iterating by VALUE turned every flag into '1', so GET
+				// and POST on one path collapsed into a single operation — iterate keys when
+				// the values are flags. Found live in phase 67; regression-tested there.
+				$method = true === $method_flag ? (string) $method_key : (string) $method_flag;
+				$method = strtoupper( $method );
+				if ( 'PATCH' === $method ) { continue; }
 					$paths[ $route ][ $method ] = $this->operation( $route, $method, $pattern, is_array( $handler ) ? $handler : [] );
 				}
 			}

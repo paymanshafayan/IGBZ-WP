@@ -6,6 +6,7 @@ use IGBZ\Suite\Modules\MultiTenant\Bnpl\BnplService;
 use IGBZ\Suite\Modules\MultiTenant\Lms\LmsService;
 use IGBZ\Suite\Modules\MultiTenant\Payments\PaymentService;
 use IGBZ\Suite\Modules\MultiTenant\Wallet\WalletService;
+use IGBZ\Suite\Modules\RestApi\Pagination\CursorCodec;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -35,10 +36,16 @@ final class AccountController extends BaseController {
 		$auth = [ $this, 'is_logged_in' ];
 
 		register_rest_route( $ns, '/account/profile', $this->route( 'GET', [ $this, 'get_profile' ], $auth ) );
-		register_rest_route( $ns, '/account/profile', $this->route( 'POST', [ $this, 'update_profile' ], $auth ) );
-		register_rest_route( $ns, '/account/orders', $this->route( 'GET', [ $this, 'orders' ], $auth ) );
+		register_rest_route( $ns, '/account/profile', $this->route( 'POST', [ $this, 'update_profile' ], $auth, [
+			'expected_revision' => [
+				'type'        => 'integer',
+				'required'    => false,
+				'description' => __( 'The profile revision the client last saw; a mismatch answers 409 so an offline edit cannot silently overwrite a newer one.', 'igbz-suite' ),
+			],
+		] ) );
+		register_rest_route( $ns, '/account/orders', $this->route( 'GET', [ $this, 'orders' ], $auth, $this->cursor_args() ) );
 		register_rest_route( $ns, '/account/orders/(?P<id>\d+)', $this->route( 'GET', [ $this, 'order' ], $auth ) );
-		register_rest_route( $ns, '/account/wallet', $this->route( 'GET', [ $this, 'wallet' ], $auth ) );
+		register_rest_route( $ns, '/account/wallet', $this->route( 'GET', [ $this, 'wallet' ], $auth, $this->cursor_args() ) );
 		register_rest_route( $ns, '/account/wallet/topup', $this->route( 'POST', [ $this, 'wallet_topup' ], $auth ) );
 		register_rest_route( $ns, '/account/instalments', $this->route( 'GET', [ $this, 'instalments' ], $auth ) );
 		register_rest_route( $ns, '/account/instalments/(?P<id>\d+)/pay', $this->route( 'POST', [ $this, 'pay_instalment' ], $auth ) );
@@ -70,12 +77,38 @@ final class AccountController extends BaseController {
 					'balance'  => $this->wallet_service()->balance( $user_id, $this->scoped_tenant_id() ),
 					'currency' => igbz()->settings()->string( 'general.default_currency', 'IRT' ),
 				],
+				// Phase 67: the offline-edit guard. The app sends this back as
+				// expected_revision; a mismatch means someone edited elsewhere first.
+				'revision'     => $this->profile_revision( $user_id ),
 			]
 		);
 	}
 
+	private function profile_revision( int $user_id ): int {
+		return (int) get_user_meta( $user_id, 'igbz_profile_revision', true );
+	}
+
 	public function update_profile( \WP_REST_Request $request ): \WP_REST_Response {
 		$user_id = get_current_user_id();
+
+		// Phase 67: offline conflict. An app that edited offline sends the revision it
+		// based its edit on; if the profile moved on since, the write is refused with the
+		// current revision so the app can re-fetch and merge instead of clobbering.
+		// Without the field the v1 behaviour (last write wins) is untouched.
+		$expected = $request->get_param( 'expected_revision' );
+		if ( null !== $expected && '' !== $expected && (int) $expected !== $this->profile_revision( $user_id ) ) {
+			$response = new \WP_REST_Response(
+				[
+					'ok'               => false,
+					'code'             => 'revision_conflict',
+					'error'            => __( 'The profile changed on another device; re-fetch and merge before saving.', 'igbz-suite' ),
+					'current_revision' => $this->profile_revision( $user_id ),
+				],
+				409
+			);
+
+			return $response;
+		}
 
 		$display_name = sanitize_text_field( (string) $request->get_param( 'display_name' ) );
 		if ( '' !== $display_name ) {
@@ -110,6 +143,8 @@ final class AccountController extends BaseController {
 			$customer->save();
 		}
 
+		update_user_meta( $user_id, 'igbz_profile_revision', $this->profile_revision( $user_id ) + 1 );
+
 		return $this->get_profile();
 	}
 
@@ -118,6 +153,15 @@ final class AccountController extends BaseController {
 	public function orders( \WP_REST_Request $request ): \WP_REST_Response {
 		if ( ! function_exists( 'wc_get_orders' ) ) {
 			return $this->fail( 'woocommerce_missing', __( 'WooCommerce is not active.', 'igbz-suite' ), 503 );
+		}
+
+		$position = $this->cursor_position( $request, CursorCodec::KIND_ORDERS );
+		if ( $position instanceof \WP_REST_Response ) {
+			return $position;
+		}
+
+		if ( null !== $position ) {
+			return $this->orders_by_cursor( $request, $position );
 		}
 
 		[ $page, $per_page, ] = $this->page_args( $request, 15 );
@@ -142,6 +186,51 @@ final class AccountController extends BaseController {
 		}
 
 		return $this->paged( $items, $total, $page, $per_page );
+	}
+
+	/**
+	 * Phase 67 — keyset pagination for the orders feed: rows strictly before the cursor's
+	 * (date_created, id) tuple, DESC (an empty position is the first page: no filter). The
+	 * tie at the cursor's own second is handled exactly: WooCommerce's range query fetches
+	 * the same-second rows, the `<` query the strictly-older ones, and the merge keeps
+	 * (date, id) tuples below the cursor — so an order placed in the same second as the
+	 * bookmarked one is neither duplicated nor skipped.
+	 *
+	 * @param array<string,int|string> $position
+	 */
+	private function orders_by_cursor( \WP_REST_Request $request, array $position ): \WP_REST_Response {
+		$limit     = $this->cursor_limit( $request, 15 );
+		$before_ts = (int) ( $position['t'] ?? 0 );
+		$before_id = (int) ( $position['i'] ?? 0 );
+		$base      = [
+			'customer_id' => get_current_user_id(),
+			'limit'       => $limit + 1,
+			'orderby'     => 'date',
+			'order'       => 'DESC',
+		];
+
+		if ( $position ) {
+			$fetched = array_merge(
+				(array) wc_get_orders( $base + [ 'date_created' => '<' . $before_ts ] ),
+				(array) wc_get_orders( $base + [ 'date_created' => $before_ts . '...' . $before_ts ] )
+			);
+		} else {
+			$fetched = (array) wc_get_orders( $base );
+		}
+
+		$batch = [];
+		foreach ( $fetched as $order ) {
+			$ts = (int) ( $order->get_date_created() ? $order->get_date_created()->getTimestamp() : 0 );
+			$id = (int) $order->get_id();
+			if ( $position && ( $ts > $before_ts || ( $ts === $before_ts && $id >= $before_id ) ) ) {
+				continue;
+			}
+			$batch[ $id ] = [ 'item' => $this->order_summary( $order ), 'cursor' => [ 't' => $ts, 'i' => $id ] ];
+		}
+
+		usort( $batch, static fn ( array $a, array $b ) => $b['cursor']['t'] <=> $a['cursor']['t'] ?: $b['cursor']['i'] <=> $a['cursor']['i'] );
+
+		return $this->cursor_page( array_values( $batch ), $limit, CursorCodec::KIND_ORDERS );
 	}
 
 	public function order( \WP_REST_Request $request ): \WP_REST_Response {
@@ -212,24 +301,42 @@ final class AccountController extends BaseController {
 	}
 
 	public function wallet( \WP_REST_Request $request ): \WP_REST_Response {
-		[ $page, $per_page, $offset ] = $this->page_args( $request, 25 );
-
 		$user_id   = get_current_user_id();
 		$tenant_id = $this->scoped_tenant_id( $request );
 		$wallet    = $this->wallet_service();
 
+		$position = $this->cursor_position( $request, CursorCodec::KIND_WALLET );
+		if ( $position instanceof \WP_REST_Response ) {
+			return $position;
+		}
+
+		if ( null !== $position ) {
+			// Keyset on the append-only ledger: rows with id strictly below the cursor's.
+			$limit = $this->cursor_limit( $request, 25 );
+			$rows  = $wallet->history( $user_id, [ 'tenant_id' => $tenant_id, 'limit' => $limit + 1, 'before_id' => (int) ( $position['i'] ?? 0 ) ] );
+			$batch = [];
+			foreach ( $rows as $row ) {
+				$row_id = (int) $row['id'];
+				$batch[] = [ 'item' => $this->wallet_entry( $row ), 'cursor' => [ 'i' => $row_id ] ];
+			}
+
+			return $this->cursor_page(
+				$batch,
+				$limit,
+				CursorCodec::KIND_WALLET,
+				[
+					'balance'  => $wallet->balance( $user_id, $tenant_id ),
+					'currency' => igbz()->settings()->string( 'general.default_currency', 'IRT' ),
+				]
+			);
+		}
+
+		[ $page, $per_page, $offset ] = $this->page_args( $request, 25 );
+
 		$rows    = $wallet->history( $user_id, [ 'tenant_id' => $tenant_id, 'limit' => $per_page, 'offset' => $offset ] );
 		$entries = [];
 		foreach ( $rows as $row ) {
-			$entries[] = [
-				'id'         => (int) $row['id'],
-				'amount'     => (float) $row['amount'],
-				'direction'  => (string) $row['direction'],
-				'reason'     => (string) $row['reason'],
-				'note'       => (string) $row['note'],
-				'balance_after' => (float) $row['balance_after'],
-				'created_at' => (string) $row['created_at'],
-			];
+			$entries[] = $this->wallet_entry( $row );
 		}
 
 		return $this->ok(
@@ -243,7 +350,25 @@ final class AccountController extends BaseController {
 		);
 	}
 
+	/** @param array<string,mixed> $row */
+	private function wallet_entry( array $row ): array {
+		return [
+			'id'           => (int) $row['id'],
+			'amount'       => (float) $row['amount'],
+			'direction'    => (string) $row['direction'],
+			'reason'       => (string) $row['reason'],
+			'note'         => (string) $row['note'],
+			'balance_after' => (float) $row['balance_after'],
+			'created_at'   => (string) $row['created_at'],
+		];
+	}
+
 	public function wallet_topup( \WP_REST_Request $request ): \WP_REST_Response {
+		// Phase 67: retried writes replay their first outcome instead of repeating it.
+		return $this->with_idempotency( $request, fn (): \WP_REST_Response => $this->do_wallet_topup( $request ) );
+	}
+
+	private function do_wallet_topup( \WP_REST_Request $request ): \WP_REST_Response {
 		if ( ! igbz()->settings()->bool( 'wallet.topup_enabled', true ) ) {
 			return $this->fail( 'topup_disabled', __( 'Wallet top-up is disabled.', 'igbz-suite' ), 403 );
 		}
@@ -342,6 +467,11 @@ final class AccountController extends BaseController {
 	}
 
 	public function pay_instalment( \WP_REST_Request $request ): \WP_REST_Response {
+		// Phase 67: retried writes replay their first outcome instead of repeating it.
+		return $this->with_idempotency( $request, fn (): \WP_REST_Response => $this->do_pay_instalment( $request ) );
+	}
+
+	private function do_pay_instalment( \WP_REST_Request $request ): \WP_REST_Response {
 		/** @var BnplService $bnpl */
 		$bnpl = igbz()->get( 'bnpl' );
 		$db   = igbz()->db();
@@ -423,6 +553,11 @@ final class AccountController extends BaseController {
 	}
 
 	public function course_progress( \WP_REST_Request $request ): \WP_REST_Response {
+		// Phase 67: retried writes replay their first outcome instead of repeating it.
+		return $this->with_idempotency( $request, fn (): \WP_REST_Response => $this->do_course_progress( $request ) );
+	}
+
+	private function do_course_progress( \WP_REST_Request $request ): \WP_REST_Response {
 		/** @var LmsService $lms */
 		$lms = igbz()->get( 'lms' );
 		$db  = igbz()->db();
@@ -494,6 +629,11 @@ final class AccountController extends BaseController {
 	 * LmsService so this route and the storefront shortcode cannot drift apart.
 	 */
 	public function submit_quiz( \WP_REST_Request $request ): \WP_REST_Response {
+		// Phase 67: retried writes replay their first outcome instead of repeating it.
+		return $this->with_idempotency( $request, fn (): \WP_REST_Response => $this->do_submit_quiz( $request ) );
+	}
+
+	private function do_submit_quiz( \WP_REST_Request $request ): \WP_REST_Response {
 		/** @var LmsService $lms */
 		$lms     = igbz()->get( 'lms' );
 		$quiz_id = (int) $request->get_param( 'id' );

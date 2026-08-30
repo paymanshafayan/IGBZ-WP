@@ -1,6 +1,8 @@
 <?php
 namespace IGBZ\Suite\Modules\RestApi\Controllers;
 
+use IGBZ\Suite\Modules\RestApi\Pagination\CursorCodec;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -20,7 +22,7 @@ final class CatalogController extends BaseController {
 		$ns = self::NAMESPACE;
 
 		register_rest_route( $ns, '/catalog/categories', $this->route( 'GET', [ $this, 'categories' ] ) );
-		register_rest_route( $ns, '/catalog/products', $this->route( 'GET', [ $this, 'products' ] ) );
+		register_rest_route( $ns, '/catalog/products', $this->route( 'GET', [ $this, 'products' ], null, $this->cursor_args() ) );
 		register_rest_route( $ns, '/catalog/products/(?P<id>\d+)', $this->route( 'GET', [ $this, 'product' ] ) );
 		register_rest_route( $ns, '/catalog/search-suggest', $this->route( 'GET', [ $this, 'suggest' ] ) );
 	}
@@ -80,6 +82,15 @@ final class CatalogController extends BaseController {
 			return $this->fail( 'woocommerce_missing', __( 'WooCommerce is not active.', 'igbz-suite' ), 503 );
 		}
 
+		$position = $this->cursor_position( $request, CursorCodec::KIND_PRODUCTS );
+		if ( $position instanceof \WP_REST_Response ) {
+			return $position;
+		}
+
+		if ( null !== $position ) {
+			return $this->products_by_cursor( $request, $position );
+		}
+
 		[ $page, $per_page, ] = $this->page_args( $request );
 
 		$args = [
@@ -91,6 +102,22 @@ final class CatalogController extends BaseController {
 			'order'    => 'ASC' === strtoupper( (string) $request->get_param( 'order' ) ) ? 'ASC' : 'DESC',
 		];
 
+		$this->product_filters( $request, $args );
+
+		$result   = wc_get_products( $args );
+		$products = is_object( $result ) ? ( $result->products ?? [] ) : (array) $result;
+		$total    = is_object( $result ) && isset( $result->total ) ? (int) $result->total : count( $products );
+
+		$items = [];
+		foreach ( $products as $product ) {
+			$items[] = $this->summary( $product );
+		}
+
+		return $this->paged( $items, $total, $page, $per_page );
+	}
+
+	/** The shared search/category/featured/sale/price/tenant filters of the product grid. */
+	private function product_filters( \WP_REST_Request $request, array &$args ): void {
 		$search = (string) $request->get_param( 'search' );
 		if ( '' !== $search ) {
 			$args['s'] = sanitize_text_field( $search );
@@ -129,17 +156,56 @@ final class CatalogController extends BaseController {
 		if ( $meta_query ) {
 			$args['meta_query'] = $meta_query; // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 		}
+	}
 
-		$result   = wc_get_products( $args );
-		$products = is_object( $result ) ? ( $result->products ?? [] ) : (array) $result;
-		$total    = is_object( $result ) && isset( $result->total ) ? (int) $result->total : count( $products );
-
-		$items = [];
-		foreach ( $products as $product ) {
-			$items[] = $this->summary( $product );
+	/**
+	 * Phase 67 — keyset pagination for the product grid: strictly before the cursor's
+	 * (date_created, id) tuple, DESC — stable while products publish and unpublish around
+	 * the client. A cursor only addresses the default (date) ordering: with price or
+	 * popularity order the tuple would not be a valid position, so that combination is
+	 * refused loudly instead of returning a wrong slice.
+	 *
+	 * @param array<string,int|string> $position
+	 */
+	private function products_by_cursor( \WP_REST_Request $request, array $position ): \WP_REST_Response {
+		if ( 'date' !== $this->orderby( (string) $request->get_param( 'orderby' ) ) ) {
+			return $this->fail( 'igbz_validation', __( 'Cursor pagination applies to the default (date) ordering only.', 'igbz-suite' ), 400 );
 		}
 
-		return $this->paged( $items, $total, $page, $per_page );
+		$limit     = $this->cursor_limit( $request, 20 );
+		$before_ts = (int) ( $position['t'] ?? 0 );
+		$before_id = (int) ( $position['i'] ?? 0 );
+
+		$args = [
+			'status'   => 'publish',
+			'limit'    => $limit + 1,
+			'orderby'  => 'date',
+			'order'    => 'DESC',
+		];
+		$this->product_filters( $request, $args );
+
+		if ( $position ) {
+			$fetched = array_merge(
+				(array) wc_get_products( $args + [ 'date_created' => '<' . $before_ts ] ),
+				(array) wc_get_products( $args + [ 'date_created' => $before_ts . '...' . $before_ts ] )
+			);
+		} else {
+			$fetched = (array) wc_get_products( $args );
+		}
+
+		$batch = [];
+		foreach ( $fetched as $product ) {
+			$ts = (int) ( $product->get_date_created() ? $product->get_date_created()->getTimestamp() : 0 );
+			$id = (int) $product->get_id();
+			if ( $position && ( $ts > $before_ts || ( $ts === $before_ts && $id >= $before_id ) ) ) {
+				continue;
+			}
+			$batch[ $id ] = [ 'item' => $this->summary( $product ), 'cursor' => [ 't' => $ts, 'i' => $id ] ];
+		}
+
+		usort( $batch, static fn ( array $a, array $b ) => $b['cursor']['t'] <=> $a['cursor']['t'] ?: $b['cursor']['i'] <=> $a['cursor']['i'] );
+
+		return $this->cursor_page( array_values( $batch ), $limit, CursorCodec::KIND_PRODUCTS );
 	}
 
 	private function orderby( string $requested ): string {

@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 242,
-    "source_php_sha256": "69dd55d0a0553206a69858d5b91fd589f6ecc270a26093b009cb2117a23e3a34",
+    "source_php_count": 252,
+    "source_php_sha256": "2ff6ee7f1136f9831fabe36744b3be01dd7eb5bdd066550c15441ada0a7c6885",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -231,19 +231,27 @@
       "igbz-suite/src/Modules/Pado/Ai/DeepInfraAdapter.php",
       "igbz-suite/src/Modules/Pado/PadoModule.php",
       "igbz-suite/src/Modules/Pado/Services/ApprovalRequestService.php",
+      "igbz-suite/src/Modules/Pado/Services/ContentOperationsService.php",
+      "igbz-suite/src/Modules/Pado/Services/GrowthPlaybookService.php",
       "igbz-suite/src/Modules/Pado/Services/PadoGateway.php",
+      "igbz-suite/src/Modules/Pado/Services/PadoMemoryService.php",
+      "igbz-suite/src/Modules/Pado/Services/SensitiveOperationsService.php",
+      "igbz-suite/src/Modules/Pado/Services/ThemeContract.php",
+      "igbz-suite/src/Modules/Pado/Services/ThemeReleaseService.php",
       "igbz-suite/src/Modules/Pado/Services/ThemeService.php",
       "igbz-suite/src/Modules/Pado/Services/ThemeValidator.php",
       "igbz-suite/src/Modules/RestApi/Admin/DevicesPage.php",
       "igbz-suite/src/Modules/RestApi/Auth/Authenticator.php",
       "igbz-suite/src/Modules/RestApi/Auth/Jwt.php",
       "igbz-suite/src/Modules/RestApi/Auth/TokenService.php",
+      "igbz-suite/src/Modules/RestApi/Contract/ApiContractService.php",
       "igbz-suite/src/Modules/RestApi/Controllers/AccountController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/AiStudioController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/AuthController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/BaseController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/CatalogController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/ContentPublishController.php",
+      "igbz-suite/src/Modules/RestApi/Controllers/ContractController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/CourierController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/DeviceController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/DomainController.php",
@@ -256,6 +264,8 @@
       "igbz-suite/src/Modules/RestApi/Controllers/VipAdminController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/VipController.php",
       "igbz-suite/src/Modules/RestApi/Controllers/WebhookController.php",
+      "igbz-suite/src/Modules/RestApi/Idempotency/IdempotencyService.php",
+      "igbz-suite/src/Modules/RestApi/Pagination/CursorCodec.php",
       "igbz-suite/src/Modules/RestApi/Push/DeviceRepository.php",
       "igbz-suite/src/Modules/RestApi/Push/FcmService.php",
       "igbz-suite/src/Modules/RestApi/Push/GoogleAuth.php",
@@ -300,15 +310,15 @@
       "Hub": 11,
       "Instagram": 39,
       "MultiTenant": 102,
-      "Pado": 11,
-      "RestApi": 27
+      "Pado": 17,
+      "RestApi": 31
     },
     "support_php_count": 32,
-    "all_plugin_php_count": 318
+    "all_plugin_php_count": 338
   },
   "database": {
-    "version": 47,
-    "table_count": 99,
+    "version": 48,
+    "table_count": 100,
     "tables": [
       "tenants",
       "tenant_domains",
@@ -340,6 +350,7 @@
       "ig_funnel_hits",
       "ig_intake",
       "api_tokens",
+      "api_idempotency",
       "devices",
       "jobs",
       "webhook_events",
@@ -391,6 +402,10 @@
       "ig_courier_chat",
       "logs",
       "approval_requests",
+      "pado_memory",
+      "pado_memory_access",
+      "pado_playbooks",
+      "pado_playbook_runs",
       "themes",
       "ig_ad_campaigns",
       "ig_seo_activity",
@@ -410,8 +425,8 @@
     "version_source": "igbz-suite/igbz-suite.php"
   },
   "rest_api": {
-    "registration_calls": 171,
-    "files_with_registration": 18,
+    "registration_calls": 172,
+    "files_with_registration": 19,
     "files": [
       {
         "file": "igbz-suite/src/Modules/Hub/Rest/HubController.php",
@@ -441,6 +456,11 @@
       {
         "file": "igbz-suite/src/Modules/RestApi/Controllers/ContentPublishController.php",
         "registration_calls": 7,
+        "direct_permission_callback_mentions": 0
+      },
+      {
+        "file": "igbz-suite/src/Modules/RestApi/Controllers/ContractController.php",
+        "registration_calls": 1,
         "direct_permission_callback_mentions": 0
       },
       {
@@ -781,7 +801,7 @@
       {
         "hook_reference": "HOOK_DAILY",
         "file": "igbz-suite/src/Modules/RestApi/RestApiModule.php",
-        "line": "83",
+        "line": "93",
         "registration": "add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );"
       },
       {
@@ -863,14 +883,19 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 74,
+    "php_file_count": 84,
     "php_files": [
+      "igbz-suite/tests/AdversarialPadoTest.php",
       "igbz-suite/tests/AffiliateHardenTest.php",
+      "igbz-suite/tests/ApiAuthDeviceTest.php",
+      "igbz-suite/tests/ApiContractTest.php",
+      "igbz-suite/tests/ApiMobileBehaviorTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
       "igbz-suite/tests/BatchTest.php",
       "igbz-suite/tests/BiometricGateTest.php",
       "igbz-suite/tests/BnplHardeningTest.php",
       "igbz-suite/tests/BnplQuoteTest.php",
+      "igbz-suite/tests/ContentOpsTest.php",
       "igbz-suite/tests/ContentPublishTest.php",
       "igbz-suite/tests/CourierCodTest.php",
       "igbz-suite/tests/CronJobsTest.php",
@@ -891,6 +916,7 @@
       "igbz-suite/tests/GatewayHardeningTest.php",
       "igbz-suite/tests/GatewayTest.php",
       "igbz-suite/tests/GrowthIntelTest.php",
+      "igbz-suite/tests/GrowthPlaybookTest.php",
       "igbz-suite/tests/HourlyJobsTest.php",
       "igbz-suite/tests/HposOrderFlowTest.php",
       "igbz-suite/tests/InboxTest.php",
@@ -908,6 +934,7 @@
       "igbz-suite/tests/MoneyTest.php",
       "igbz-suite/tests/NationalIdVerifierTest.php",
       "igbz-suite/tests/OffboardingTest.php",
+      "igbz-suite/tests/PadoMemoryTest.php",
       "igbz-suite/tests/PermissionQueueTest.php",
       "igbz-suite/tests/Phases2Test.php",
       "igbz-suite/tests/PhasesTest.php",
@@ -918,6 +945,7 @@
       "igbz-suite/tests/SchemaTest.php",
       "igbz-suite/tests/SecretsTest.php",
       "igbz-suite/tests/SecurityGapsTest.php",
+      "igbz-suite/tests/SensitiveOpsTest.php",
       "igbz-suite/tests/SeoAdsTest.php",
       "igbz-suite/tests/SettingsTest.php",
       "igbz-suite/tests/ShippingSyncTest.php",
@@ -928,6 +956,8 @@
       "igbz-suite/tests/TenantResolutionTest.php",
       "igbz-suite/tests/TenantScopeTest.php",
       "igbz-suite/tests/TestCase.php",
+      "igbz-suite/tests/ThemeContractTest.php",
+      "igbz-suite/tests/ThemeReleaseTest.php",
       "igbz-suite/tests/ThemeRoutingTest.php",
       "igbz-suite/tests/UpsertTest.php",
       "igbz-suite/tests/UrlGuardTest.php",
@@ -940,7 +970,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 71,
+    "main_case_count": 81,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -1012,7 +1042,17 @@
       "VipChannelTest",
       "GrowthIntelTest",
       "DeepInfraAdapterTest",
-      "PermissionQueueTest"
+      "PermissionQueueTest",
+      "SensitiveOpsTest",
+      "ContentOpsTest",
+      "ThemeContractTest",
+      "ThemeReleaseTest",
+      "PadoMemoryTest",
+      "GrowthPlaybookTest",
+      "AdversarialPadoTest",
+      "ApiContractTest",
+      "ApiAuthDeviceTest",
+      "ApiMobileBehaviorTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

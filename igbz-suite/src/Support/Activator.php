@@ -123,6 +123,7 @@ final class Activator {
 			45 => [ self::class, 'migrate_to_v45' ],
 			46 => [ self::class, 'migrate_to_v46' ],
 			47 => [ self::class, 'migrate_to_v47' ],
+			48 => [ self::class, 'migrate_to_v48' ],
 		];
 	}
 
@@ -132,6 +133,16 @@ final class Activator {
 			$migrator->add( $version, $step );
 		}
 		return $migrator;
+	}
+
+	/**
+	 * v48 (phase 67): mobile write semantics — `api_idempotency` stores one row per
+	 * (user, Idempotency-Key) claim so a retried POST replays the stored response instead
+	 * of repeating the work (unique key idem_claim makes the claim atomic), with a lease on
+	 * in-flight rows and an expiry the daily prune honours.
+	 */
+	public static function migrate_to_v48(): void {
+		// Pure dbDelta work; see the api_idempotency table.
 	}
 
 	/**

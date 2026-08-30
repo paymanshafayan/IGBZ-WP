@@ -151,14 +151,19 @@ final class FxWalletService {
 	}
 
 	/** @return array<int,array<string,mixed>> */
-	public function ledger( int $tenant_id, int $limit = 50, int $offset = 0 ): array {
-		return $this->db->results(
-			'SELECT * FROM ' . $this->db->table( 'fx_ledger' ) . '
-			 WHERE tenant_id = %d ORDER BY id DESC LIMIT %d OFFSET %d',
-			$tenant_id,
-			$limit,
-			$offset
-		);
+	public function ledger( int $tenant_id, int $limit = 50, int $offset = 0, int $before_id = 0 ): array {
+		// Phase 67: $before_id is the keyset filter for cursor pagination (id DESC).
+		$sql  = 'SELECT * FROM ' . $this->db->table( 'fx_ledger' ) . ' WHERE tenant_id = %d';
+		$args = [ $tenant_id ];
+		if ( $before_id > 0 ) {
+			$sql   .= ' AND id < %d';
+			$args[] = $before_id;
+		}
+		$sql   .= ' ORDER BY id DESC LIMIT %d OFFSET %d';
+		$args[] = $limit;
+		$args[] = $offset;
+
+		return $this->db->results( $sql, ...$args );
 	}
 
 	private function ledger_exists( int $tenant_id, string $reason, string $reference ): bool {

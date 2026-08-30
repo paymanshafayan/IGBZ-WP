@@ -93,6 +93,7 @@ $cases = [
 	'AdversarialPadoTest',
 	'ApiContractTest',
 	'ApiAuthDeviceTest',
+	'ApiMobileBehaviorTest',
 ];
 
 foreach ( $cases as $case ) {

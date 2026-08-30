@@ -4,6 +4,7 @@ namespace IGBZ\Suite\Modules\RestApi;
 use IGBZ\Suite\Modules\MultiTenant\Otp\OtpService;
 use IGBZ\Suite\Modules\RestApi\Admin\DevicesPage;
 use IGBZ\Suite\Modules\RestApi\Auth\Authenticator;
+use IGBZ\Suite\Modules\RestApi\Idempotency\IdempotencyService;
 use IGBZ\Suite\Modules\RestApi\Auth\TokenService;
 use IGBZ\Suite\Modules\RestApi\Controllers\AccountController;
 use IGBZ\Suite\Modules\RestApi\Controllers\AuthController;
@@ -106,6 +107,7 @@ final class RestApiModule implements ModuleInterface {
 
 	private function bind_services( Plugin $plugin ): void {
 		$plugin->bind( 'api.tokens', static fn ( Plugin $c ) => new TokenService( $c->db(), $c->logger() ) );
+		$plugin->bind( 'api.idempotency', static fn ( Plugin $c ) => new IdempotencyService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'api.auth', static fn ( Plugin $c ) => new Authenticator( $c->get( 'api.tokens' ), $c->logger() ) );
 		$plugin->bind( 'api.devices', static fn ( Plugin $c ) => new DeviceRepository( $c->db() ) );
 		$plugin->bind(
@@ -256,11 +258,15 @@ final class RestApiModule implements ModuleInterface {
 			$devices = $plugin->get( 'api.devices' );
 			$stale   = $devices->prune_stale( max( 30, $plugin->settings()->int( 'api.device_retention_days', 180 ) ) );
 
-			if ( $deleted > 0 || $stale > 0 ) {
+			/** @var IdempotencyService $idempotency */
+			$idempotency = $plugin->get( 'api.idempotency' );
+			$expired     = $idempotency->prune_expired(); // Phase 67: replay records past their window.
+
+			if ( $deleted > 0 || $stale > 0 || $expired > 0 ) {
 				$plugin->logger()->info(
 					'api',
 					'Daily API housekeeping',
-					[ 'tokens_pruned' => $deleted, 'devices_pruned' => $stale ]
+					[ 'tokens_pruned' => $deleted, 'devices_pruned' => $stale, 'idempotency_pruned' => $expired ]
 				);
 			}
 		} );

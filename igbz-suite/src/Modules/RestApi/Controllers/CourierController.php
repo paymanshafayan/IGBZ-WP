@@ -96,6 +96,11 @@ final class CourierController extends BaseController {
 	}
 
 	public function deliver( \WP_REST_Request $request ): \WP_REST_Response {
+		// Phase 67: couriers work offline; a re-sent delivery/COD hand-off must replay.
+		return $this->with_idempotency( $request, fn (): \WP_REST_Response => $this->do_deliver( $request ) );
+	}
+
+	private function do_deliver( \WP_REST_Request $request ): \WP_REST_Response {
 		$courier = $this->courier_or_error();
 		if ( ! $courier ) {
 			return $this->fail( 'not_a_courier', __( 'Not a courier.', 'igbz-suite' ), 403 );
@@ -109,6 +114,11 @@ final class CourierController extends BaseController {
 	}
 
 	public function cod( \WP_REST_Request $request ): \WP_REST_Response {
+		// Phase 67: couriers work offline; a re-sent delivery/COD hand-off must replay.
+		return $this->with_idempotency( $request, fn (): \WP_REST_Response => $this->do_cod( $request ) );
+	}
+
+	private function do_cod( \WP_REST_Request $request ): \WP_REST_Response {
 		$courier = $this->courier_or_error();
 		if ( ! $courier ) {
 			return $this->fail( 'not_a_courier', __( 'Not a courier.', 'igbz-suite' ), 403 );

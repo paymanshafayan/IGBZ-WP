@@ -430,12 +430,17 @@ final class WalletService {
 	}
 
 	/**
-	 * @param array{tenant_id?:int,reason?:string,from?:string,to?:string,limit?:int,offset?:int} $args
+	 * @param array{tenant_id?:int,reason?:string,from?:string,to?:string,limit?:int,offset?:int,before_id?:int} $args
 	 * @return array<int,array<string,mixed>>
 	 */
 	public function history( int $user_id, array $args = [] ): array {
 		$where  = [ 'user_id = %d' ];
 		$params = [ $user_id ];
+		// Phase 67: keyset access for cursor pagination — rows strictly below the cursor id.
+		if ( ! empty( $args['before_id'] ) ) {
+			$where[]  = 'id < %d';
+			$params[] = (int) $args['before_id'];
+		}
 		if ( isset( $args['tenant_id'] ) ) {
 			$where[]  = 'tenant_id = %d';
 			$params[] = (int) $args['tenant_id'];

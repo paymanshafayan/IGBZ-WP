@@ -3,7 +3,7 @@
 > **این فایل را در چت جدید بفرست (یا بگو «`HANDOFF-PROMPT.md` را بخوان»).**
 > به‌روزرسانی: ۱۴۰۶/۰۶/۰۹ (۲۹ اوت ۲۰۲۶) · شاخهٔ ثابت آخرین جلسه:
 > `arena/01a04b9c-igbz-wp` (هر جلسه شاخهٔ arena خودش را دارد؛ فقط روی همان کار کن).
-> **وضعیت: فازهای ۰۱ تا ۶۶ تمام و پوش‌شده؛ فاز بعدی ۶۷ است (رفتار API موبایل — موج هشت).** جزئیات دقیق در بخش
+> **وضعیت: فازهای ۰۱ تا ۶۶ و ۶۷ تمام و پوش‌شده؛ فاز بعدی ۶۸ است (بستهٔ فارسی و checkout — موج هشت).** جزئیات دقیق در بخش
 > «📍 نقطهٔ دقیق ادامهٔ کار» همین‌جاست.
 > معماری جاری: پادوی Playbookمحور، DeepInfra مستقل هر فروشگاه و Zernio مرکزی/چندپروفایلی
 > به‌عنوان تنها provider اجتماعی؛ Manus، ChatPlace، ManyChat و Ayrshare حذف‌اند و پیشنهاد session اینستاگرام در Agent Reach رد شده است.
@@ -131,15 +131,22 @@
   بازپخش توکن چرخیده در ≤۳۰s یک‌بار جفت تازه می‌گیرد (`api.refresh_grace_seconds`)،
   بار سوم/بیرون پنجره/خروج = ابطال دستگاه؛ بازندهٔ مسابقه پاسخ می‌گیرد. جزئیات:
   `PROJECT-STATE §۱۱.۲۲`.
-- معیارهای سبز: تست **۱۵۳۳۱ اظهارنظر در ۸۰ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
-  دیتابیس **v47 با ۹۹ جدول (ستون جدید api_tokens.rotated_at)**.
+- **فاز ۶۷ — رفتار API موبایل:** کرسر کیست مات روی سفارش‌ها/کیف پول/دفاتر
+  FX/محصولات (`CursorCodec` مات + decode سخت‌گیر=۴۰۰ + حل دقیق تساوی همان‌ثانیه)،
+  idempotency نوشتن جدول `api_idempotency` (v48: ادعای اتمیک، بازپخش با
+  `Idempotency-Replayed`، لیس ۱۲۰ث، انقضا ۴۸س، هرس روزانه) روی ۸ مسیر پول‌دار،
+  تعارض آفلاین `revision/expected_revision` نمایه. **باگ فاز ۶۵ رفع شد** (کلید
+  متد '1' در قرارداد) → پین `api-v1.json` 1.1.0 با ۱۸۷ عملیات بازتولید شد.
+  جزئیات: `PROJECT-STATE §۱۱.۲۳`.
+- معیارهای سبز: تست **۱۵۴۶۸ اظهارنظر در ۸۱ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
+  دیتابیس **v48 با ۱۰۰ جدول (جدول جدید api_idempotency)**.
 
 ### از کجا باید ادامه داد
 
-- **فاز بعدی: ۶۷ — رفتار API موبایل.** شرح در `PROJECT-COMPLETION-PLAN.md §۲۳.۱۱`:
-  cursor pagination، limit، idempotency نوشتن، upload، push، retry/offline conflict و
-  contract test. قرارداد پین‌شدهٔ ۶۵ (`contracts/api-v1.json` + گیت breaking_changes)
-  مبنای هر تغییر API است — پس از هر تغییر سند را بازتولید و پین کنید.
+- **فاز بعدی: ۶۸ — بستهٔ فارسی و checkout.** شرح در `PROJECT-COMPLETION-PLAN.md §۲۳.۱۱`:
+  fa_IR.po/mo، ترجمهٔ اسکریپت، اعداد/ارز/تاریخ، رفع glyph و کشور مهمان/کاربر تسویه.
+  یادآوری API: هر تغییر مسیر یعنی بازتولید پین `contracts/api-v1.json` از
+  `GET /igbz/v1/contract` (قالب: json.dumps با sort_keys) + گیت breaking_changes.
 - **بازسازی سندباکس (روال اثبات‌شده):** گیت به پایه برمی‌گردد → `git fetch origin
   arena/01a04e8d-igbz-wp && git reset --mixed FETCH_HEAD`؛ محیط با
   `bash _devenv/setup.sh` و `bash _devenv/run.sh`؛ کرومیوم از npm

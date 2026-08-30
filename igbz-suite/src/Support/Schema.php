@@ -60,6 +60,7 @@ final class Schema {
 			'vip_threads',
 			'vip_messages',
 			'api_tokens',
+			'api_idempotency',
 			'devices',
 			'jobs',
 			'webhook_events',
@@ -756,6 +757,24 @@ final class Schema {
 			KEY expires_at (expires_at),
 			KEY refresh_expires_at (refresh_expires_at),
 			KEY revoked_at (revoked_at)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}api_idempotency (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			user_id BIGINT UNSIGNED NOT NULL,
+			idem_key VARCHAR(191) NOT NULL,
+			method VARCHAR(8) NOT NULL DEFAULT '',
+			path VARCHAR(191) NOT NULL DEFAULT '',
+			fingerprint CHAR(64) NOT NULL DEFAULT '',
+			state VARCHAR(12) NOT NULL DEFAULT 'in_flight',
+			response_code SMALLINT UNSIGNED NULL,
+			response_body LONGTEXT NULL,
+			claimed_at DATETIME NOT NULL,
+			expires_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY idem_claim (user_id,idem_key),
+			KEY expires_at (expires_at)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}devices (
