@@ -976,6 +976,7 @@ final class Activator {
 			'log.level'                     => Logger::INFO,
 			'backup.retention'              => 7,
 			'backup.max_file_mb'            => 5,
+			'flags.queue_paused'            => false,
 			'log.retention_days'            => 30,
 			'security.disable_xmlrpc'       => true,
 			'security.disable_app_passwords' => true,

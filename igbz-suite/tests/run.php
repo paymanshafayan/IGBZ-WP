@@ -99,6 +99,7 @@ $cases = [
 	'TraceTest',
 	'SloTest',
 	'BackupTest',
+	'ReleaseGateTest',
 ];
 
 foreach ( $cases as $case ) {

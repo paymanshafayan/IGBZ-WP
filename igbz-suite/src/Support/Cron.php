@@ -39,6 +39,9 @@ final class Cron {
 		igbz()->get( 'jobs' )->register( 'cron.backup', [ $this, 'run_backup' ] );
 		Backup\Cli::maybe_register();
 
+		// Phase 73: release/canary tooling — operator-only, WP-CLI.
+		Release\Cli::maybe_register();
+
 		// Phase 27: operator tooling — a no-op outside WP-CLI.
 		Jobs\Cli::maybe_register();
 	}

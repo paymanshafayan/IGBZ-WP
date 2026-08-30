@@ -2415,6 +2415,26 @@ production، نه تزئین.
    mid-request لوکیل در پلی‌گراند به‌دلیل پین بودن لوکیل نشست مدیر ممکن نشد —
    کاتالوگ از مسیر load_textdomain خود وردپرس اثبات شد.
 
+### ۱۱.۲۹ فاز ۷۳ — rollback و خط لولهٔ انتشار — ✅ تمام‌شده ۱۴۰۶/۰۶/۱۰
+
+۱. **گیت انتشار:** `Release/ReleaseGate` — حکم از روی سند سلامت فاز ۷۰:
+   green (200+ok بدون دریفت) / degraded (200+دریفت — عبور می‌دهد اما بلند
+   گزارش می‌شود) / red (!200 یا ok:false — خروج غیرصفر). retry با بودجهٔ
+   تلاش/فاصله؛ fetch تزریق‌پذیر. `wp igbz release verify` (Release/Cli؛ ثبت
+   در Cron مثل دو CLI دیگر) با url/tries/sleep برای خط لوله یا کرون canary.
+۲. **اهرم حادثه:** `flags.queue_paused` (پیش‌فرض خاموش در Activator) —
+   QueueRunner::run بدون کوئری claim برمی‌گردد با paused:true؛ انباشت صف +
+   قرمز شدن صادقانهٔ SLO تأخیر؛ پس از آزادسازی drain ادامه می‌یابد.
+۳. **ران‌بوک:** `RUNBOOK-RELEASE-ROLLBACK.md` — گیت دولایه (healthcheckPath
+   ریل‌وی + release verify)، rollback افزونه (دیپلوی قبلی/ZIP)، rollback DB
+   (باندل فاز ۷۲ به previous_version مهاجرت؛ forward-only صادقانه)، rollback
+   قالب (نسخه‌های امضاشدهٔ موجود)، رویهٔ drift، رویهٔ pause، چک‌لیست انتشار.
+   آرتیفکت immutable از فاز ۶۱ موجود بود و ارجاع شد.
+۴. **شواهد:** یونیت **۱۶۰۴۹ در ۸۷ کیس** · لینت ۳۵۴/۰ · زنده: بدنهٔ واقعی
+   `/?igbz_health=1` پلی‌گراند (ok=true, degraded=false, شکل تخت) از همان
+   classify گیت green گرفت (هر دو شکل سند پشتیبانی می‌شود). تغییر UI نداشت —
+   تست ویژوال جدید لازم نشد.
+
 ### ۱۱.۲۸ فاز ۷۲ — پشتیبان و بازیابی — ✅ تمام‌شده ۱۴۰۶/۰۶/۱۰
 
 ۱. **قالب باندل:** `Backup/Bundle` — `igbzbk1:` + AES-256-GCM (Crypto؛ کلید از

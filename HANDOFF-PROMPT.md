@@ -147,7 +147,7 @@
   خودمان)؛ کنتراست/کیبورد/RTL سبز؛ ۴ خانوادهٔ بالادستی WC/WP ثبت شد. ابزار:
   `visual-testing/phase-69/a11y-audit-69.cjs` + `a11y-guest-69.cjs`. جزئیات:
   `PROJECT-STATE §۱۱.۲۵`.
-- معیارهای سبز: تست **۱۵۹۴۱ اظهارنظر در ۸۶ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
+- معیارهای سبز: تست **۱۶۰۴۹ اظهارنظر در ۸۷ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
   دیتابیس **v48 با ۱۰۰ جدول** · سلامت زنده: ok=true/degraded=false (100/100، dbv 48).
 
 ### از کجا باید ادامه داد
@@ -168,9 +168,14 @@
   SLO نقض می‌شود (۲۶س)، retention 7، `wp igbz backup create/list/verify/
   restore[--apply]`، `RUNBOOK-BACKUP-RESTORE.md`. یونیت ۱۵۹۴۱/۸۶، لینت ۳۵۱/۰،
   زنده «Last backup: 0 min». جزئیات: `PROJECT-STATE §۱۱.۲۸`.
-- **فاز بعدی: ۷۳ — rollback و خط لولهٔ انتشار.** شرح در `PROJECT-COMPLETION-PLAN.md
-  §۲۳.۱۲`: rollback افزونه/DB/قالب، artefact immutable، feature flag، canary،
-  توقف و بازگشت خودکار.
+- **فاز ۷۳ (✅ تمام‌شده):** گیت انتشار `ReleaseGate` + `wp igbz release
+  verify` (green/degraded/red، خروج غیرصفر برای خط لوله)، اهرم
+  `flags.queue_paused`، `RUNBOOK-RELEASE-ROLLBACK.md` (گیت دولایه، rollback
+  افزونه/DB/قالب، drift، pause، چک‌لیست). یونیت ۱۶۰۴۹/۸۷، لینت ۳۵۴/۰، سند
+  سلامت زنده از گیت green گرفت. جزئیات: `PROJECT-STATE §۱۱.۲۹`.
+- **فاز بعدی: ۷۴ — بار، دوام و chaos.** شرح در `PROJECT-COMPLETION-PLAN.md
+  §۲۳.۱۲`: بار مسیرهای بحرانی، soak، burst، queue backlog، قطع
+  DB/cache/provider و رفتار degraded.
 - یادآوری API: هر تغییر مسیر یعنی بازتولید پین `contracts/api-v1.json` از
   `GET /igbz/v1/contract` (قالب: json.dumps با sort_keys) + گیت breaking_changes؛
   رشتهٔ تازهٔ UI یعنی `makepot.sh` + `_devenv/build_fa_ir.py`.

@@ -2028,9 +2028,21 @@ sha256 هر عضو؛ کار روزانهٔ `cron.backup` (slot idempotent) با 
 یونیت BackupTest (ساخت/رمز/گردش-کامل/دستکاری/retention/RPO) → ۱۵۹۴۱/۸۶؛
 زنده: باندل واقعی ساخته شد و «Last backup: 0 min» در پنل. جزئیات: STATE §۱۱.۲۸.
 
-#### فاز ۷۳ — rollback و خط لولهٔ انتشار
+#### فاز ۷۳ — rollback و خط لولهٔ انتشار — ✅ تمام‌شده ۱۴۰۶/۰۶/۱۰
 
 rollback افزونه/DB/قالب، artefact immutable، feature flag، canary، توقف و بازگشت خودکار.
+
+**خلاصهٔ تحقق:** گیت انتشار محصول `Release/ReleaseGate` + `wp igbz release
+verify [--url --tries --sleep]` (حکم‌های green/degraded/red با همان معناشنسی
+فاز ۷۰: دریفت هشدار است نه گیت؛ خروج غیرصفر برای خط لوله)؛ اهرم حادثهٔ
+`flags.queue_paused` در QueueRunner (انباشت صادقانه + SLO قرمز عمدی + ادامهٔ
+drain پس از آزادسازی)؛ `RUNBOOK-RELEASE-ROLLBACK.md` با §auto (healthcheckPath
++ auto-rollback ریل‌وی) / §plugin / §db (بازیابی باندل به previous_version؛
+forward-only بودن صادقانه) / §theme (آرتیفکت امضاشدهٔ موجود فاز ۶۱) / §drift /
+§pause + چک‌لیست انتشار. یونیت ReleaseGateTest (۴ حکم + retry + توقف/ادامهٔ
+صف) → ۱۶۰۴۹/۸۷؛ لینت ۳۵۴/۰؛ زنده: سند سلامت واقعی پلی‌گراند از همان منطق گیت
+green گرفت. UI جدیدی ندارد (تست ویژوال لازم نشد — گیت/فلگ/ران‌بوک). جزئیات:
+STATE §۱۱.۲۹.
 
 #### فاز ۷۴ — بار، دوام و chaos
 
