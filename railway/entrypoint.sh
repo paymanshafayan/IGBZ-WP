@@ -39,23 +39,27 @@ cleanup_maintenance() {
 # touch wp_options before that check. Deny the document root at Apache level
 # until wp-cli has finished the first-boot mutations.
 cat > /etc/apache2/conf-available/igbz-bootstrap-deny.conf <<'APACHECONF'
-<Directory /var/www/html>
-    Require all denied
-</Directory>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ - [R=503,L]
+</IfModule>
 APACHECONF
+a2enmod rewrite >/dev/null
 a2enconf igbz-bootstrap-deny >/dev/null
 trap 'cleanup_maintenance; kill "${APACHE_PID:-}" 2>/dev/null || true' TERM INT EXIT
 
-# Ask the official entrypoint to materialize WordPress, then stop Apache before
-# any wp-cli mutation. This removes the race entirely; no web worker exists while
-# bootstrap touches wp_options.
-docker-entrypoint.sh apache2 -k start
-apache2ctl stop >/dev/null 2>&1 || true
+# Keep Apache available for Railway's healthcheck, but make every request return
+# 503 until bootstrap is complete. This prevents PHP/WordPress requests from
+# racing wp-cli while still giving Railway the expected not-ready response.
+docker-entrypoint.sh apache2-foreground &
+APACHE_PID=$!
 
 until [ -f "$WEBROOT/wp-load.php" ] && [ -s "$WEBROOT/wp-config.php" ]; do
+	if ! kill -0 "$APACHE_PID" 2>/dev/null; then
+		wait "$APACHE_PID"
+	fi
 	sleep 2
 done
-APACHE_PID=""
 
 bootstrap() {
 	# ۱) اطمینان از قرارگرفتن فایل‌های هسته در وب‌روت
@@ -141,6 +145,7 @@ bootstrap
 cleanup_maintenance
 # Only now expose WordPress to Railway probes and users.
 a2disconf igbz-bootstrap-deny >/dev/null 2>&1 || true
+apache2ctl graceful
 
 # فاز ۷۰ — گیت آمادگی: سلامت خودمان را می‌پرسیم تا زمانی که ۲۰۰ بدهد؛
 # نتیجه در لاگ استقرار دیده می‌شود و railway.json هم healthcheckPath دارد.
