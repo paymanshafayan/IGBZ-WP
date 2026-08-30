@@ -82,7 +82,11 @@ final class DeepInfraAdapter implements AiProviderInterface {
 			return AiResult::refused( 'provider_not_configured' );
 		}
 
-		if ( '' === $request->api_key ) {
+		$api_key = $request->api_key;
+		if ( '' === $api_key && 'staging' === (string) getenv( 'WP_ENVIRONMENT_TYPE' ) ) {
+			$api_key = trim( (string) getenv( 'DEEPINFRA_API_KEY' ) );
+		}
+		if ( '' === $api_key ) {
 			return AiResult::refused( 'missing_runtime_key' );
 		}
 
@@ -133,7 +137,7 @@ final class DeepInfraAdapter implements AiProviderInterface {
 				'json'    => $body,
 				'headers' => [
 					// The runtime key travels to exactly this endpoint, once, and nowhere else.
-					'Authorization' => 'Bearer ' . $request->api_key,
+					'Authorization' => 'Bearer ' . $api_key,
 					'Accept'        => 'application/json',
 				],
 				'channel' => 'pado',
