@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 254,
-    "source_php_sha256": "00d313c1b5a11b18af53e3e57f1b322b3a0cc54fa6348165dee553480f363840",
+    "source_php_count": 262,
+    "source_php_sha256": "6fe911af734461224c9a38ffa4db841e9dfba60cc8b76a6764214c928220cd72",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -278,6 +278,9 @@
       "igbz-suite/src/Support/Admin/View.php",
       "igbz-suite/src/Support/ArchiveGuard.php",
       "igbz-suite/src/Support/Autoloader.php",
+      "igbz-suite/src/Support/Backup/BackupService.php",
+      "igbz-suite/src/Support/Backup/Bundle.php",
+      "igbz-suite/src/Support/Backup/Cli.php",
       "igbz-suite/src/Support/BiometricGate.php",
       "igbz-suite/src/Support/Capabilities.php",
       "igbz-suite/src/Support/CoreSurfaceGuard.php",
@@ -286,6 +289,7 @@
       "igbz-suite/src/Support/Db.php",
       "igbz-suite/src/Support/FaLocale.php",
       "igbz-suite/src/Support/FaStorefront.php",
+      "igbz-suite/src/Support/HealthEndpoint.php",
       "igbz-suite/src/Support/Http.php",
       "igbz-suite/src/Support/HttpResponse.php",
       "igbz-suite/src/Support/Jobs/Cli.php",
@@ -297,11 +301,15 @@
       "igbz-suite/src/Support/Migrator.php",
       "igbz-suite/src/Support/ModuleInterface.php",
       "igbz-suite/src/Support/Modules.php",
+      "igbz-suite/src/Support/Observability/Slo.php",
       "igbz-suite/src/Support/Plugin.php",
+      "igbz-suite/src/Support/Release/Cli.php",
+      "igbz-suite/src/Support/Release/ReleaseGate.php",
       "igbz-suite/src/Support/Schema.php",
       "igbz-suite/src/Support/Settings.php",
       "igbz-suite/src/Support/TenantOffboarding.php",
       "igbz-suite/src/Support/TenantScope.php",
+      "igbz-suite/src/Support/Trace.php",
       "igbz-suite/src/Support/UrlGuard.php",
       "igbz-suite/src/Support/Webhooks/WebhookInbox.php",
       "igbz-suite/src/Support/WooCommerceCompat.php"
@@ -315,8 +323,8 @@
       "Pado": 17,
       "RestApi": 31
     },
-    "support_php_count": 34,
-    "all_plugin_php_count": 341
+    "support_php_count": 42,
+    "all_plugin_php_count": 354
   },
   "database": {
     "version": 48,
@@ -885,7 +893,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 85,
+    "php_file_count": 90,
     "php_files": [
       "igbz-suite/tests/AdversarialPadoTest.php",
       "igbz-suite/tests/AffiliateHardenTest.php",
@@ -893,6 +901,7 @@
       "igbz-suite/tests/ApiContractTest.php",
       "igbz-suite/tests/ApiMobileBehaviorTest.php",
       "igbz-suite/tests/ArchiveGuardTest.php",
+      "igbz-suite/tests/BackupTest.php",
       "igbz-suite/tests/BatchTest.php",
       "igbz-suite/tests/BiometricGateTest.php",
       "igbz-suite/tests/BnplHardeningTest.php",
@@ -920,6 +929,7 @@
       "igbz-suite/tests/GatewayTest.php",
       "igbz-suite/tests/GrowthIntelTest.php",
       "igbz-suite/tests/GrowthPlaybookTest.php",
+      "igbz-suite/tests/HealthEndpointTest.php",
       "igbz-suite/tests/HourlyJobsTest.php",
       "igbz-suite/tests/HposOrderFlowTest.php",
       "igbz-suite/tests/InboxTest.php",
@@ -945,6 +955,7 @@
       "igbz-suite/tests/PostIdentityTest.php",
       "igbz-suite/tests/ProductRegistrationTest.php",
       "igbz-suite/tests/QueueLoadTest.php",
+      "igbz-suite/tests/ReleaseGateTest.php",
       "igbz-suite/tests/SchemaTest.php",
       "igbz-suite/tests/SecretsTest.php",
       "igbz-suite/tests/SecurityGapsTest.php",
@@ -953,6 +964,7 @@
       "igbz-suite/tests/SettingsTest.php",
       "igbz-suite/tests/ShippingSyncTest.php",
       "igbz-suite/tests/SignupTest.php",
+      "igbz-suite/tests/SloTest.php",
       "igbz-suite/tests/SocialArchitectureGuardTest.php",
       "igbz-suite/tests/SocialMigrationTest.php",
       "igbz-suite/tests/TenantIsolationTest.php",
@@ -962,6 +974,7 @@
       "igbz-suite/tests/ThemeContractTest.php",
       "igbz-suite/tests/ThemeReleaseTest.php",
       "igbz-suite/tests/ThemeRoutingTest.php",
+      "igbz-suite/tests/TraceTest.php",
       "igbz-suite/tests/UpsertTest.php",
       "igbz-suite/tests/UrlGuardTest.php",
       "igbz-suite/tests/VipChannelTest.php",
@@ -973,7 +986,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 82,
+    "main_case_count": 87,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -1056,7 +1069,12 @@
       "ApiContractTest",
       "ApiAuthDeviceTest",
       "ApiMobileBehaviorTest",
-      "FaLocaleTest"
+      "FaLocaleTest",
+      "HealthEndpointTest",
+      "TraceTest",
+      "SloTest",
+      "BackupTest",
+      "ReleaseGateTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,
