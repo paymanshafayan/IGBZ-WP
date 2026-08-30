@@ -351,7 +351,7 @@ add_action( 'wp_loaded', function () {
 		// بدون این، فرم تسویه کشور را از geolocation می‌گیرد و «United States» پیش‌فرض
 		// می‌شود (یافتهٔ تست ویژوال ۱۴۰۶/۰۶/۰۲) — پیش‌فرض مشتری = آدرس فروشگاه (IR)
 		update_option( 'woocommerce_default_customer_address', 'base' );
-		update_option( 'woocommerce_currency', 'IRR' );
+		update_option( 'woocommerce_currency', 'IRT' ); // phase 68: the suite registers IRT (تومان) itself
 		update_option( 'woocommerce_currency_pos', 'right_space' );
 		update_option( 'woocommerce_price_thousand_sep', ',' );
 		update_option( 'woocommerce_price_decimal_sep', '/' );
@@ -784,44 +784,12 @@ add_filter( 'gettext_woocommerce', function ( $translated, $text, $domain ) {
 	return isset( $map[ $text ] ) ? $map[ $text ] : $translated;
 }, 10, 3 );
 
-// Force WooCommerce price format to Persian Toman/RIAL look while keeping IRR.
-add_filter( 'woocommerce_currency_symbol', function ( $symbol, $currency ) {
-	if ( $currency === 'IRR' ) {
-		return 'تومان';
-	}
-	return $symbol;
-}, 99, 2 );
+// Phase 68: Persian digits on the storefront, the تومان (IRT) currency and the
+// checkout country default are now PRODUCT behaviour (FaStorefront/FaLocale in
+// igbz-suite) — this harness no longer duplicates them. Only the WooCommerce
+// core string demo map above remains (core's own fa_IR packs come from
+// WordPress.org in production and are unreachable from this sandbox).
 
-// Convert Western digits to Persian digits in final HTML output only (so we do
-// not mangle sprintf placeholders like %1$s or internal option values).
-add_action( 'template_redirect', function () {
-	ob_start( function ( $html ) {
-		if ( ! is_string( $html ) ) { return $html; }
-		// Convert digits ONLY in text nodes. Two bugs fixed after the 1406/06/02
-		// visual test: (1) the old pattern contained a literal backspace byte instead
-		// of \b, so <script>/<style> were NOT protected and inline JS got Persian
-		// digits (SyntaxError); (2) tag attributes were converted too, breaking svg
-		// width="۲۴", upload URLs (/uploads/۲۰۲۶/... → 404) and gravatar hashes.
-		$html = preg_replace_callback(
-			'/(<script\b[^>]*>.*?<\/script>|<style\b[^>]*>.*?<\/style>|<[^>]*>|&#x?[0-9a-fA-F]+;)|([0-9]+)/si',
-			function ( $m ) {
-				if ( ! empty( $m[1] ) ) { return $m[1]; }
-				return igbz_persian_digits( $m[0] );
-			},
-			$html
-		);
-		return $html;
-	}, 0 );
-}, 0 );
-
-if ( ! function_exists( 'igbz_persian_digits' ) ) {
-	function igbz_persian_digits( $text ) {
-		if ( ! is_string( $text ) ) { return $text; }
-		$en = [ '0','1','2','3','4','5','6','7','8','9' ];
-		$fa = [ '۰','۱','۲','۳','۴','۵','۶','۷','۸','۹' ];
-		return str_replace( $en, $fa, $text );
-	}
-}
 PHP
 
 ok "9 mu-plugins written (activator + no-emoji-cdn + modules + health + default-theme + RTL demo + FA demo + sample seeder)"

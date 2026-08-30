@@ -50,6 +50,10 @@ final class Plugin {
 
 		WooCommerceCompat::register();
 
+		// Phase 68: the Persian storefront layer (toman currency, checkout country
+		// defaults, Persian front digits) — see FaStorefront.
+		FaStorefront::register();
+
 		add_action( 'plugins_loaded', [ $this, 'on_plugins_loaded' ], 5 );
 		add_action( 'init', [ $this, 'load_textdomain' ], 1 );
 	}

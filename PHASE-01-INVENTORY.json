@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 252,
-    "source_php_sha256": "2ff6ee7f1136f9831fabe36744b3be01dd7eb5bdd066550c15441ada0a7c6885",
+    "source_php_count": 254,
+    "source_php_sha256": "00d313c1b5a11b18af53e3e57f1b322b3a0cc54fa6348165dee553480f363840",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -284,6 +284,8 @@
       "igbz-suite/src/Support/Cron.php",
       "igbz-suite/src/Support/Crypto.php",
       "igbz-suite/src/Support/Db.php",
+      "igbz-suite/src/Support/FaLocale.php",
+      "igbz-suite/src/Support/FaStorefront.php",
       "igbz-suite/src/Support/Http.php",
       "igbz-suite/src/Support/HttpResponse.php",
       "igbz-suite/src/Support/Jobs/Cli.php",
@@ -313,8 +315,8 @@
       "Pado": 17,
       "RestApi": 31
     },
-    "support_php_count": 32,
-    "all_plugin_php_count": 338
+    "support_php_count": 34,
+    "all_plugin_php_count": 341
   },
   "database": {
     "version": 48,
@@ -528,8 +530,8 @@
   },
   "settings_and_secrets": {
     "source": "igbz-suite/src/Support/Admin/SettingsPage.php",
-    "field_entries": 265,
-    "unique_field_keys": 265,
+    "field_entries": 268,
+    "unique_field_keys": 268,
     "duplicate_field_keys": [],
     "password_fields": [
       "api.fcm_service_account",
@@ -883,7 +885,7 @@
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 84,
+    "php_file_count": 85,
     "php_files": [
       "igbz-suite/tests/AdversarialPadoTest.php",
       "igbz-suite/tests/AffiliateHardenTest.php",
@@ -909,6 +911,7 @@
       "igbz-suite/tests/DomainRoutingTest.php",
       "igbz-suite/tests/DoorsTest.php",
       "igbz-suite/tests/DriftGuardTest.php",
+      "igbz-suite/tests/FaLocaleTest.php",
       "igbz-suite/tests/FxBillingHardenTest.php",
       "igbz-suite/tests/FxQuoteTest.php",
       "igbz-suite/tests/FxTest.php",
@@ -970,7 +973,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 81,
+    "main_case_count": 82,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -1052,7 +1055,8 @@
       "AdversarialPadoTest",
       "ApiContractTest",
       "ApiAuthDeviceTest",
-      "ApiMobileBehaviorTest"
+      "ApiMobileBehaviorTest",
+      "FaLocaleTest"
     ],
     "last_recorded_baseline": {
       "assertions": 1251,

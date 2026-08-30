@@ -3,7 +3,7 @@
 > **این فایل را در چت جدید بفرست (یا بگو «`HANDOFF-PROMPT.md` را بخوان»).**
 > به‌روزرسانی: ۱۴۰۶/۰۶/۰۹ (۲۹ اوت ۲۰۲۶) · شاخهٔ ثابت آخرین جلسه:
 > `arena/01a04b9c-igbz-wp` (هر جلسه شاخهٔ arena خودش را دارد؛ فقط روی همان کار کن).
-> **وضعیت: فازهای ۰۱ تا ۶۶ و ۶۷ تمام و پوش‌شده؛ فاز بعدی ۶۸ است (بستهٔ فارسی و checkout — موج هشت).** جزئیات دقیق در بخش
+> **وضعیت: فازهای ۰۱ تا ۶۷ و ۶۸ تمام و پوش‌شده؛ فاز بعدی ۶۹ است (RTL، دسترس‌پذیری و ماتریس نقش — موج هشت).** جزئیات دقیق در بخش
 > «📍 نقطهٔ دقیق ادامهٔ کار» همین‌جاست.
 > معماری جاری: پادوی Playbookمحور، DeepInfra مستقل هر فروشگاه و Zernio مرکزی/چندپروفایلی
 > به‌عنوان تنها provider اجتماعی؛ Manus، ChatPlace، ManyChat و Ayrshare حذف‌اند و پیشنهاد session اینستاگرام در Agent Reach رد شده است.
@@ -138,15 +138,22 @@
   تعارض آفلاین `revision/expected_revision` نمایه. **باگ فاز ۶۵ رفع شد** (کلید
   متد '1' در قرارداد) → پین `api-v1.json` 1.1.0 با ۱۸۷ عملیات بازتولید شد.
   جزئیات: `PROJECT-STATE §۱۱.۲۳`.
-- معیارهای سبز: تست **۱۵۴۶۸ اظهارنظر در ۸۱ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
-  دیتابیس **v48 با ۱۰۰ جدول (جدول جدید api_idempotency)**.
+- **فاز ۶۸ — بستهٔ فارسی و checkout:** `igbz-suite-fa_IR.po/mo` (۳۱۵ رشته، کامپایلر
+  `_devenv/build_fa_ir.py`)؛ `FaStorefront` (IRT/تومان، کشور تسویه=فروشگاه برای
+  مهمان/جدید، ارقام فارسی محافظ‌دار — REST مستثنا)؛ `FaLocale` (گلیف، نیم‌فاصلهٔ
+  محافظه‌کار، تومان، جلالی دقیق). جزئیات: `PROJECT-STATE §۱۱.۲۴`.
+- معیارهای سبز: تست **۱۵۶۰۷ اظهارنظر در ۸۲ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
+  دیتابیس **v48 با ۱۰۰ جدول** (بدون تغییر اسکیما در ۶۸).
 
 ### از کجا باید ادامه داد
 
-- **فاز بعدی: ۶۸ — بستهٔ فارسی و checkout.** شرح در `PROJECT-COMPLETION-PLAN.md §۲۳.۱۱`:
-  fa_IR.po/mo، ترجمهٔ اسکریپت، اعداد/ارز/تاریخ، رفع glyph و کشور مهمان/کاربر تسویه.
-  یادآوری API: هر تغییر مسیر یعنی بازتولید پین `contracts/api-v1.json` از
-  `GET /igbz/v1/contract` (قالب: json.dumps با sort_keys) + گیت breaking_changes.
+- **فاز بعدی: ۶۹ — RTL، دسترس‌پذیری و ماتریس نقش.** شرح در `PROJECT-COMPLETION-PLAN.md
+  §۲۳.۱۱`: دسکتاپ/تبلت/موبایل، صفحه‌کلید، focus، label، contrast، screen reader،
+  همهٔ نقش‌ها و تصاویر تمام‌صفحهٔ تأییدشده. ابزار: `browser-test/visual-crawl.cjs`
+  خروجی در `visual-testing/`؛ کرومیوم از `@sparticuz/chromium` (روال در STATE).
+- یادآوری API: هر تغییر مسیر یعنی بازتولید پین `contracts/api-v1.json` از
+  `GET /igbz/v1/contract` (قالب: json.dumps با sort_keys) + گیت breaking_changes؛
+  رشتهٔ تازهٔ UI یعنی `makepot.sh` + `_devenv/build_fa_ir.py`.
 - **بازسازی سندباکس (روال اثبات‌شده):** گیت به پایه برمی‌گردد → `git fetch origin
   arena/01a04e8d-igbz-wp && git reset --mixed FETCH_HEAD`؛ محیط با
   `bash _devenv/setup.sh` و `bash _devenv/run.sh`؛ کرومیوم از npm
