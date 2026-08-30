@@ -192,7 +192,12 @@ final class PadoPage {
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
 			<?php wp_nonce_field( self::NONCE_ACTION ); ?>
 			<input type="hidden" name="action" value="igbz_pado_upload_theme">
-			<p><input type="file" name="theme_zip" accept=".zip,application/zip" required> <?php submit_button( 'اعتبارسنجی و پیش‌نمایش', 'secondary', 'submit', false ); ?></p>
+			<p>
+				<label for="igbz-theme-zip">فایل ZIP قالب</label>
+				<input type="file" id="igbz-theme-zip" name="theme_zip" accept=".zip,application/zip" aria-describedby="igbz-theme-zip-help" required>
+				<span id="igbz-theme-zip-help" class="description"> فقط پروندهٔ <code>zip</code> پذیرفته می‌شود.</span>
+				<?php submit_button( 'اعتبارسنجی و پیش‌نمایش', 'secondary', 'submit', false ); ?>
+			</p>
 		</form>
 
 		<h3>درخواست طراحی از پادو</h3>

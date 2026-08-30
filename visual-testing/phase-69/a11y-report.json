@@ -1,0 +1,469 @@
+{
+ "storefront": {
+  "desktop": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "tablet": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "mobile": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  }
+ },
+ "product": {
+  "desktop": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "tablet": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "mobile": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  }
+ },
+ "cart": {
+  "desktop": {
+   "violations": [
+    {
+     "id": "aria-prohibited-attr",
+     "impact": "serious",
+     "help": "Elements must only use permitted ARIA attributes",
+     "nodes": 1,
+     "sample": "div[aria-label=\"Loading price… \"]"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "tablet": {
+   "violations": [
+    {
+     "id": "aria-prohibited-attr",
+     "impact": "serious",
+     "help": "Elements must only use permitted ARIA attributes",
+     "nodes": 1,
+     "sample": "div[aria-label=\"Loading price… \"]"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "mobile": {
+   "violations": [
+    {
+     "id": "aria-prohibited-attr",
+     "impact": "serious",
+     "help": "Elements must only use permitted ARIA attributes",
+     "nodes": 1,
+     "sample": "div[aria-label=\"Loading price… \"]"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  }
+ },
+ "checkout": {
+  "desktop": {
+   "violations": [
+    {
+     "id": "aria-prohibited-attr",
+     "impact": "serious",
+     "help": "Elements must only use permitted ARIA attributes",
+     "nodes": 4,
+     "sample": ".wc-block-components-skeleton--checkout-payment"
+    },
+    {
+     "id": "autocomplete-valid",
+     "impact": "serious",
+     "help": "autocomplete attribute must be used correctly",
+     "nodes": 1,
+     "sample": "#email"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "tablet": {
+   "violations": [
+    {
+     "id": "aria-prohibited-attr",
+     "impact": "serious",
+     "help": "Elements must only use permitted ARIA attributes",
+     "nodes": 4,
+     "sample": ".wc-block-components-skeleton--checkout-payment"
+    },
+    {
+     "id": "autocomplete-valid",
+     "impact": "serious",
+     "help": "autocomplete attribute must be used correctly",
+     "nodes": 1,
+     "sample": "#email"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "mobile": {
+   "violations": [
+    {
+     "id": "aria-prohibited-attr",
+     "impact": "serious",
+     "help": "Elements must only use permitted ARIA attributes",
+     "nodes": 4,
+     "sample": ".wc-block-components-skeleton--checkout-payment"
+    },
+    {
+     "id": "autocomplete-valid",
+     "impact": "serious",
+     "help": "autocomplete attribute must be used correctly",
+     "nodes": 1,
+     "sample": "#email"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  }
+ },
+ "account": {
+  "desktop": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "tablet": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "mobile": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  }
+ },
+ "otp-login": {
+  "desktop": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "tablet": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    },
+    {
+     "id": "list",
+     "impact": "serious",
+     "help": "<ul> and <ol> must only directly contain <li>, <script> or <template> elements",
+     "nodes": 1,
+     "sample": ".is-responsive.items-justified-right.wp-block-navigation__container"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "mobile": {
+   "violations": [
+    {
+     "id": "aria-hidden-focus",
+     "impact": "serious",
+     "help": "ARIA hidden element must not be focusable or contain focusable elements",
+     "nodes": 1,
+     "sample": ".wc-block-mini-cart__drawer"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  }
+ },
+ "pado-admin": {
+  "desktop": {
+   "violations": [
+    {
+     "id": "label",
+     "impact": "critical",
+     "help": "Form elements must have labels",
+     "nodes": 1,
+     "sample": "input[type=\"file\"]"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "tablet": {
+   "violations": [
+    {
+     "id": "label",
+     "impact": "critical",
+     "help": "Form elements must have labels",
+     "nodes": 1,
+     "sample": "input[type=\"file\"]"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "mobile": {
+   "violations": [
+    {
+     "id": "label",
+     "impact": "critical",
+     "help": "Form elements must have labels",
+     "nodes": 1,
+     "sample": "input[type=\"file\"]"
+    }
+   ],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  }
+ },
+ "igbz-settings": {
+  "desktop": {
+   "violations": [],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "tablet": {
+   "violations": [],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  },
+  "mobile": {
+   "violations": [],
+   "keyboard": {
+    "visibleCount": 0,
+    "invisible": []
+   },
+   "consoleErrors": []
+  }
+ }
+}
