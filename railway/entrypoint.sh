@@ -27,9 +27,18 @@ normalize_apache_mpm
 # آن را در پس‌زمینه اجرا می‌کنیم تا فایل‌های وردپرس و wp-config.php ساخته شوند؛
 # سپس bootstrap را اجرا کرده و در پایان همان فرایند آپاچی را نگه می‌داریم.
 echo "igbz: initializing WordPress files and configuration"
+# Keep WordPress in maintenance mode while the first-boot bootstrap mutates the
+# database and activates plugins.  Railway may probe the public port as soon as
+# Apache binds; without this guard a probe can race the wp-cli bootstrap and lock
+# wp_options (notably during setup_theme/theme-root discovery).
+touch "$WEBROOT/.maintenance"
+cleanup_maintenance() {
+	rm -f "$WEBROOT/.maintenance"
+}
+trap 'cleanup_maintenance; kill "$APACHE_PID" 2>/dev/null || true' TERM INT EXIT
+
 docker-entrypoint.sh apache2-foreground &
 APACHE_PID=$!
-trap 'kill "$APACHE_PID" 2>/dev/null || true' TERM INT
 
 until [ -f "$WEBROOT/wp-load.php" ] && [ -s "$WEBROOT/wp-config.php" ]; do
 	if ! kill -0 "$APACHE_PID" 2>/dev/null; then
@@ -118,7 +127,8 @@ bootstrap() {
 	echo "igbz: bootstrap done — $URL"
 }
 
-bootstrap &
+bootstrap
+cleanup_maintenance
 
 # فاز ۷۰ — گیت آمادگی: سلامت خودمان را می‌پرسیم تا زمانی که ۲۰۰ بدهد؛
 # نتیجه در لاگ استقرار دیده می‌شود و railway.json هم healthcheckPath دارد.
