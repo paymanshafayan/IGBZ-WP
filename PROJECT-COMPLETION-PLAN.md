@@ -2014,9 +2014,19 @@ server cron، worker، log ساختاریافته، trace/tenant id، داشبو
 پیشنهادیِ در-انتظار-دستور)؛ اصلاح کنتراست status_pill؛ یونیت ۱۵۷۷۷/۸۵، لینت
 ۳۴۷/۰، ویژوال+crawl زنده سبز. جزئیات: STATE §۱۱.۲۷.
 
-#### فاز ۷۲ — پشتیبان و بازیابی
+#### فاز ۷۲ — پشتیبان و بازیابی — ✅ تمام‌شده ۱۴۰۶/۰۶/۱۰
 
 پشتیبان رمز‌شدهٔ DB/uploads/artefact/config، retention و restore drill واقعی با RPO/RTO.
+
+**خلاصهٔ تحقق:** باندل رمز‌شدهٔ AES-256-GCM (`Backup/Bundle`+`BackupService`):
+دامپ منطقی ۱۰۰ جدول محصول + سند تنظیمات + uploads تا سقف فایل، مانیفست
+sha256 هر عضو؛ کار روزانهٔ `cron.backup` (slot idempotent) با مهر
+`igbz_last_backup` که پنل SLO آن را به نقض RPO (پیش‌فرض ۲۶ ساعت) تبدیل
+می‌کند؛ retention ۷؛ دستورهای `wp igbz backup create/list/verify/restore
+[--apply]`؛ restore فایل‌ها اول و SQL فقط برای بازبینی مگر `--apply`؛
+`RUNBOOK-BACKUP-RESTORE.md` (RPO≤24h/RTO≤4h، تلهٔ salts، تمرین فصلی)؛
+یونیت BackupTest (ساخت/رمز/گردش-کامل/دستکاری/retention/RPO) → ۱۵۹۴۱/۸۶؛
+زنده: باندل واقعی ساخته شد و «Last backup: 0 min» در پنل. جزئیات: STATE §۱۱.۲۸.
 
 #### فاز ۷۳ — rollback و خط لولهٔ انتشار
 

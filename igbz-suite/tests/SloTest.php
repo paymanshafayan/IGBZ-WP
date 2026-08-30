@@ -32,7 +32,12 @@ final class SloTest extends TestCase {
 			$q['errors'],
 		];
 
-		return ( new Slo( new Db(), igbz_test_reset_settings() ) )->report();
+		$settings = igbz_test_reset_settings();
+		// Phase 72: the RPO indicator reads the stamp, not the database — seeded
+		// after the reset, which clears the whole option store.
+		update_option( \IGBZ\Suite\Support\Backup\BackupService::LAST_OPTION, [ 't' => time() - 60 ] );
+
+		return ( new Slo( new Db(), $settings ) )->report();
 	}
 
 	private function quiet_store_is_all_green(): void {

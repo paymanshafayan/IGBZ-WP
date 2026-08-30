@@ -34,6 +34,11 @@ final class Cron {
 		// Phase 26: housekeeping itself is a queued job, drained by the same daily beat.
 		igbz()->get( 'jobs' )->register( 'cron.housekeeping', [ $this, 'run_housekeeping' ] );
 
+		// Phase 72: the daily encrypted backup — a queued job so the RPO clock
+		// (igbz_last_backup) only advances on a real, verified write.
+		igbz()->get( 'jobs' )->register( 'cron.backup', [ $this, 'run_backup' ] );
+		Backup\Cli::maybe_register();
+
 		// Phase 27: operator tooling — a no-op outside WP-CLI.
 		Jobs\Cli::maybe_register();
 	}
@@ -87,6 +92,13 @@ final class Cron {
 	public function housekeeping(): void {
 		// Phase 26: the beat only enqueues; the daily slot key absorbs duplicate beats.
 		igbz()->get( 'jobs' )->enqueue( 'cron.housekeeping', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
+		// Phase 72: same daily slot — one encrypted bundle a day, RPO ≤ 24h.
+		igbz()->get( 'jobs' )->enqueue( 'cron.backup', [], [ 'idempotency_key' => 'backup-' . JobQueue::slot( DAY_IN_SECONDS ) ] );
+	}
+
+	/** Phase 72: the backup body, a leased/retriable job like housekeeping. */
+	public function run_backup(): void {
+		igbz()->backup()->create();
 	}
 
 	/** Phase 26: the actual housekeeping body, executed as a leased, retriable queued job. */

@@ -151,6 +151,7 @@ final class Plugin {
 		$this->bind( 'settings', static fn () => new Settings() );
 		$this->bind( 'logger', static fn ( Plugin $c ) => new Logger( $c->get( 'settings' ) ) );
 		$this->bind( 'slo', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Observability\Slo( $c->get( 'db' ), $c->get( 'settings' ) ) );
+		$this->bind( 'backup', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Backup\BackupService( $c->get( 'db' ), $c->get( 'settings' ), $c->get( 'logger' ) ) );
 		$this->bind( 'db', static fn () => new Db() );
 		$this->bind( 'http', static fn ( Plugin $c ) => new Http( $c->get( 'logger' ) ) );
 		$this->bind( 'tenancy', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Repository\TenantContext( $c->get( 'db' ) ) );
@@ -174,6 +175,10 @@ final class Plugin {
 
 	public function slo(): \IGBZ\Suite\Support\Observability\Slo {
 		return $this->get( 'slo' );
+	}
+
+	public function backup(): \IGBZ\Suite\Support\Backup\BackupService {
+		return $this->get( 'backup' );
 	}
 
 	public function http(): Http {

@@ -1,6 +1,7 @@
 <?php
 namespace IGBZ\Suite\Support\Observability;
 
+use IGBZ\Suite\Support\Backup\BackupService;
 use IGBZ\Suite\Support\Db;
 use IGBZ\Suite\Support\Settings;
 
@@ -22,6 +23,7 @@ final class Slo {
 		'slo.max_pending'       => 50,    // jobs waiting, all queues
 		'slo.max_wait_minutes'  => 15,    // oldest pending job age
 		'slo.max_errors_24h'    => 25,    // error-level log lines per day
+		'slo.max_backup_hours'  => 26,    // RPO: hours since the last verified backup
 	];
 
 	public function __construct( private Db $db, private Settings $settings ) {}
@@ -53,11 +55,21 @@ final class Slo {
 			$breaches[] = self::breach( 'slo.max_errors_24h', (string) $metrics['log_errors_24h'], (string) $max_errors, 'error-storm' );
 		}
 
+		// Phase 72 — the RPO indicator: a backup strategy that silently stops
+		// backing up is a liability, not an asset, so staleness is a breach.
+		$max_backup_age = (int) $this->settings->int( 'slo.max_backup_hours', self::DEFAULTS['slo.max_backup_hours'] ) * HOUR_IN_SECONDS;
+		$age_minutes    = BackupService::last_backup_age_minutes();
+		if ( null === $age_minutes ) {
+			$breaches[] = self::breach( 'slo.max_backup_hours', 'never', (string) (int) ( $max_backup_age / HOUR_IN_SECONDS ) . 'h', 'backup-stale' );
+		} elseif ( $age_minutes * MINUTE_IN_SECONDS > $max_backup_age ) {
+			$breaches[] = self::breach( 'slo.max_backup_hours', (string) $age_minutes . ' min', (string) (int) ( $max_backup_age / HOUR_IN_SECONDS ) . 'h', 'backup-stale' );
+		}
+
 		return [ 'metrics' => $metrics, 'breaches' => $breaches, 'ok' => [] === $breaches ];
 	}
 
 	/**
-	 * @return array<string,int|float>
+	 * @return array<string,int|float|null>
 	 */
 	public function metrics(): array {
 		$jobs  = $this->db->table( 'jobs' );
@@ -97,6 +109,7 @@ final class Slo {
 			'jobs_pending'           => $pending,
 			'oldest_pending_minutes' => $oldest ? (int) floor( ( time() - strtotime( (string) $oldest ) ) / MINUTE_IN_SECONDS ) : 0,
 			'log_errors_24h'         => $errors,
+			'backup_age_minutes'     => BackupService::last_backup_age_minutes(),
 		];
 	}
 

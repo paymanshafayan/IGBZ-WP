@@ -227,6 +227,7 @@ final class StatusPage {
 				'pending' => __( 'Pending (due)', 'igbz-suite' ),
 				'wait'    => __( 'Oldest wait', 'igbz-suite' ),
 				'errors'  => __( 'Errors (24h)', 'igbz-suite' ),
+				'backup'  => __( 'Last backup', 'igbz-suite' ),
 			],
 			[ [
 				'done'    => (string) $m['jobs_done_24h'],
@@ -236,6 +237,10 @@ final class StatusPage {
 				/* translators: %s: number of minutes. */
 				'wait'    => sprintf( __( '%s min', 'igbz-suite' ), (string) $m['oldest_pending_minutes'] ),
 				'errors'  => (string) $m['log_errors_24h'],
+				'backup'  => null === $m['backup_age_minutes']
+					? __( 'never', 'igbz-suite' )
+					/* translators: %s: number of minutes. */
+					: sprintf( __( '%s min ago', 'igbz-suite' ), (string) $m['backup_age_minutes'] ),
 			] ],
 			static fn ( array $row, string $key ): string => esc_html( (string) $row[ $key ] )
 		);

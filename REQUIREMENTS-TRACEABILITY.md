@@ -383,7 +383,7 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 | UX-002 | RTL، دسترس‌پذیری و نقش‌ها | قانون ویژوال | ۳۵ تصویر | ✅ فاز ۶۸: کشور تسویه مهمان/کاربر=IR (اثبات Store API، مقدار ذخیره‌شده دست‌نخورده) + گلیف ي/ك/ة/ارقام عربی نرمال‌سازی و نیم‌فاصلهٔ محافظه‌کار؛ ✅ فاز ۶۹: axe-core ۸ صفحه × ۳ ویوپورت + مهمان، کیبورد/focus/کنتراست/RTL سبز، ماتریس نقش کامل (API از یونیت)، اصلاح file-input پادو؛ ۴ خانوادهٔ بالادستی WC/WP ثبت شد |
 | OPS-001 | استقرار تکرارپذیر و DB پشتیبانی‌شده | Railway docs | Docker/entrypoint | پیاده‌شدهٔ پایه؛ راهنما MySQL 8.0 منقضی را پیشنهاد می‌دهد |
 | OPS-002 | worker، SLO، هشدار و Runbook | برنامهٔ جامع | health/status/log | ✅ فاز ۷۱: trace/`request_id` در هر سطر لاگ + اجرای کار زیر trace پاکت (`Trace::fork`)؛ سنجه‌های SLO از جداول jobs/logs با آستانهٔ تنظیم‌پذیر `slo.*` و پنل سبز/قرمز وضعیت؛ worker/cron سرور با `IGBZ_SERVER_CRON=1` (هر ۶۰ث due+drain)؛ `RUNBOOK-SLO-ALERTS.md` با اقدام هر چهار نقض؛ هشدار push (ساعته+wp_mail فقط در لبهٔ سبز→قرمز) به‌عنوان پیشنهاد ثبت شده و منتظر دستور کارفرماست |
-| OPS-003 | backup، restore و rollback آزموده | `_backup`, Railway | اسکریپت/راهنما | شکاف؛ drill و RPO/RTO ثبت‌شده ندارد |
+| OPS-003 | backup، restore و rollback آزموده | `_backup`, Railway | `Backup/BackupService`+`Bundle`+Cli (فاز ۷۲) | ✅ فاز ۷۲: باندل رمز‌شدهٔ AES-256-GCM (دامپ ۱۰۰ جدول+تنظیمات+uploads با checksum و skipped صادقانه)، کار روزانهٔ idempotent با مهر RPO و نقض `slo.max_backup_hours` در پنل، retention 7، `wp igbz backup create/list/verify/restore[--apply]`، ران‌بوک RPO≤24h/RTO≤4h با تلهٔ salts و تمرین فصلی؛ rollback دامنهٔ فاز ۷۳ |
 | OPS-004 | آزمون بار، soak، chaos و انتشار مرحله‌ای | برنامهٔ جامع | مدرک ثبت‌شده ندارد | شکاف کامل |
 
 ---

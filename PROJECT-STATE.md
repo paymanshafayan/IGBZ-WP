@@ -2415,6 +2415,31 @@ production، نه تزئین.
    mid-request لوکیل در پلی‌گراند به‌دلیل پین بودن لوکیل نشست مدیر ممکن نشد —
    کاتالوگ از مسیر load_textdomain خود وردپرس اثبات شد.
 
+### ۱۱.۲۸ فاز ۷۲ — پشتیبان و بازیابی — ✅ تمام‌شده ۱۴۰۶/۰۶/۱۰
+
+۱. **قالب باندل:** `Backup/Bundle` — `igbzbk1:` + AES-256-GCM (Crypto؛ کلید از
+   salts)؛ درون: مانیفست (sha256 هر عضو + skipped) + دامپ SQL جداول + سند
+   تنظیمات + فایل‌های uploads (base64). checksum در بازیابی VERIFIED می‌شود.
+۲. **سرویس:** `Backup/BackupService` — create (دامپ ۱۰۰ جدول Schema + تنظیمات +
+   uploads با سقف `backup.max_file_mb`=۵MB و ثبت skipped)؛ prune با
+   `backup.retention`=۷؛ restore (فایل‌ها اول، SQL/settings کنار باندل برای
+   بازبینی؛ `--apply` صریح برای اجرا)؛ مهر `igbz_last_backup` فقط بعد از
+   نوشتن موفق.
+۳. **زمان‌بندی و RPO:** کار `cron.backup` در ضربان روزانه (همان slot
+   idempotent)؛ SLO جدید `slo.max_backup_hours`=۲۶ با سنجهٔ «Last backup» در
+   پنل وضعیت — پشتیبانِ بی‌سروصدا-متوقفشده خودش قرمز می‌شود.
+۴. **CLI بهره‌بردار:** `wp igbz backup create|list|verify|restore [--apply]`
+   (فاز ۲۷ الگو)؛ ثبت در Cron::register مثل Jobs Cli.
+۵. **ران‌بوک:** `RUNBOOK-BACKUP-RESTORE.md` — RPO≤24h/RTO≤4h، 3-2-1، ترتیب
+   بازیابی وردپرسی (فایل‌ها اول)، تلهٔ حیاتی salts برای رمزگشایی روی نصب
+   تازه، رویهٔ ۶-قدمی RTO، تمرین فصلی با ثبت RPO/RTO واقعی.
+۶. **شواهد:** یونیت **۱۵۹۴۱ در ۸۶ کیس** (BackupTest: رمز‌شدن/گردش کامل/
+   امتناع از دستکاری/retention/سه حالت RPO؛ SloTest/DailyJobsTest همگام شد) ·
+   لینت ۳۵۱/۰ · زنده: daily+beat زده شد، «Jobs done=28»، «Last backup: 0 min
+   ago»، پنل سبز، a11y صفر؛ `visual-testing/phase-72/REPORT.md`. محدودیت:
+   restore --apply روی پلی‌گراند قابل اجرا نیست (DB درون فرایند node) —
+   یونیت + ران‌بوک استیجینگ پوششش را می‌دهد.
+
 ### ۱۱.۲۷ فاز ۷۱ — worker، cron و مشاهده‌پذیری — ✅ تمام‌شده ۱۴۰۶/۰۶/۱۰
 
 ۱. **ردیابی درخواست (trace):** `Support/Trace.php` — شناسهٔ CSPRNG

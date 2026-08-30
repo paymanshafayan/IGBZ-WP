@@ -261,11 +261,19 @@ final class DailyJobsTest extends TestCase {
 		$this->with_clean_container( function (): void {
 			igbz()->bind( 'jobs.runner', fn () => $this->runner );
 			( new Cron() )->register();
+			// Phase 72: point the backup at a directory that cannot exist, so this
+			// test stays about the housekeeping body (the backup failing honestly —
+			// loudly, as a retryable job — is covered by BackupTest + the SLO panel).
+			igbz()->bind( 'backup', static fn (): \IGBZ\Suite\Support\Backup\BackupService =>
+				new \IGBZ\Suite\Support\Backup\BackupService( new \IGBZ\Suite\Support\Db(), igbz()->settings(), igbz()->logger(), '/nonexistent-igbz-backup-dir' ) );
 
 			( new Cron() )->housekeeping();
 			( new Cron() )->housekeeping(); // Duplicate beat.
-			$this->assert_same( 1, count( $this->jobs() ), 'the daily slot key absorbs the duplicate housekeeping beat' );
+			// Phase 72: the daily beat carries housekeeping AND the encrypted backup;
+			// each has its own slot key, so duplicates of the same beat still absorb.
+			$this->assert_same( 2, count( $this->jobs() ), 'the daily slot keys absorb the duplicate beat' );
 			$this->assert_same( 'cron.housekeeping', (string) $this->jobs()[0]['job_type'], 'housekeeping is a queued job' );
+			$this->assert_same( 'cron.backup', (string) $this->jobs()[1]['job_type'], 'the backup rides the same beat' );
 
 			$this->wpdb->queries = [];
 			$this->runner->run();

@@ -974,6 +974,8 @@ final class Activator {
 			'general.allow_self_signup'     => true,
 			'general.auto_approve_tenants'  => false,
 			'log.level'                     => Logger::INFO,
+			'backup.retention'              => 7,
+			'backup.max_file_mb'            => 5,
 			'log.retention_days'            => 30,
 			'security.disable_xmlrpc'       => true,
 			'security.disable_app_passwords' => true,

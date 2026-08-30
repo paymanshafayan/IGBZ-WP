@@ -98,6 +98,7 @@ $cases = [
 	'HealthEndpointTest',
 	'TraceTest',
 	'SloTest',
+	'BackupTest',
 ];
 
 foreach ( $cases as $case ) {
