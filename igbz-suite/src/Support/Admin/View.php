@@ -175,12 +175,14 @@ final class View {
 	}
 
 	public static function status_pill( string $status ): string {
+		// Phase 71: WCAG AA — white on these darker tints measures 5.2:1–6.9:1;
+		// the previous saturated chips (white on #00a32a/#dba617) sat at 3.3:1/2.2:1.
 		$colors = [
-			'ok'    => '#00a32a',
-			'warn'  => '#dba617',
-			'error' => '#d63638',
+			'ok'    => '#007117',
+			'warn'  => '#8a6800',
+			'error' => '#b32d2e',
 		];
-		$color = $colors[ $status ] ?? '#787c82';
+		$color = $colors[ $status ] ?? '#646970';
 
 		return sprintf(
 			'<span style="display:inline-block;min-width:64px;text-align:center;padding:2px 8px;border-radius:9px;color:#fff;background:%1$s">%2$s</span>',

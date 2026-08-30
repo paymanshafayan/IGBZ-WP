@@ -96,6 +96,8 @@ $cases = [
 	'ApiMobileBehaviorTest',
 	'FaLocaleTest',
 	'HealthEndpointTest',
+	'TraceTest',
+	'SloTest',
 ];
 
 foreach ( $cases as $case ) {

@@ -41,6 +41,11 @@ final class Logger {
 		}
 
 		global $wpdb;
+		// Phase 71: every line carries the request/job trace so support can correlate
+		// a customer report, the request that served it and the jobs it spawned.
+		if ( ! isset( $context['request_id'] ) ) {
+			$context['request_id'] = Trace::id();
+		}
 		$context = self::redact( $context );
 
 		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
@@ -50,14 +55,14 @@ final class Logger {
 				'level'      => $level,
 				'channel'    => $channel,
 				'message'    => mb_substr( $message, 0, 1000 ),
-				'context'    => wp_json_encode( $context ),
+				'context'    => wp_json_encode( $context, JSON_UNESCAPED_UNICODE ),
 				'created_at' => current_time( 'mysql', true ),
 			],
 			[ '%d', '%s', '%s', '%s', '%s', '%s' ]
 		);
 
 		if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-			error_log( sprintf( '[IGBZ][%s][%s] %s %s', $level, $channel, $message, wp_json_encode( $context ) ) ); // phpcs:ignore
+			error_log( sprintf( '[IGBZ][%s][%s][%s] %s %s', $level, $channel, (string) ( $context['request_id'] ?? '' ), $message, wp_json_encode( $context, JSON_UNESCAPED_UNICODE ) ) ); // phpcs:ignore
 		}
 	}
 

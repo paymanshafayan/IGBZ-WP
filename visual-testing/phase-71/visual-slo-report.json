@@ -1,0 +1,39 @@
+{
+  "desktop": {
+    "url": "/wp-admin/admin.php?page=igbz",
+    "consoleErrors": [],
+    "rtl": false,
+    "overflowX": false,
+    "headings": [
+      "Modules",
+      "Background jobs",
+      "Environment",
+      "Recent warnings and errors"
+    ],
+    "sloNotice": {
+      "cls": "notice notice-success is-dismissible",
+      "text": "All SLOs green: jobs, queue latency and error rate are inside their thresholds.Dismiss this notice."
+    },
+    "sloMetricColumns": 6,
+    "logRequestIdOnPage": null
+  },
+  "mobile": {
+    "url": "/wp-admin/admin.php?page=igbz",
+    "consoleErrors": [],
+    "rtl": false,
+    "overflowX": true,
+    "headings": [
+      "Modules",
+      "Background jobs",
+      "Environment",
+      "Recent warnings and errors"
+    ],
+    "sloNotice": {
+      "cls": "notice notice-success is-dismissible",
+      "text": "All SLOs green: jobs, queue latency and error rate are inside their thresholds.Dismiss this notice."
+    },
+    "sloMetricColumns": 6,
+    "logRequestIdOnPage": null
+  },
+  "a11y": []
+}
