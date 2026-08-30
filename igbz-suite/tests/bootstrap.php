@@ -14,6 +14,7 @@ define( 'ABSPATH', __DIR__ . '/' );
 // The share page prints its own <head>, so it needs the plugin's asset constants.
 define( 'IGBZ_URL', 'https://example.test/wp-content/plugins/igbz-suite/' );
 define( 'IGBZ_VERSION', '1.0.0' );
+define( 'IGBZ_DB_VERSION', 48 );
 define( 'AUTH_KEY', 'test-auth-key-0123456789abcdefghijklmnop' );
 define( 'SECURE_AUTH_SALT', 'test-secure-salt-0123456789abcdefghijkl' );
 define( 'DAY_IN_SECONDS', 86400 );

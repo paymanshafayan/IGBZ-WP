@@ -3,7 +3,7 @@
 > **این فایل را در چت جدید بفرست (یا بگو «`HANDOFF-PROMPT.md` را بخوان»).**
 > به‌روزرسانی: ۱۴۰۶/۰۶/۰۹ (۲۹ اوت ۲۰۲۶) · شاخهٔ ثابت آخرین جلسه:
 > `arena/01a04b9c-igbz-wp` (هر جلسه شاخهٔ arena خودش را دارد؛ فقط روی همان کار کن).
-> **وضعیت: فازهای ۰۱ تا ۶۸ و ۶۹ تمام و پوش‌شده؛ فاز بعدی ۷۰ است (Railway و پایگاه‌دادهٔ LTS — موج نه).** جزئیات دقیق در بخش
+> **وضعیت: ۰۱–۶۹ تمام‌شده؛ فاز ۷۰ مصنوعات محلی‌اش کامل است و اجرای ابری آن با `RUNBOOK-RAILWAY-LTS.md` منتظر کارفرماست؛ فاز بعدی ۷۱ (worker/cron/مشاهده‌پذیری).** جزئیات دقیق در بخش
 > «📍 نقطهٔ دقیق ادامهٔ کار» همین‌جاست.
 > معماری جاری: پادوی Playbookمحور، DeepInfra مستقل هر فروشگاه و Zernio مرکزی/چندپروفایلی
 > به‌عنوان تنها provider اجتماعی؛ Manus، ChatPlace، ManyChat و Ayrshare حذف‌اند و پیشنهاد session اینستاگرام در Agent Reach رد شده است.
@@ -147,15 +147,19 @@
   خودمان)؛ کنتراست/کیبورد/RTL سبز؛ ۴ خانوادهٔ بالادستی WC/WP ثبت شد. ابزار:
   `visual-testing/phase-69/a11y-audit-69.cjs` + `a11y-guest-69.cjs`. جزئیات:
   `PROJECT-STATE §۱۱.۲۵`.
-- معیارهای سبز: تست **۱۵۶۰۷ اظهارنظر در ۸۲ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
-  دیتابیس **v48 با ۱۰۰ جدول**.
+- معیارهای سبز: تست **۱۵۶۶۶ اظهارنظر در ۸۳ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
+  دیتابیس **v48 با ۱۰۰ جدول** · سلامت زنده: ok=true/degraded=false (100/100، dbv 48).
 
 ### از کجا باید ادامه داد
 
-- **فاز بعدی: ۷۰ — Railway و پایگاه‌دادهٔ LTS.** شرح در `PROJECT-COMPLETION-PLAN.md
-  §۲۳.۱۲`: staging همسان، مهاجرت آزموده از MySQL 8.0 به نسخهٔ LTS مصوب، TLS، volume
-  و health/readiness. توجه: دسترسی شبکهٔ سندباکس محدود است (فقط npm)؛ هر گام
-  ابریِ واقعی نیازمند اعتبارنامهٔ کارفرماست — پیش از اجرا بپرسید.
+- **فاز ۷۰ (🔶 نیمه‌بسته):** HealthEndpoint محصول (`/?igbz_health=1` → 200/503 +
+  degraded)، ناظر mu مستقل، IGBZ_DB_TLS، حلقهٔ ready در entrypoint، healthcheckPath
+  در railway.json، ران‌بوک کامل استقرار+مهاجرت 8.4 (`RUNBOOK-RAILWAY-LTS.md`).
+  مانده: اجرای کارفرما با توکن خودش (railway.app از سندباکس بلاک؛ توکن در چت
+  نگذاشته شود) + تأیید نسخهٔ LTS. جزئیات: `PROJECT-STATE §۱۱.۲۶`.
+- **فاز بعدی: ۷۱ — worker، cron و مشاهده‌پذیری.** شرح در `PROJECT-COMPLETION-PLAN.md
+  §۲۳.۱۲`: server cron، worker، log ساختاریافته، trace/tenant id، داشبورد، SLO و
+  هشدار دارای Runbook — کد محصول و در سندباکس محلی‌شدنی است.
 - یادآوری API: هر تغییر مسیر یعنی بازتولید پین `contracts/api-v1.json` از
   `GET /igbz/v1/contract` (قالب: json.dumps با sort_keys) + گیت breaking_changes؛
   رشتهٔ تازهٔ UI یعنی `makepot.sh` + `_devenv/build_fa_ir.py`.

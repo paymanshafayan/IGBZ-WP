@@ -262,37 +262,43 @@ PHP
 cat > "$WORK/mu/020-healthcheck.php" <<'PHP'
 <?php
 /**
- * Harness only. GET /?igbz_health=1 -> JSON summary of the environment.
+ * Health probe observer (phase 70). The product endpoint
+ * (IGBZ\Suite\Support\HealthEndpoint) answers /?igbz_health=1 with 200/503
+ * semantics; this mu-plugin only matters when the SUITE ITSELF failed to boot —
+ * then it still answers, honestly red (503), because a probe that goes silent
+ * exactly when the plugin is broken tells the orchestrator nothing.
  */
 add_action( 'init', function () {
 	if ( ! isset( $_GET['igbz_health'] ) ) { return; }
-	global $wp_version, $wpdb;
 
-	$out = [
-		'wp'          => $wp_version,
-		'php'         => PHP_VERSION,
-		'wc_active'   => class_exists( 'WooCommerce' ),
-		'wc_version'  => defined( 'WC_VERSION' ) ? WC_VERSION : null,
-		'igbz_loaded' => function_exists( 'igbz' ),
-		'active'      => (array) get_option( 'active_plugins', [] ),
-	];
-
-	if ( class_exists( '\Automattic\WooCommerce\Utilities\OrderUtil' ) ) {
-		$out['hpos'] = \Automattic\WooCommerce\Utilities\OrderUtil::custom_orders_table_usage_is_enabled();
+	if ( class_exists( 'IGBZ\\Suite\\Support\\HealthEndpoint' ) ) {
+		// The suite is up — its own endpoint owns the document and the status code.
+		return;
 	}
 
-	if ( function_exists( 'igbz' ) ) {
-		$tables = 0;
-		foreach ( \IGBZ\Suite\Support\Schema::tables() as $t ) {
-			$full = $wpdb->prefix . 'igbz_' . $t;
-			if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full ) ) ) { $tables++; }
-		}
-		$out['igbz_tables'] = $tables . '/' . count( \IGBZ\Suite\Support\Schema::tables() );
-		$out['modules']     = get_option( 'igbz_enabled_modules' );
+	global $wpdb, $wp_version;
+	$db_ok = false;
+	if ( isset( $wpdb ) ) {
+		$checked = $wpdb->get_var( 'SELECT 1' );
+		$db_ok   = ( '1' === (string) $checked );
 	}
 
-	wp_send_json( $out );
-}, 99 );
+	status_header( $db_ok ? 200 : 503 );
+	header( 'Content-Type: application/json; charset=utf-8' );
+	header( 'Cache-Control: no-cache, no-store, must-revalidate' );
+	echo wp_json_encode(
+		[
+			'ok'          => false, // igbz itself did not boot — never green
+			'degraded'    => true,
+			'db'          => $db_ok,
+			'wp'          => $wp_version,
+			'php'         => PHP_VERSION,
+			'igbz_loaded' => false,
+		],
+		JSON_UNESCAPED_UNICODE
+	);
+	exit;
+}, 1 );
 PHP
 
 cat > "$WORK/mu/030-default-theme.php" <<'PHP'

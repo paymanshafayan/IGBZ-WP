@@ -54,6 +54,9 @@ final class Plugin {
 		// defaults, Persian front digits) — see FaStorefront.
 		FaStorefront::register();
 
+		// Phase 70: the product's own health/readiness probe (GET /?igbz_health=1).
+		HealthEndpoint::register();
+
 		add_action( 'plugins_loaded', [ $this, 'on_plugins_loaded' ], 5 );
 		add_action( 'init', [ $this, 'load_textdomain' ], 1 );
 	}
