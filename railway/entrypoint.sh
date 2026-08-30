@@ -32,6 +32,11 @@ echo "igbz: initializing WordPress files and configuration"
 # Apache binds; without this guard a probe can race the wp-cli bootstrap and lock
 # wp_options (notably during setup_theme/theme-root discovery).
 touch "$WEBROOT/.maintenance"
+# Railway requires a 2xx health response while the application is bootstrapping.
+# Serve a static, dependency-free probe so health checks do not enter WordPress.
+cat > "$WEBROOT/igbz-boot-health.json" <<'JSON'
+{"ok":true,"ready":false,"bootstrap":true}
+JSON
 cleanup_maintenance() {
 	rm -f "$WEBROOT/.maintenance"
 }
@@ -41,7 +46,12 @@ cleanup_maintenance() {
 cat > /etc/apache2/conf-available/igbz-bootstrap-deny.conf <<'APACHECONF'
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteCond %{QUERY_STRING} (^|&)igbz_health=1(&|$)
+    RewriteRule ^ /igbz-boot-health.json [END]
     RewriteRule ^ - [R=503,L]
+</IfModule>
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-store"
 </IfModule>
 APACHECONF
 a2enmod rewrite >/dev/null
@@ -142,6 +152,7 @@ bootstrap() {
 }
 
 bootstrap
+printf '%s\n' '{"ok":true,"ready":true,"bootstrap":false}' > "$WEBROOT/igbz-boot-health.json"
 cleanup_maintenance
 # Only now expose WordPress to Railway probes and users.
 a2disconf igbz-bootstrap-deny >/dev/null 2>&1 || true
