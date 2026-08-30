@@ -35,7 +35,16 @@ touch "$WEBROOT/.maintenance"
 cleanup_maintenance() {
 	rm -f "$WEBROOT/.maintenance"
 }
-trap 'cleanup_maintenance; kill "$APACHE_PID" 2>/dev/null || true' TERM INT EXIT
+# WordPress maintenance mode alone is not sufficient: theme discovery can still
+# touch wp_options before that check. Deny the document root at Apache level
+# until wp-cli has finished the first-boot mutations.
+cat > /etc/apache2/conf-available/igbz-bootstrap-deny.conf <<'APACHECONF'
+<Directory /var/www/html>
+    Require all denied
+</Directory>
+APACHECONF
+a2enconf igbz-bootstrap-deny >/dev/null
+trap 'cleanup_maintenance; kill "${APACHE_PID:-}" 2>/dev/null || true' TERM INT EXIT
 
 docker-entrypoint.sh apache2-foreground &
 APACHE_PID=$!
@@ -129,6 +138,9 @@ bootstrap() {
 
 bootstrap
 cleanup_maintenance
+# Only now expose WordPress to Railway probes and users.
+a2disconf igbz-bootstrap-deny >/dev/null
+apache2ctl graceful
 
 # فاز ۷۰ — گیت آمادگی: سلامت خودمان را می‌پرسیم تا زمانی که ۲۰۰ بدهد؛
 # نتیجه در لاگ استقرار دیده می‌شود و railway.json هم healthcheckPath دارد.
