@@ -19,6 +19,11 @@ declare( strict_types = 1 );
 
 namespace IGBZ\Suite\Modules\Pado\Services;
 
+/**
+ * Direct access guard (phase 75 audit): autoloader-only file, never a URL target.
+ */
+defined( 'ABSPATH' ) || exit;
+
 use IGBZ\Suite\Modules\Instagram\Services\ContentPublishService;
 use IGBZ\Suite\Modules\Instagram\Vip\VipMessageService;
 use IGBZ\Suite\Support\Db;

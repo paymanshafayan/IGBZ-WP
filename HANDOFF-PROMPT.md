@@ -147,7 +147,7 @@
   خودمان)؛ کنتراست/کیبورد/RTL سبز؛ ۴ خانوادهٔ بالادستی WC/WP ثبت شد. ابزار:
   `visual-testing/phase-69/a11y-audit-69.cjs` + `a11y-guest-69.cjs`. جزئیات:
   `PROJECT-STATE §۱۱.۲۵`.
-- معیارهای سبز: تست **۱۶۰۴۹ اظهارنظر در ۸۷ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
+- معیارهای سبز: تست **۱۶۰۵۲ اظهارنظر در ۸۷ کیس** · لینت صفر (`bash _devenv/test.sh`) ·
   دیتابیس **v48 با ۱۰۰ جدول** · سلامت زنده: ok=true/degraded=false (100/100، dbv 48).
 
 ### از کجا باید ادامه داد
@@ -177,8 +177,11 @@
   c4 صفر خطا، c16 نقطهٔ اشباع (timeout بدون 5xx)، soak ۹۴ث سبز + پایش سلامت؛
   بازیابی آنی پس از فروپاشی؛ جدول پوشش chaos در REPORT. soak چندساعته و
   قطع cache/kill-9 = staging با کارفرما. جزئیات: `PROJECT-STATE §۱۱.۳۰`.
-- **فاز بعدی: ۷۵ — ممیزی امنیت نهایی.** شرح در `PROJECT-COMPLETION-PLAN.md
-  §۲۳.۱۲`: اسکن dependency/secret، تست دسترسی، SSRF، فایل، webhook، پادو.
+- **فاز ۷۵ (✅ تمام‌شده):** اسکنر تکرارپذیر ۱۰-بررسی (مجوز REST ۱۶۵/۰، خطرناک
+  ۰، سیکرت ۰، گارد ۳۶۰/۳۶۰) + دو اصلاح (SSRF رندر-مقایسه، ABSPATH) +
+  `SECURITY-AUDIT-FINAL.md`. یونیت ۱۶۰۵۲/۸۷، لینت ۳۵۴/۰. جزئیات:
+  `PROJECT-STATE §۱۱.۳۱`.
+- **فاز بعدی: ۷۶ — تطبیق نهایی و پذیرش انتشار.**
 - یادآوری API: هر تغییر مسیر یعنی بازتولید پین `contracts/api-v1.json` از
   `GET /igbz/v1/contract` (قالب: json.dumps با sort_keys) + گیت breaking_changes؛
   رشتهٔ تازهٔ UI یعنی `makepot.sh` + `_devenv/build_fa_ir.py`.

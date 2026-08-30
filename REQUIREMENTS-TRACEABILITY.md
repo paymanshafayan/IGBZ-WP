@@ -288,11 +288,12 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 | SEC-003 | حداقل اختیار نقش و مسیرهای هسته | DESIGN-GAPS-FIX؛ LEGAL §۷.۷ | `Capabilities`, `CoreSurfaceGuard`, `SecurityGapsTest` | پیاده‌شدهٔ جزئی؛ آزمون زندهٔ همهٔ درها/نقش‌ها باقی است |
 | SEC-004 | محدودیت مصرف و جریان حساس | OWASP API4/API6 | OTP phone+IP؛ rate limitهای پراکنده | پیاده‌شدهٔ جزئی؛ شمارندهٔ اتمیک، quota هزینه و جریان‌های دیگر باقی‌اند |
 | SEC-005 | پاسخ نرخ استاندارد | IETF/RFC 6585/9110 | `retry_after` در بخشی از سرویس‌ها | شکاف؛ نگاشت یکنواخت ۴۲۹ و `Retry-After` تأیید نشده |
-| SEC-006 | SSRF و دانلود محدود | OWASP SSRF؛ PADO §۱۹ | `Support/Http`, `UrlGuard`, `PadoGateway` | ✅ فاز ۱۰: دروازهٔ متمرکز `UrlGuard` (اسکیم/میزبان/بازه‌های خصوصی و متادیتا)، خاموشی redirect، سقف اندازهٔ پاسخ، سیاست ارسال حامل فقط به میزبان پیکربندی‌شده؛ تست `UrlGuardTest` |
+| SEC-006 | SSRF و دانلود محدود | OWASP SSRF؛ PADO §۱۹ | `Support/Http`, `UrlGuard`, `PadoGateway`, `ThemeReleaseService` | ✅ فاز ۱۰: دروازهٔ متمرکز `UrlGuard` (اسکیم/میزبان/بازه‌های خصوصی و متادیتا)، خاموشی redirect، سقف اندازهٔ پاسخ، سیاست ارسال حامل فقط به میزبان پیکربندی‌شده؛ تست `UrlGuardTest`؛ ✅ فاز ۷۵: استثنای باقیماندهٔ `ThemeReleaseService::fetch` هم گارد شد (یونیت `internal_urls_never_leave_the_process`) |
 | SEC-007 | فایل و artefact غیرقابل‌اجرا | PADO §۱۹ | `ThemeValidator`, `ThemeService` | شکاف: PHP پذیرفته می‌شود؛ blacklist sandbox نیست |
 | SEC-008 | JWT، refresh، device و replay | LEGAL §۷.۶؛ API | `Jwt`, `RefreshTokenService`, device routes | پیاده‌شده؛ آزمون نقش، ابطال و race کامل نیست |
 | SEC-009 | خروج حساس با حضور انسان/بیومتریک | OWASP API6؛ LEGAL §۷.۶ | `Support/BiometricGate`, `DeviceRepository` | ✅ فاز ۱۲: قرارداد سمت سرور (پنجرهٔ زمانی/نانس یک‌بارمصرف/زمان ثابت) + کلید رمزگذاری‌شدهٔ دستگاه (دیتابیس v22) و آزمون؛ آزمون زندهٔ اپ مدیریت پس از ساخت اپ باقی است |
 | SEC-010 | audit بدون secret/PII و retention | طراحی امنیت/ویرا | `Logger`, `TenantOffboarding` | ✅ فاز ۱۳: ماسک راز+دادهٔ شخصی در لحظهٔ ورود (تودرتو هم)، ماندگاری خودکار رویداد/توکن، جاروی خروج مستأجر با ثبت امنیتی؛ `OffboardingTest` |
+| SEC-011 | ممیزی امنیتی نهاییِ تکرارپذیر | PLAN §۲۳.۱۲ (فاز ۷۵)؛ امنیت و مراقبت/README | `امنیت و مراقبت/phase-75-scan.sh` + `SECURITY-AUDIT-FINAL.md` | ✅ فاز ۷۵: ۱۰ بررسی خودکار (مجوز REST ۱۶۵/۰، توابع خطرناک ۰ واقعی، سیکرت/فایل حساس ۰، گارد دسترسی ۳۶۰/۳۶۰، SSRF کامل‌شده، sanitize کامل) + دو اصلاح (گارد SSRF رندر-مقایسه، ABspath یک فایل)؛ بازبینی دستی وابستگی/webhook/کد یکبارمصرف؛ CVE-feed نسخه‌های پین‌شده = وظیفهٔ staging |
 
 ### ۶.۳ چندمستأجری و داده
 

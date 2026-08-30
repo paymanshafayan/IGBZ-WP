@@ -154,8 +154,18 @@ class ThemeReleaseService {
 
 	// ------------------------------------------------- environment seams
 
-	/** Fetch a rendered page. The network boundary, overridable in tests. */
+	/**
+	 * Fetch a rendered page. The network boundary, overridable in tests.
+	 *
+	 * Phase 75: the URL crosses the SSRF gate like every other outbound request —
+	 * a render-compare URL that has drifted to an internal address returns empty
+	 * (an empty signature fails the comparison honestly) instead of reaching it.
+	 */
 	protected function fetch( string $url ): string {
+		if ( ! \IGBZ\Suite\Support\UrlGuard::is_safe( $url ) ) {
+			$this->logger->warning( 'pado', 'Render-compare URL blocked by the SSRF guard', [ 'host' => (string) wp_parse_url( $url, PHP_URL_HOST ) ] );
+			return '';
+		}
 		$response = wp_remote_get( $url, [ 'timeout' => 30 ] );
 		return is_wp_error( $response ) ? '' : (string) wp_remote_retrieve_body( $response );
 	}

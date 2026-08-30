@@ -39,6 +39,7 @@ final class ThemeReleaseTest extends TestCase {
 		$this->the_live_activation_refuses_a_tampered_artifact();
 		$this->block_signatures_are_ordered_and_clean();
 		$this->the_snapshot_diff_reports_what_changed();
+		$this->internal_urls_never_leave_the_process();
 	}
 
 	// ------------------------------------------------------------ scenarios
@@ -113,6 +114,15 @@ final class ThemeReleaseTest extends TestCase {
 		$this->assert_same( 'block:wp:group', $sig[1], 'the invariant holds' );
 		$this->assert_same( 'h1:فروشگاه', $sig[2], 'headings carry their Persian text' , 'the invariant holds' );
 		$this->assert_same( 4, count( $sig ), 'duplicates collapse and scripts/styles never sign' );
+	}
+
+	/** Phase 75: the render-compare fetch crosses the SSRF guard — internal addresses are refused before any socket opens. */
+	private function internal_urls_never_leave_the_process(): void {
+		$service = new ThemeReleaseService( new Db(), igbz()->get( 'logger' ) );
+		$result  = $service->snapshot_diff( 'http://169.254.169.254/latest/meta-data/', 'http://127.0.0.1:9400/preview' );
+		$this->assert_same( false, $result['ok'], 'a metadata/loopback pair produces no signature pair' );
+		$this->assert_same( [], $result['a_blocks'], 'nothing was fetched from inside' );
+		$this->assert_same( [], $result['b_blocks'], 'side B equally empty' );
 	}
 
 	private function the_snapshot_diff_reports_what_changed(): void {
