@@ -1,0 +1,242 @@
+{
+  "startedAt": "2026-08-30T07:31:22.252Z",
+  "env": {
+    "host": "127.0.0.1",
+    "port": 9400,
+    "note": "php-wasm single-worker preview"
+  },
+  "burst4": {
+    "label": "burst-c4",
+    "concurrency": 4,
+    "seconds": 26.4,
+    "paths": {
+      "home": {
+        "name": "home",
+        "requests": 4,
+        "rps": 0.2,
+        "ok": 4,
+        "failed": 0,
+        "codes": {
+          "200": 4
+        },
+        "p50": 9024.2,
+        "p95": 10653.2,
+        "p99": 10653.2,
+        "max": 10653.2
+      },
+      "product": {
+        "name": "product",
+        "requests": 4,
+        "rps": 0.2,
+        "ok": 4,
+        "failed": 0,
+        "codes": {
+          "301": 4
+        },
+        "p50": 8043.1,
+        "p95": 8101.5,
+        "p99": 8101.5,
+        "max": 8101.5
+      },
+      "cart-store-api": {
+        "name": "cart-store-api",
+        "requests": 4,
+        "rps": 0.2,
+        "ok": 4,
+        "failed": 0,
+        "codes": {
+          "200": 4
+        },
+        "p50": 9730.6,
+        "p95": 10004.2,
+        "p99": 10004.2,
+        "max": 10004.2
+      },
+      "health": {
+        "name": "health",
+        "requests": 0,
+        "rps": 0,
+        "ok": 0,
+        "failed": 0,
+        "codes": {},
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      }
+    },
+    "total": 12,
+    "totalFailed": 0
+  },
+  "burst16": {
+    "label": "burst-c16",
+    "concurrency": 16,
+    "seconds": 49.6,
+    "paths": {
+      "home": {
+        "name": "home",
+        "requests": 16,
+        "rps": 0.3,
+        "ok": 11,
+        "failed": 5,
+        "codes": {
+          "0": 5,
+          "200": 11
+        },
+        "p50": 17250.8,
+        "p95": 29311,
+        "p99": 29311,
+        "max": 29311
+      },
+      "product": {
+        "name": "product",
+        "requests": 7,
+        "rps": 0.1,
+        "ok": 0,
+        "failed": 7,
+        "codes": {
+          "0": 7
+        },
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "cart-store-api": {
+        "name": "cart-store-api",
+        "requests": 0,
+        "rps": 0,
+        "ok": 0,
+        "failed": 0,
+        "codes": {},
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      },
+      "health": {
+        "name": "health",
+        "requests": 0,
+        "rps": 0,
+        "ok": 0,
+        "failed": 0,
+        "codes": {},
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      }
+    },
+    "total": 23,
+    "totalFailed": 12
+  },
+  "soak": {
+    "label": "soak-c2",
+    "concurrency": 2,
+    "seconds": 93.9,
+    "paths": {
+      "home": {
+        "name": "home",
+        "requests": 10,
+        "rps": 0.1,
+        "ok": 10,
+        "failed": 0,
+        "codes": {
+          "200": 10
+        },
+        "p50": 6779.9,
+        "p95": 7963.1,
+        "p99": 7963.1,
+        "max": 7963.1
+      },
+      "product": {
+        "name": "product",
+        "requests": 10,
+        "rps": 0.1,
+        "ok": 10,
+        "failed": 0,
+        "codes": {
+          "301": 10
+        },
+        "p50": 4998.1,
+        "p95": 5843.9,
+        "p99": 5843.9,
+        "max": 5843.9
+      },
+      "cart-store-api": {
+        "name": "cart-store-api",
+        "requests": 9,
+        "rps": 0.1,
+        "ok": 9,
+        "failed": 0,
+        "codes": {
+          "200": 9
+        },
+        "p50": 3995,
+        "p95": 5673,
+        "p99": 5673,
+        "max": 5673
+      },
+      "health": {
+        "name": "health",
+        "requests": 8,
+        "rps": 0.1,
+        "ok": 8,
+        "failed": 0,
+        "codes": {
+          "200": 8
+        },
+        "p50": 3618.4,
+        "p95": 7741,
+        "p99": 7741,
+        "max": 7741
+      }
+    },
+    "total": 37,
+    "totalFailed": 0,
+    "healthWatch": [
+      {
+        "t": "2026-08-30T07:33:00.503Z",
+        "code": 200,
+        "ok": true
+      },
+      {
+        "t": "2026-08-30T07:33:10.119Z",
+        "code": 200,
+        "ok": true
+      },
+      {
+        "t": "2026-08-30T07:33:19.315Z",
+        "code": 200,
+        "ok": true
+      },
+      {
+        "t": "2026-08-30T07:33:32.880Z",
+        "code": 200,
+        "ok": true
+      },
+      {
+        "t": "2026-08-30T07:33:41.767Z",
+        "code": 200,
+        "ok": true
+      },
+      {
+        "t": "2026-08-30T07:33:54.007Z",
+        "code": 200,
+        "ok": true
+      },
+      {
+        "t": "2026-08-30T07:34:01.456Z",
+        "code": 200,
+        "ok": true
+      },
+      {
+        "t": "2026-08-30T07:34:13.608Z",
+        "code": 200,
+        "ok": true
+      }
+    ],
+    "rssKbStart": 56264,
+    "rssKbEnd": 57232
+  }
+}

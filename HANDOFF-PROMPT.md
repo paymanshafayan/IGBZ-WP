@@ -173,9 +173,12 @@
   `flags.queue_paused`، `RUNBOOK-RELEASE-ROLLBACK.md` (گیت دولایه، rollback
   افزونه/DB/قالب، drift، pause، چک‌لیست). یونیت ۱۶۰۴۹/۸۷، لینت ۳۵۴/۰، سند
   سلامت زنده از گیت green گرفت. جزئیات: `PROJECT-STATE §۱۱.۲۹`.
-- **فاز بعدی: ۷۴ — بار، دوام و chaos.** شرح در `PROJECT-COMPLETION-PLAN.md
-  §۲۳.۱۲`: بار مسیرهای بحرانی، soak، burst، queue backlog، قطع
-  DB/cache/provider و رفتار degraded.
+- **فاز ۷۴ (✅ در دامنهٔ سندباکس):** هارنس بار قابل‌حمل روی ۴ مسیر بحرانی؛
+  c4 صفر خطا، c16 نقطهٔ اشباع (timeout بدون 5xx)، soak ۹۴ث سبز + پایش سلامت؛
+  بازیابی آنی پس از فروپاشی؛ جدول پوشش chaos در REPORT. soak چندساعته و
+  قطع cache/kill-9 = staging با کارفرما. جزئیات: `PROJECT-STATE §۱۱.۳۰`.
+- **فاز بعدی: ۷۵ — ممیزی امنیت نهایی.** شرح در `PROJECT-COMPLETION-PLAN.md
+  §۲۳.۱۲`: اسکن dependency/secret، تست دسترسی، SSRF، فایل، webhook، پادو.
 - یادآوری API: هر تغییر مسیر یعنی بازتولید پین `contracts/api-v1.json` از
   `GET /igbz/v1/contract` (قالب: json.dumps با sort_keys) + گیت breaking_changes؛
   رشتهٔ تازهٔ UI یعنی `makepot.sh` + `_devenv/build_fa_ir.py`.
