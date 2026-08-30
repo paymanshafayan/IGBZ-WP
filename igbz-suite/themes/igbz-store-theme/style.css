@@ -1,0 +1,18 @@
+/*
+Theme Name: IGBZ Store
+Author: IGBZ Pado
+Description: قالب فرزند بلوکی فروشگاه IGBZ — مسیر پیش‌فرض خروجی قالب پادو (ADR-0003 نوع ۱). فاقد PHP، فاقد جاوااسکریپت تولیدی، فاقد فراخوانی شبکه و وابستگی CDN.
+Template: twentytwentyfive
+Version: 1.0.0
+Requires at least: 6.7
+Tested up to: 7.0
+License: GPL-2.0-or-later
+Text Domain: igbz-store-theme
+Tags: block-patterns, full-site-editing, rtl-language-support
+RTL: راست‌چین — فایل rtl.css و ویژگی‌های منطقی CSS (margin-inline و مانند آن)
+*/
+
+/*
+ * این فایل فقط هدر قرارداد را حمل می‌کند؛ طراحی پایه (پالت، تایپوگرافی سیال، فاصله‌گذاری)
+ * در theme.json تعریف شده و با قالب مادر ترکیب می‌شود. عمداً هیچ CSS سنگینی اینجا نیست.
+ */

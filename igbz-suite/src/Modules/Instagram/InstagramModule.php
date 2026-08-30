@@ -3,6 +3,9 @@ namespace IGBZ\Suite\Modules\Instagram;
 
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioAdapterInterface;
 use IGBZ\Suite\Modules\Instagram\Gateways\ZernioClient;
+use IGBZ\Suite\Modules\Instagram\Growth\CompetitorService;
+use IGBZ\Suite\Modules\Instagram\Growth\GiveawayDrawService;
+use IGBZ\Suite\Modules\Instagram\Growth\InsightService;
 use IGBZ\Suite\Modules\Instagram\Services\ContentPublishService;
 use IGBZ\Suite\Modules\Instagram\Services\InboxService;
 use IGBZ\Suite\Modules\Instagram\Services\ProductRegistrationService;
@@ -39,13 +42,16 @@ defined( 'ABSPATH' ) || exit;
  *     identity) and the tenant-facing social facade;
  *   - the controlled legacy→Zernio migration (journal + hourly round);
  *   - the building blocks the rebuilt flows land on (phase 51 inbox/DM,
- *     52 product registration, 53 publishing/voice, 55 giveaway/insights);
+ *     52 product registration, 53 publishing/voice, 54 VIP, 55 giveaway/insights);
  *   - the VIP channel (phase 54) and the config-driven AI media studio.
  */
 final class InstagramModule implements ModuleInterface {
 
 	/** Phase 50: migration round budget (continuation contract, phase 25 pattern). */
 	private const MIGRATION_ROUND_LIMIT = SocialMigrationService::ROUND_LIMIT;
+
+	/** Phase 54: rows per VIP reconcile round (purge retries + count drift). */
+	private const VIP_RECONCILE_BATCH = 50;
 
 	public function id(): string {
 		return Modules::INSTAGRAM;
@@ -83,6 +89,7 @@ final class InstagramModule implements ModuleInterface {
 
 		add_action( Cron::HOOK_FIVE_MINUTES, [ $this, 'run_five_minutes' ] );
 		add_action( Cron::HOOK_HOURLY, [ $this, 'run_hourly' ] );
+		add_action( Cron::HOOK_DAILY, [ $this, 'run_daily' ] );
 
 		// Phase 24/25: the sweeps run as independent queued jobs — leased, retried
 		// with backoff, dead-lettered when broken — instead of one long blocking cron request.
@@ -149,6 +156,15 @@ final class InstagramModule implements ModuleInterface {
 			)
 		);
 
+		// Phase 55 — the growth-intel trio: auditable giveaways, provenance-tagged
+		// insights with retention, and manual competitor snapshots with evidence.
+		$plugin->bind( 'ig.giveaways', static fn ( Plugin $c ) => new GiveawayDrawService( $c->db(), $c->logger() ) );
+		$plugin->bind( 'ig.competitors', static fn ( Plugin $c ) => new CompetitorService( $c->db(), $c->logger() ) );
+		$plugin->bind(
+			'ig.growth_insights',
+			static fn ( Plugin $c ) => new InsightService( $c->db(), $c->logger(), $c->settings(), $c->get( 'ig.zernio_social' ) )
+		);
+
 		// --------------------------- building blocks for the rebuilt flows
 
 		// Product registration (phase 52) and listing translation keep their
@@ -212,6 +228,14 @@ final class InstagramModule implements ModuleInterface {
 			igbz()->get( 'vip.posts' )->expire_due();
 		} );
 
+		// Phase 54 — the channel's daily safety net: retry the media purges that only
+		// partly succeeded and settle drifted like/comment counts. Bounded; a full batch
+		// re-queues itself under the canonical continuation contract.
+		$jobs->register( 'ig.vip.reconcile', function ( array $payload, JobContext $ctx ) use ( $jobs ): void {
+			$acted = igbz()->get( 'vip.posts' )->reconcile( self::VIP_RECONCILE_BATCH );
+			$jobs->continue_round( $ctx, $payload, 'ig.vip.reconcile', $acted, self::VIP_RECONCILE_BATCH, 10 );
+		} );
+
 		// Phase 53 — publishing: fire the due scheduled rows, then reconcile the
 		// in-flight ones against the provider (the webhook is the fast path; this
 		// five-minute poll is the safety net for missed or delayed events).
@@ -220,6 +244,11 @@ final class InstagramModule implements ModuleInterface {
 		} );
 		$jobs->register( 'ig.content_publish.reconcile', static function (): void {
 			igbz()->get( 'ig.content_publish' )->reconcile();
+		} );
+
+		// Phase 55 — retention: insights older than the configured window go away.
+		$jobs->register( 'ig.insights.prune', static function (): void {
+			igbz()->get( 'ig.growth_insights' )->prune();
 		} );
 
 		// Phase 50 — the controlled legacy→Zernio migration, one bounded round per
@@ -237,6 +266,15 @@ final class InstagramModule implements ModuleInterface {
 		$jobs = igbz()->get( 'jobs' );
 		$slot = JobQueue::slot( HOUR_IN_SECONDS );
 		$jobs->enqueue( 'ig.social.migrate', [], [ 'idempotency_key' => $slot ] );
+	}
+
+	public function run_daily(): void {
+		// Phase 54: the VIP reconcile rides the daily beat; the daily slot key absorbs
+		// duplicate beats and the handler carries its own continuation contract.
+		igbz()->get( 'jobs' )->enqueue( 'ig.vip.reconcile', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
+
+		// Phase 55: insight retention — a bounded delete of rows past the window.
+		igbz()->get( 'jobs' )->enqueue( 'ig.insights.prune', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
 	}
 
 	// ---------------------------------------------------------------- health

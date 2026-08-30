@@ -77,6 +77,7 @@ final class StatusPage {
 		);
 
 		$this->render_cards();
+		$this->render_slo();
 		$this->render_modules();
 		$this->render_cron();
 		$this->render_environment();
@@ -194,6 +195,55 @@ final class StatusPage {
 		}
 
 		echo '</tbody></table>';
+	}
+
+	private function render_slo(): void {
+		$report = igbz()->slo()->report();
+
+		if ( ! $report['ok'] ) {
+			$lines = [];
+			foreach ( $report['breaches'] as $b ) {
+				$lines[] = sprintf(
+					/* translators: 1: SLO name, 2: measured value, 3: threshold. */
+					__( '%1$s: %2$s (threshold %3$s)', 'igbz-suite' ),
+					$b['slo'], $b['value'], $b['threshold']
+				);
+			}
+			View::notice(
+				__( 'SLO breach — open RUNBOOK-SLO-ALERTS.md and follow the section(s) below:', 'igbz-suite' ) . ' '
+				. esc_html( implode( ' · ', $lines ) ),
+				'error'
+			);
+		} else {
+			View::notice( __( 'All SLOs green: jobs, queue latency and error rate are inside their thresholds.', 'igbz-suite' ), 'success' );
+		}
+
+		$m = $report['metrics'];
+		View::table(
+			[
+				'done'    => __( 'Jobs done (24h)', 'igbz-suite' ),
+				'failed'  => __( 'Failed (24h)', 'igbz-suite' ),
+				'dead'    => __( 'Dead (24h)', 'igbz-suite' ),
+				'pending' => __( 'Pending (due)', 'igbz-suite' ),
+				'wait'    => __( 'Oldest wait', 'igbz-suite' ),
+				'errors'  => __( 'Errors (24h)', 'igbz-suite' ),
+				'backup'  => __( 'Last backup', 'igbz-suite' ),
+			],
+			[ [
+				'done'    => (string) $m['jobs_done_24h'],
+				'failed'  => (string) $m['jobs_failed_24h'],
+				'dead'    => (string) $m['jobs_dead_24h'],
+				'pending' => (string) $m['jobs_pending'],
+				/* translators: %s: number of minutes. */
+				'wait'    => sprintf( __( '%s min', 'igbz-suite' ), (string) $m['oldest_pending_minutes'] ),
+				'errors'  => (string) $m['log_errors_24h'],
+				'backup'  => null === $m['backup_age_minutes']
+					? __( 'never', 'igbz-suite' )
+					/* translators: %s: number of minutes. */
+					: sprintf( __( '%s min ago', 'igbz-suite' ), (string) $m['backup_age_minutes'] ),
+			] ],
+			static fn ( array $row, string $key ): string => esc_html( (string) $row[ $key ] )
+		);
 	}
 
 	private function render_cron(): void {

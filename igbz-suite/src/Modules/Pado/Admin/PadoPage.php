@@ -192,7 +192,12 @@ final class PadoPage {
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data">
 			<?php wp_nonce_field( self::NONCE_ACTION ); ?>
 			<input type="hidden" name="action" value="igbz_pado_upload_theme">
-			<p><input type="file" name="theme_zip" accept=".zip,application/zip" required> <?php submit_button( 'اعتبارسنجی و پیش‌نمایش', 'secondary', 'submit', false ); ?></p>
+			<p>
+				<label for="igbz-theme-zip">فایل ZIP قالب</label>
+				<input type="file" id="igbz-theme-zip" name="theme_zip" accept=".zip,application/zip" aria-describedby="igbz-theme-zip-help" required>
+				<span id="igbz-theme-zip-help" class="description"> فقط پروندهٔ <code>zip</code> پذیرفته می‌شود.</span>
+				<?php submit_button( 'اعتبارسنجی و پیش‌نمایش', 'secondary', 'submit', false ); ?>
+			</p>
 		</form>
 
 		<h3>درخواست طراحی از پادو</h3>
@@ -541,6 +546,30 @@ final class PadoPage {
 		// job remains approved and can be retried without pretending that work was completed.
 		$executor = null;
 		$scope = current_user_can( Capabilities::MANAGE_TENANTS ) ? null : igbz()->tenancy()->id();
+
+		// Phase 58 — the sensitive commercial kinds execute through the queue's
+		// claim/complete contract; the page only supplies the human yes.
+		$sensitive = [ 'price_change', 'payment_refund', 'bulk_product_delete' ];
+		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], $sensitive, true ) ) {
+			$ops     = igbz()->get( 'pado.ops' );
+			$ops_row = $row;
+			$executor = static function ( array $request ) use ( $ops, $ops_row ): bool {
+				return $ops->run( 0 !== (int) ( $request['id'] ?? 0 ) ? $request : $ops_row );
+			};
+		}
+
+		// Phase 59 — publishing, campaigns and policy changes ride the same contract.
+		$content_ops = [
+			'ig_publish_viral', 'ig_publish_trust', 'ig_publish_lifestyle', 'ig_publish_campaign',
+			'campaign_send', 'policy_change',
+		];
+		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], $content_ops, true ) ) {
+			$cops     = igbz()->get( 'pado.content_ops' );
+			$cops_row = $row;
+			$executor = static function ( array $request ) use ( $cops, $cops_row ): bool {
+				return $cops->run( 0 !== (int) ( $request['id'] ?? 0 ) ? $request : $cops_row );
+			};
+		}
 		$row = $this->approvals->get( $id, $scope );
 		if ( 'approved' === $decision && $row && in_array( (string) $row['kind'], [ 'theme_apply', 'theme_rollback' ], true ) ) {
 			$payload = json_decode( (string) ( $row['payload'] ?? '' ), true );
@@ -569,13 +598,16 @@ final class PadoPage {
 				}
 			}
 		}
+		// Phase 57: the page already required MANAGE_PADO above; that check is the proof
+		// the queue's capability gate asks for, so hand it through explicitly.
 		$ok = $this->approvals->decide(
 			$id,
 			'approved' === $decision ? ApprovalRequestService::STATUS_APPROVED : ApprovalRequestService::STATUS_REJECTED,
 			get_current_user_id(),
 			$note,
 			$executor,
-			$scope
+			$scope,
+			true
 		);
 
 		$args = [ 'tab' => $tab, 'astatus' => $astatus ];

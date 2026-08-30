@@ -117,6 +117,13 @@ final class Activator {
 			39 => [ self::class, 'migrate_to_v39' ],
 			40 => [ self::class, 'migrate_to_v40' ],
 			41 => [ self::class, 'migrate_to_v41' ],
+			42 => [ self::class, 'migrate_to_v42' ],
+			43 => [ self::class, 'migrate_to_v43' ],
+			44 => [ self::class, 'migrate_to_v44' ],
+			45 => [ self::class, 'migrate_to_v45' ],
+			46 => [ self::class, 'migrate_to_v46' ],
+			47 => [ self::class, 'migrate_to_v47' ],
+			48 => [ self::class, 'migrate_to_v48' ],
 		];
 	}
 
@@ -126,6 +133,16 @@ final class Activator {
 			$migrator->add( $version, $step );
 		}
 		return $migrator;
+	}
+
+	/**
+	 * v48 (phase 67): mobile write semantics — `api_idempotency` stores one row per
+	 * (user, Idempotency-Key) claim so a retried POST replays the stored response instead
+	 * of repeating the work (unique key idem_claim makes the claim atomic), with a lease on
+	 * in-flight rows and an expiry the daily prune honours.
+	 */
+	public static function migrate_to_v48(): void {
+		// Pure dbDelta work; see the api_idempotency table.
 	}
 
 	/**
@@ -329,6 +346,69 @@ final class Activator {
 	 */
 	public static function migrate_to_v21(): void {
 		self::seed_defaults();
+	}
+
+	/**
+	 * v42 (phase 54): the VIP channel hardening columns — `payments.idempotency_key` (creation
+	 * idempotency per tenant+purpose, so a repeated VIP purchase start reuses its row) and
+	 * `vip_posts.media_purged_at` (the purge ledger marker the daily reconcile retries on).
+	 *
+	 * Pure dbDelta work — install_tables() creates both from Schema::statements(); existing
+	 * rows keep the NULL default, which the UNIQUE key permits.
+	 */
+	public static function migrate_to_v42(): void {
+		// Pure dbDelta work; see the payments and vip_posts tables in Schema::statements().
+	}
+
+	/**
+	 * v43 (phase 55): the growth-intel tables — `ig_giveaway_entries` (the frozen pool an
+	 * auditable draw is derived from), `ig_competitors` + `ig_competitor_snapshots` (manual,
+	 * evidence-linked competitor tracking) — plus the draw-audit columns on `ig_giveaways`
+	 * and the provenance columns on `ig_insights`.
+	 *
+	 * It also backfills `ig_publish_events`: sites that ran the v42 step before the phase-54
+	 * fix landed carry db version 42 without the table, because a stray dot at the end of its
+	 * CREATE statement made dbDelta silently skip it (fresh installs came up 91/92). The fix
+	 * removed the dot; this step re-runs dbDelta so the table finally exists everywhere.
+	 * Idempotent: install_tables() only creates what is missing.
+	 */
+	public static function migrate_to_v43(): void {
+		self::install_tables();
+	}
+
+	/**
+	 * v44 (phase 57): the approval queue becomes atomic — payload version/hash columns,
+	 * an idempotency key with a UNIQUE (tenant,kind,key), the capability the decider must
+	 * prove, an expiry stamp, claim/attempt columns for exactly-once execution and an
+	 * append-only audit trail. Pure dbDelta on `igbz_approval_requests`; no new tables.
+	 */
+	public static function migrate_to_v44(): void {
+		self::install_tables();
+	}
+
+	/**
+	 * v45 (phase 62): Pado's memory store — entries plus the access audit.
+	 * Pure dbDelta work; see Schema's pado_memory / pado_memory_access blocks.
+	 */
+	public static function migrate_to_v45(): void {
+		self::install_tables();
+	}
+
+	/**
+	 * v46 (phase 63): the versioned growth Playbooks and their run journal.
+	 * Pure dbDelta work; see Schema's pado_playbooks / pado_playbook_runs blocks.
+	 */
+	public static function migrate_to_v46(): void {
+		self::install_tables();
+	}
+
+	/**
+	 * v47 (phase 66): rotation marker on api_tokens — the refresh-grace window
+	 * needs to tell a rotation apart from an explicit revoke. dbDelta adds the
+	 * nullable column; nothing else moves.
+	 */
+	public static function migrate_to_v47(): void {
+		self::install_tables();
 	}
 
 	/**
@@ -894,6 +974,9 @@ final class Activator {
 			'general.allow_self_signup'     => true,
 			'general.auto_approve_tenants'  => false,
 			'log.level'                     => Logger::INFO,
+			'backup.retention'              => 7,
+			'backup.max_file_mb'            => 5,
+			'flags.queue_paused'            => false,
 			'log.retention_days'            => 30,
 			'security.disable_xmlrpc'       => true,
 			'security.disable_app_passwords' => true,
@@ -1131,6 +1214,9 @@ final class Activator {
 			'i18n.enabled'                  => false,
 			'i18n.languages'                => 'fa',
 			'i18n.default_language'         => 'fa',
+			'i18n.toman_currency'           => true,
+			'i18n.checkout_base_country'    => true,
+			'i18n.persian_front_digits'     => true,
 			'stripe.enabled'                => false,
 			'stripe.secret_key'             => '',
 			'paypal.enabled'                => false,

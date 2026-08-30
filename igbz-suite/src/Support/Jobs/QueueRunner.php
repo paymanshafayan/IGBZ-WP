@@ -49,9 +49,17 @@ final class QueueRunner {
 	/**
 	 * Drain due jobs within budget.
 	 *
-	 * @return array{done:int,failed:int,dead:int,rounds:int}
+	 * @return array{done:int,failed:int,dead:int,rounds:int,paused?:bool}
 	 */
 	public function run( int $job_budget = self::DEFAULT_JOB_BUDGET, int $time_budget_seconds = self::DEFAULT_TIME_BUDGET ): array {
+		// Phase 73: incident lever — `flags.queue_paused` freezes the drain without
+		// touching code. The queue-stall SLO fires honestly while paused; that is
+		// the point: an operator holding work should see the cost of holding it.
+		if ( igbz()->settings()->bool( 'flags.queue_paused', false ) ) {
+			$this->logger->info( 'jobs', 'queue drain paused by operator (flags.queue_paused)', [] );
+			return [ 'done' => 0, 'failed' => 0, 'dead' => 0, 'rounds' => 0, 'paused' => true ];
+		}
+
 		$deadline = time() + max( 1, $time_budget_seconds );
 		$totals   = [ 'done' => 0, 'failed' => 0, 'dead' => 0, 'rounds' => 0 ];
 

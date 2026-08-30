@@ -73,8 +73,10 @@ final class ThemeService {
 			'created_at'          => $now,
 			'updated_at'          => $now,
 		];
-		$this->db->insert( 'themes', $insert );
-		return (int) $this->db->insert_id;
+		// Phase 60 live-smoke finding: Db has no insert_id property (it wraps wpdb),
+		// so this used to read null and every real-stack ingest record reported
+		// failure. Db::insert() already returns the inserted id.
+		return $this->db->insert( 'themes', $insert );
 	}
 
 	/**
@@ -144,6 +146,24 @@ final class ThemeService {
 			$this->remove_tree( $tmp );
 			return [ 'ok' => false, 'id' => 0, 'validation' => $validation, 'error' => implode( ' ', $validation['errors'] ) ];
 		}
+
+		/*
+		 * Phase 60: an artefact that declares itself a child of an approved block
+		 * parent is claiming the low-risk type-1 output — so it must pass the full
+		 * PHP-free FSE contract (no PHP/JS, required templates/parts, no network
+		 * addresses). Classic uploads without an approved parent header are judged
+		 * by the base rules only, exactly as before.
+		 */
+		$style_header = (string) @file_get_contents( $validation_dir . '/style.css' );
+		if ( preg_match( '/^\s*Template\s*:\s*([A-Za-z0-9\-_]+)/im', $style_header, $m )
+			&& in_array( strtolower( (string) $m[1] ), ThemeContract::APPROVED_PARENTS, true ) ) {
+			$strict = ( new ThemeContract( $validator ) )->validate_php_free( $validation_dir );
+			if ( ! $strict['ok'] ) {
+				$this->remove_tree( $tmp );
+				return [ 'ok' => false, 'id' => 0, 'validation' => $strict, 'error' => implode( ' ', $strict['errors'] ) ];
+			}
+			$validation = $strict;
+		}
 		$slug = sanitize_title( pathinfo( (string) $file['name'], PATHINFO_FILENAME ) ) . '-' . gmdate( 'YmdHis' );
 		$stored = $this->upload_dir . $slug . '.zip';
 		if ( ! move_uploaded_file( (string) $file['tmp_name'], $stored ) && ! copy( (string) $file['tmp_name'], $stored ) ) {
@@ -157,6 +177,16 @@ final class ThemeService {
 			'status' => self::STATUS_PREVIEW, 'validation' => $validation, 'approval_request_id' => $approval_request_id,
 			'generated_by' => 'admin-upload',
 		] );
+
+		// Phase 61: the moment the artefact is stored it is signed — every later
+		// preview/live step re-verifies the signature against the file on disk.
+		if ( $id > 0 ) {
+			$row = $this->get( $id );
+			if ( $row ) {
+				$this->releases()->sign( $row );
+			}
+		}
+
 		return [ 'ok' => $id > 0, 'id' => $id, 'validation' => $validation, 'error' => $id > 0 ? '' : 'ثبت قالب ناموفق بود.' ];
 	}
 
@@ -171,6 +201,13 @@ final class ThemeService {
 		$row = $this->get( $id );
 		if ( $row && ! $this->belongs_to_current_tenant( (int) $row['tenant_id'] ) ) { return [ 'ok' => false, 'error' => 'دسترسی به این قالب مجاز نیست.' ]; }
 		if ( ! $row || ! is_readable( (string) $row['zip_path'] ) ) { return [ 'ok' => false, 'error' => 'فایل قالب یافت نشد.' ]; }
+
+		// Phase 61: the bytes were judged once — the signature proves these are
+		// still those bytes. A zip edited on disk after ingest never reaches a preview.
+		$verified = $this->releases()->verify( $row );
+		if ( ! $verified['ok'] ) {
+			return [ 'ok' => false, 'error' => 'امضای artefact قالب معتبر نیست: ' . $verified['error'] ];
+		}
 		$zip = new \ZipArchive();
 		if ( true !== $zip->open( (string) $row['zip_path'], \ZipArchive::CHECKCONS ) ) { return [ 'ok' => false, 'error' => 'آرشیو قالب معتبر نیست.' ]; }
 		// Defense in depth: the zip was judged once at ingest; judge it again at extraction.
@@ -198,6 +235,13 @@ final class ThemeService {
 		$row = $this->get( $id );
 		if ( $row && ! $this->belongs_to_current_tenant( (int) $row['tenant_id'] ) ) { return [ 'ok' => false, 'error' => 'دسترسی به این قالب مجاز نیست.' ]; }
 		if ( ! $row ) { return [ 'ok' => false, 'error' => 'قالب یافت نشد.' ]; }
+
+		// Phase 61: activation re-earns trust — the signature is checked a second
+		// time, at the boundary that matters most.
+		$verified = $this->releases()->verify( $row );
+		if ( ! $verified['ok'] ) {
+			return [ 'ok' => false, 'error' => 'امضای artefact قالب معتبر نیست: ' . $verified['error'] ];
+		}
 		$installed = wp_get_themes();
 		$slug = sanitize_title( (string) $row['slug'] );
 		if ( ! isset( $installed[ $slug ] ) ) { $preview = $this->install_preview( $id ); if ( ! $preview['ok'] ) { return $preview; } }
@@ -246,6 +290,11 @@ final class ThemeService {
 			if ( is_dir( $source ) ) { wp_mkdir_p( $target ); $this->copy_tree( $source, $target ); }
 			elseif ( is_file( $source ) ) { copy( $source, $target ); }
 		}
+	}
+
+	private function releases(): ThemeReleaseService {
+		static $release = null;
+		return $release ??= new ThemeReleaseService( $this->db, igbz()->get( 'logger' ) );
 	}
 
 	public function set_status( int $id, string $status ): bool {

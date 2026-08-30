@@ -60,6 +60,7 @@ final class Schema {
 			'vip_threads',
 			'vip_messages',
 			'api_tokens',
+			'api_idempotency',
 			'devices',
 			'jobs',
 			'webhook_events',
@@ -75,6 +76,9 @@ final class Schema {
 			'ig_abandoned_carts',
 			'ig_ai_credit_ledger',
 			'ig_giveaways',
+			'ig_giveaway_entries',
+			'ig_competitors',
+			'ig_competitor_snapshots',
 			'ig_master_payments',
 			'ig_master_disputes',
 			'ig_master_withdrawals',
@@ -97,6 +101,10 @@ final class Schema {
 			'ig_courier_tracking',
 			'ig_courier_chat',
 			'logs',
+			'pado_memory',
+			'pado_memory_access',
+			'pado_playbooks',
+			'pado_playbook_runs',
 			'approval_requests',
 			'themes',
 			'ig_ad_campaigns',
@@ -478,12 +486,14 @@ final class Schema {
 			error_message VARCHAR(255) NOT NULL DEFAULT '',
 			verified_at DATETIME NULL,
 			meta LONGTEXT NULL,
+			idempotency_key VARCHAR(191) NULL DEFAULT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY authority (authority),
 			KEY order_id (order_id),
-			KEY gateway_status (gateway,status)
+			KEY gateway_status (gateway,status),
+			UNIQUE KEY tenant_purpose_idem (tenant_id,purpose,idempotency_key)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}otp_codes (
@@ -589,9 +599,12 @@ final class Schema {
 			dimension VARCHAR(64) NOT NULL DEFAULT '',
 			value DECIMAL(18,4) NOT NULL DEFAULT 0,
 			captured_for DATE NOT NULL,
+			source VARCHAR(20) NOT NULL DEFAULT 'manual',
+			provider_ref VARCHAR(191) NOT NULL DEFAULT '',
 			created_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
-			UNIQUE KEY account_metric_day (account_id,metric,dimension,captured_for)
+			UNIQUE KEY account_metric_day (account_id,metric,dimension,captured_for),
+			KEY tenant_source (tenant_id,source)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}ig_funnels (
@@ -736,6 +749,7 @@ final class Schema {
 			refresh_expires_at DATETIME NULL,
 			revoked_at DATETIME NULL,
 			last_used_at DATETIME NULL,
+			rotated_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY jti (jti),
 			KEY user_id (user_id),
@@ -743,6 +757,24 @@ final class Schema {
 			KEY expires_at (expires_at),
 			KEY refresh_expires_at (refresh_expires_at),
 			KEY revoked_at (revoked_at)
+		) {$charset};";
+
+		$sql[] = "CREATE TABLE {$p}api_idempotency (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			user_id BIGINT UNSIGNED NOT NULL,
+			idem_key VARCHAR(191) NOT NULL,
+			method VARCHAR(8) NOT NULL DEFAULT '',
+			path VARCHAR(191) NOT NULL DEFAULT '',
+			fingerprint CHAR(64) NOT NULL DEFAULT '',
+			state VARCHAR(12) NOT NULL DEFAULT 'in_flight',
+			response_code SMALLINT UNSIGNED NULL,
+			response_body LONGTEXT NULL,
+			claimed_at DATETIME NOT NULL,
+			expires_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY idem_claim (user_id,idem_key),
+			KEY expires_at (expires_at)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}devices (
@@ -879,6 +911,7 @@ final class Schema {
 			expires_at DATETIME NULL,
 			expiry_action VARCHAR(20) NOT NULL DEFAULT 'hide',
 			expired_at DATETIME NULL,
+			media_purged_at DATETIME NULL,
 			likes_count INT NOT NULL DEFAULT 0,
 			comments_count INT NOT NULL DEFAULT 0,
 			views_count INT NOT NULL DEFAULT 0,
@@ -888,7 +921,8 @@ final class Schema {
 			UNIQUE KEY shortcode (shortcode),
 			KEY feed (tenant_id,status,published_at),
 			KEY expiry (status,expires_at),
-			KEY schedule (status,publish_at)
+			KEY schedule (status,publish_at),
+			KEY purge_retry (status,media_purged_at)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}vip_post_likes (
@@ -1165,11 +1199,73 @@ final class Schema {
 			status VARCHAR(20) NOT NULL DEFAULT 'open',
 			winner_subscriber VARCHAR(191) NOT NULL DEFAULT '',
 			winner_user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			winner_entry_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			entries_count INT NOT NULL DEFAULT 0,
+			starts_at DATETIME NULL,
+			ends_at DATETIME NULL,
+			server_seed TEXT NULL,
+			server_seed_hash VARCHAR(64) NOT NULL DEFAULT '',
+			pool_hash VARCHAR(64) NOT NULL DEFAULT '',
+			drawn_at DATETIME NULL,
+			audit LONGTEXT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY tenant_status (tenant_id,status)
+		) {$charset};";
+
+		// Phase 55 — the frozen entry pool a draw is derived from. One row per person per
+		// giveaway (UNIQUE), provenance for the entry source, and no inserts once the
+		// giveaway leaves `open` (the service refuses them).
+		$sql[] = "CREATE TABLE {$p}ig_giveaway_entries (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			giveaway_id BIGINT UNSIGNED NOT NULL,
+			subscriber VARCHAR(191) NOT NULL DEFAULT '',
+			user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			source VARCHAR(20) NOT NULL DEFAULT 'manual',
+			entry_ref VARCHAR(191) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY giveaway_subscriber (giveaway_id,subscriber),
+			KEY tenant_id (tenant_id)
+		) {$charset};";
+
+		// Phase 55 — competitor tracking, first version: the manager introduces public
+		// professional handles and records timed manual snapshots. Growth history is built
+		// only from these snapshots (DESIGN-INSTAGRAM-PADO-ZERNIO §11); public data never
+		// mixes with the connected account's insights.
+		$sql[] = "CREATE TABLE {$p}ig_competitors (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			platform VARCHAR(16) NOT NULL DEFAULT 'instagram',
+			handle VARCHAR(64) NOT NULL DEFAULT '',
+			display_name VARCHAR(191) NOT NULL DEFAULT '',
+			notes LONGTEXT NULL,
+			is_active TINYINT(1) NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_platform_handle (tenant_id,platform,handle)
+		) {$charset};";
+
+		// Phase 55 — one timed snapshot per competitor per day; evidence link + free-form
+		// note keep the manager's proof with the number. Metrics the operator cannot know
+		// (reach, saves, sales of a competitor) simply stay NULL — never guessed.
+		$sql[] = "CREATE TABLE {$p}ig_competitor_snapshots (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			competitor_id BIGINT UNSIGNED NOT NULL,
+			captured_for DATE NOT NULL,
+			followers INT NOT NULL DEFAULT 0,
+			posts INT NOT NULL DEFAULT 0,
+			engagement_rate DECIMAL(8,4) NOT NULL DEFAULT 0,
+			evidence_url VARCHAR(255) NOT NULL DEFAULT '',
+			note TEXT NULL,
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY competitor_day (competitor_id,captured_for),
+			KEY tenant_id (tenant_id)
 		) {$charset};";
 
 		$sql[] = "CREATE TABLE {$p}ig_master_payments (
@@ -1487,19 +1583,137 @@ final class Schema {
 			title VARCHAR(255) NOT NULL DEFAULT '',
 			reason TEXT NULL,
 			payload LONGTEXT NULL,
+			payload_version INT NOT NULL DEFAULT 1,
+			payload_hash CHAR(64) NOT NULL DEFAULT '',
+			idempotency_key VARCHAR(191) NULL DEFAULT NULL,
+			capability VARCHAR(64) NOT NULL DEFAULT '',
+			expires_at DATETIME NULL,
 			impact VARCHAR(32) NOT NULL DEFAULT 'low',
 			requested_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			decided_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			status VARCHAR(16) NOT NULL DEFAULT 'pending',
 			decision_note TEXT NULL,
+			claimed_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			claimed_at DATETIME NULL,
+			attempts INT NOT NULL DEFAULT 0,
+			execution_error TEXT NULL,
+			audit LONGTEXT NULL,
 			metadata LONGTEXT NULL,
 			created_at DATETIME NOT NULL,
 			decided_at DATETIME NULL,
 			executed_at DATETIME NULL,
 			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_kind_idem (tenant_id,kind,idempotency_key),
 			KEY tenant_status (tenant_id,status,created_at),
 			KEY kind (kind),
+			KEY created_at (created_at),
+			KEY expiry (status,expires_at)
+		) {$charset};";
+
+		// ---------------------------------------------------------------------
+		// v45 (phase 62): Pado's memory — the three persistent layers of
+		// DESIGN-PADO §لایهٔ ۴ plus the transient working memory. One row per
+		// entry with layer/domain/provenance/trust/digest; episodic rows store
+		// their content ENCRYPTED at rest (Support\Crypto) and every read of them
+		// is audited in pado_memory_access below. Retention is enforced by the
+		// daily sweep (working TTL, episodic retention window).
+		$sql[] = "CREATE TABLE {$p}pado_memory (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			layer VARCHAR(20) NOT NULL DEFAULT '',
+			domain VARCHAR(40) NOT NULL DEFAULT '',
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			content LONGTEXT NULL,
+			provenance LONGTEXT NULL,
+			trust TINYINT UNSIGNED NOT NULL DEFAULT 50,
+			digest CHAR(64) NOT NULL DEFAULT '',
+			status VARCHAR(20) NOT NULL DEFAULT 'active',
+			hits INT UNSIGNED NOT NULL DEFAULT 0,
+			expires_at DATETIME NULL,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_layer_digest (tenant_id,layer,digest),
+			KEY tenant_layer_status (tenant_id,layer,status),
+			KEY expires_at (expires_at)
+		) {$charset};";
+
+		// Every memory operation (write/read/promote/expire/refuse/erase) lands
+		// here with its actor — full lifecycle observability, and the read audit
+		// for the episodic layer.
+		$sql[] = "CREATE TABLE {$p}pado_memory_access (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			memory_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			action VARCHAR(20) NOT NULL DEFAULT '',
+			actor VARCHAR(64) NOT NULL DEFAULT '',
+			note VARCHAR(255) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			KEY memory_id (memory_id),
+			KEY tenant_action (tenant_id,action),
 			KEY created_at (created_at)
+		) {$charset};";
+
+		// ---------------------------------------------------------------------
+		// v46 (phase 63): the four growth Playbooks of PROMPT-IG-GROWTH-PADO —
+		// versioned, IMMUTABLE definition rows (gather / analyze / strategy /
+		// produce). A change is always a new version with a changelog and a
+		// content hash; activation is a pointer flip that can be rolled back to
+		// the previous retired version in one call. Never edit in place: the
+		// audit trail and reproducibility of every past run depend on it.
+		$sql[] = "CREATE TABLE {$p}pado_playbooks (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			kind VARCHAR(20) NOT NULL DEFAULT '',
+			version INT UNSIGNED NOT NULL DEFAULT 1,
+			schema_version INT UNSIGNED NOT NULL DEFAULT 1,
+			title VARCHAR(191) NOT NULL DEFAULT '',
+			body LONGTEXT NULL,
+			facts_contract LONGTEXT NULL,
+			output_contract LONGTEXT NULL,
+			tools LONGTEXT NULL,
+			model VARCHAR(120) NOT NULL DEFAULT '',
+			changelog TEXT NULL,
+			content_hash CHAR(64) NOT NULL DEFAULT '',
+			created_by VARCHAR(64) NOT NULL DEFAULT '',
+			status VARCHAR(16) NOT NULL DEFAULT 'draft',
+			parent_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY tenant_kind_version (tenant_id,kind,version),
+			KEY tenant_kind_status (tenant_id,kind,status),
+			KEY parent_id (parent_id)
+		) {$charset};";
+
+		// One row per Playbook execution: the exact version, model, input
+		// snapshot, output, backend verdict, provenance-tagged facts and the
+		// token/cost usage — enough to reproduce or audit any past run, and the
+		// raw material of the forecast-vs-actual learning loop.
+		$sql[] = "CREATE TABLE {$p}pado_playbook_runs (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			playbook_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+			kind VARCHAR(20) NOT NULL DEFAULT '',
+			playbook_version INT UNSIGNED NOT NULL DEFAULT 1,
+			schema_version INT UNSIGNED NOT NULL DEFAULT 1,
+			model VARCHAR(120) NOT NULL DEFAULT '',
+			input_snapshot LONGTEXT NULL,
+			output LONGTEXT NULL,
+			facts LONGTEXT NULL,
+			verdict VARCHAR(16) NOT NULL DEFAULT 'pending',
+			rejection_reason VARCHAR(255) NOT NULL DEFAULT '',
+			usage_json LONGTEXT NULL,
+			status VARCHAR(16) NOT NULL DEFAULT 'running',
+			correlation_key VARCHAR(191) NOT NULL DEFAULT '',
+			created_at DATETIME NOT NULL,
+			finished_at DATETIME NULL,
+			PRIMARY KEY  (id),
+			KEY tenant_kind (tenant_id,kind,created_at),
+			KEY playbook_id (playbook_id),
+			KEY status (status),
+			KEY correlation_key (correlation_key)
 		) {$charset};";
 
 		// Theme artefacts produced by Pado (or uploaded) and validated by
@@ -1764,7 +1978,7 @@ final class Schema {
 			UNIQUE KEY event (profile_id,event_id),
 			KEY tenant (tenant_id),
 			KEY provider_post (provider_post_id)
-		) {$charset}.";
+		) {$charset}";
 
 		return $sql;
 	}

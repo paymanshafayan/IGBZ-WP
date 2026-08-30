@@ -34,6 +34,14 @@ final class Cron {
 		// Phase 26: housekeeping itself is a queued job, drained by the same daily beat.
 		igbz()->get( 'jobs' )->register( 'cron.housekeeping', [ $this, 'run_housekeeping' ] );
 
+		// Phase 72: the daily encrypted backup — a queued job so the RPO clock
+		// (igbz_last_backup) only advances on a real, verified write.
+		igbz()->get( 'jobs' )->register( 'cron.backup', [ $this, 'run_backup' ] );
+		Backup\Cli::maybe_register();
+
+		// Phase 73: release/canary tooling — operator-only, WP-CLI.
+		Release\Cli::maybe_register();
+
 		// Phase 27: operator tooling — a no-op outside WP-CLI.
 		Jobs\Cli::maybe_register();
 	}
@@ -87,12 +95,32 @@ final class Cron {
 	public function housekeeping(): void {
 		// Phase 26: the beat only enqueues; the daily slot key absorbs duplicate beats.
 		igbz()->get( 'jobs' )->enqueue( 'cron.housekeeping', [], [ 'idempotency_key' => JobQueue::slot( DAY_IN_SECONDS ) ] );
+		// Phase 72: same daily slot — one encrypted bundle a day, RPO ≤ 24h.
+		igbz()->get( 'jobs' )->enqueue( 'cron.backup', [], [ 'idempotency_key' => 'backup-' . JobQueue::slot( DAY_IN_SECONDS ) ] );
+	}
+
+	/** Phase 72: the backup body, a leased/retriable job like housekeeping. */
+	public function run_backup(): void {
+		igbz()->backup()->create();
 	}
 
 	/** Phase 26: the actual housekeeping body, executed as a leased, retriable queued job. */
 	public function run_housekeeping(): void {
 		$settings = igbz()->settings();
 		igbz()->logger()->prune( $settings->int( 'log.retention_days', 30 ) );
+
+		// Phase 57: pending approval requests whose decision window passed expire honestly.
+		// Phase 62: memory retention — working TTL, episodic window, stale knowledge.
+		if ( igbz()->has( 'pado.memory' ) ) {
+			igbz()->get( 'pado.memory' )->sweep();
+		}
+		// Phase 63: playbook maintenance — run retention and version cap.
+		if ( igbz()->has( 'pado.playbooks' ) ) {
+			igbz()->get( 'pado.playbooks' )->prune();
+		}
+		if ( igbz()->has( 'pado.approvals' ) ) {
+			igbz()->get( 'pado.approvals' )->expire_due();
+		}
 
 		// Phase 20: bounded batches — a grown-out table must not lock the site during
 		// housekeeping; whatever is left carries over to tomorrow's run.

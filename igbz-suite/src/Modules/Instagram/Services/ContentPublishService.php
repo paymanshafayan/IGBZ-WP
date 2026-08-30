@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) || exit;
  *     AND a real URL exists on the registration. No audio → the post ships with
  *     image/video only. Missing audio access is a production gate, not a fake.
  */
-final class ContentPublishService {
+class ContentPublishService { // not final: phase-59 tests subclass the environment seam
 
 	// ig_content.status values.
 	public const STATUS_DRAFT      = 'draft';

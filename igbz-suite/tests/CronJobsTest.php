@@ -38,12 +38,19 @@ final class CronJobsSpy {
 		$this->tick();
 	}
 
-	public function reconcile(): void {
+	public function reconcile(): int {
 		$this->tick();
+		return 0; // an empty round: the continuation contract ends quietly.
 	}
 
 	public function process_pending(): void {
 		$this->tick();
+	}
+
+	/** Phase 55: the daily insight-retention prune. */
+	public function prune(): int {
+		$this->tick();
+		return 0;
 	}
 }
 
@@ -61,6 +68,7 @@ final class CronJobsTest extends TestCase {
 		$this->marketplace_sync_respects_the_switch_at_run_time();
 		$this->runner_stops_at_its_job_budget();
 		$this->failing_sweep_is_retried_then_dead_lettered();
+		$this->daily_beat_enqueues_the_insight_prune_once();
 	}
 
 	/**
@@ -193,6 +201,40 @@ final class CronJobsTest extends TestCase {
 			( new MultiTenantModule() )->marketplace_tick();
 			$this->runner->run();
 			$this->assert_same( 1, $sync->calls, 're-enabling resumes the sync work' );
+		} );
+	}
+
+	/**
+	 * Phase 55: the daily beat enqueues the insight-retention prune under the daily slot
+	 * key — a duplicate beat adds nothing — and the registered handler runs it once.
+	 */
+	private function daily_beat_enqueues_the_insight_prune_once(): void {
+		$this->fresh();
+
+		$this->with_clean_container( function (): void {
+			$spy = new CronJobsSpy();
+			$vip = new CronJobsSpy();
+			igbz()->bind( 'ig.growth_insights', static fn () => $spy );
+			igbz()->bind( 'vip.posts', static fn () => $vip );
+			( new InstagramModule() )->register_queue_handlers( $this->queue );
+
+			( new InstagramModule() )->run_daily();
+			$rows = array_values( $this->wpdb->tables['jobs'] );
+			$types = array_map( static fn ( array $r ): string => (string) $r['job_type'], $rows );
+			sort( $types );
+			$this->assert_same(
+				[ 'ig.insights.prune', 'ig.vip.reconcile' ],
+				$types,
+				'the daily beat enqueues the VIP reconcile and the phase-55 insight prune'
+			);
+
+			( new InstagramModule() )->run_daily();
+			$this->assert_same( 2, count( $this->wpdb->tables['jobs'] ), 'a duplicate daily beat enqueues nothing new' );
+
+			$totals = $this->runner->run();
+			$this->assert_same( 2, $totals['done'], 'both daily jobs drain' );
+			$this->assert_same( 1, $spy->calls, 'the prune ran exactly once' );
+			$this->assert_same( 1, $vip->calls, 'the VIP reconcile ran once (an empty round ends quietly)' );
 		} );
 	}
 

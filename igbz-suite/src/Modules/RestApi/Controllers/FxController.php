@@ -3,6 +3,7 @@ namespace IGBZ\Suite\Modules\RestApi\Controllers;
 
 use IGBZ\Suite\Modules\Fx\FxTopupService;
 use IGBZ\Suite\Modules\Fx\FxWalletService;
+use IGBZ\Suite\Modules\RestApi\Pagination\CursorCodec;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -23,7 +24,7 @@ final class FxController extends BaseController {
 
 		register_rest_route( $ns, '/fx/balance', $this->route( 'GET', [ $this, 'balance' ], $auth ) );
 		register_rest_route( $ns, '/fx/topup', $this->route( 'POST', [ $this, 'topup' ], $auth ) );
-		register_rest_route( $ns, '/fx/ledger', $this->route( 'GET', [ $this, 'ledger' ], $auth ) );
+		register_rest_route( $ns, '/fx/ledger', $this->route( 'GET', [ $this, 'ledger' ], $auth, $this->cursor_args() ) );
 		register_rest_route( $ns, '/fx/prices', $this->route( 'GET', [ $this, 'prices' ], $auth ) );
 		register_rest_route( $ns, '/fx/bills', $this->route( 'GET', [ $this, 'bills' ], $auth ) );
 
@@ -53,6 +54,11 @@ final class FxController extends BaseController {
 	}
 
 	public function topup( \WP_REST_Request $request ): \WP_REST_Response {
+		// Phase 67: a retried FX top-up must replay, not double-charge.
+		return $this->with_idempotency( $request, fn (): \WP_REST_Response => $this->do_topup( $request ) );
+	}
+
+	private function do_topup( \WP_REST_Request $request ): \WP_REST_Response {
 		$tenant = $this->scoped_tenant_id( $request );
 		if ( $tenant <= 0 ) {
 			return $this->fail( 'no_tenant', __( 'No tenant is associated with this account.', 'igbz-suite' ), 403 );
@@ -88,6 +94,23 @@ final class FxController extends BaseController {
 
 	public function ledger( \WP_REST_Request $request ): \WP_REST_Response {
 		$tenant = $this->scoped_tenant_id( $request );
+
+		$position = $this->cursor_position( $request, CursorCodec::KIND_LEDGER );
+		if ( $position instanceof \WP_REST_Response ) {
+			return $position;
+		}
+
+		if ( null !== $position ) {
+			$limit = $this->cursor_limit( $request, 20 );
+			$rows  = $this->wallet()->ledger( $tenant, $limit + 1, 0, (int) ( $position['i'] ?? 0 ) );
+			$batch = [];
+			foreach ( $rows as $row ) {
+				$batch[] = [ 'item' => $row, 'cursor' => [ 'i' => (int) $row['id'] ] ];
+			}
+
+			return $this->cursor_page( $batch, $limit, CursorCodec::KIND_LEDGER );
+		}
+
 		[ $page, $per_page, $offset ] = $this->page_args( $request, 20 );
 
 		$rows = $this->wallet()->ledger( $tenant, $per_page, $offset );

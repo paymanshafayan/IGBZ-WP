@@ -4,6 +4,7 @@ namespace IGBZ\Suite\Modules\RestApi;
 use IGBZ\Suite\Modules\MultiTenant\Otp\OtpService;
 use IGBZ\Suite\Modules\RestApi\Admin\DevicesPage;
 use IGBZ\Suite\Modules\RestApi\Auth\Authenticator;
+use IGBZ\Suite\Modules\RestApi\Idempotency\IdempotencyService;
 use IGBZ\Suite\Modules\RestApi\Auth\TokenService;
 use IGBZ\Suite\Modules\RestApi\Controllers\AccountController;
 use IGBZ\Suite\Modules\RestApi\Controllers\AuthController;
@@ -13,6 +14,7 @@ use IGBZ\Suite\Modules\RestApi\Controllers\CatalogController;
 use IGBZ\Suite\Modules\RestApi\Controllers\DeviceController;
 use IGBZ\Suite\Modules\RestApi\Controllers\FxController;
 use IGBZ\Suite\Modules\RestApi\Controllers\ContentPublishController;
+use IGBZ\Suite\Modules\RestApi\Controllers\GrowthIntelController;
 use IGBZ\Suite\Modules\RestApi\Controllers\InboxController;
 use IGBZ\Suite\Modules\RestApi\Controllers\ProductRegistrationController;
 
@@ -71,6 +73,15 @@ final class RestApiModule implements ModuleInterface {
 		$authenticator = $plugin->get( 'api.auth' );
 		$authenticator->register();
 
+		// Phase 65: the OpenAPI contract — one document generated from the
+		// registered routes, plus the runtime Deprecation/Sunset headers.
+		$plugin->bind(
+			'api.contract',
+			static fn (): \IGBZ\Suite\Modules\RestApi\Contract\ApiContractService => new \IGBZ\Suite\Modules\RestApi\Contract\ApiContractService()
+		);
+		add_filter( 'rest_pre_serve_request', [ $this, 'send_deprecation_headers' ], 10, 4 );
+
+		( new Controllers\ContractController( $plugin->get( 'api.contract' ) ) )->register();
 		foreach ( $this->controllers( $plugin ) as $controller ) {
 			$controller->register();
 		}
@@ -96,6 +107,7 @@ final class RestApiModule implements ModuleInterface {
 
 	private function bind_services( Plugin $plugin ): void {
 		$plugin->bind( 'api.tokens', static fn ( Plugin $c ) => new TokenService( $c->db(), $c->logger() ) );
+		$plugin->bind( 'api.idempotency', static fn ( Plugin $c ) => new IdempotencyService( $c->db(), $c->logger() ) );
 		$plugin->bind( 'api.auth', static fn ( Plugin $c ) => new Authenticator( $c->get( 'api.tokens' ), $c->logger() ) );
 		$plugin->bind( 'api.devices', static fn ( Plugin $c ) => new DeviceRepository( $c->db() ) );
 		$plugin->bind(
@@ -161,6 +173,12 @@ final class RestApiModule implements ModuleInterface {
 			$controllers[] = new ContentPublishController();
 		}
 
+		// Phase 55: the growth-intel surface — auditable giveaways, insights with
+		// provenance/retention, manual competitor tracking. Owner-scoped throughout.
+		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'ig.giveaways' ) ) {
+			$controllers[] = new GrowthIntelController();
+		}
+
 		// Same story for the VIP channel: the posts, the paywall and the member inbox are owned
 		// by the Instagram module, and the app talks to them over this namespace.
 		if ( \IGBZ\Suite\Support\Modules::enabled( \IGBZ\Suite\Support\Modules::INSTAGRAM ) && $plugin->has( 'vip.posts' ) ) {
@@ -184,6 +202,32 @@ final class RestApiModule implements ModuleInterface {
 		}
 
 		return $controllers;
+	}
+
+	/**
+	 * Phase 65: deprecated operations announce themselves at runtime — the
+	 * Deprecation, Sunset (RFC 8594) and successor-version Link headers on
+	 * every response of a route the contract marks deprecated.
+	 *
+	 * @param bool|mixed $served
+	 * @param mixed $result
+	 * @param mixed $request
+	 * @param mixed $server
+	 * @return bool|mixed
+	 */
+	public function send_deprecation_headers( $served, $result, $request, $server ) {
+		if ( ! $request instanceof \WP_REST_Request ) {
+			return $served;
+		}
+		/** @var \IGBZ\Suite\Modules\RestApi\Contract\ApiContractService $contract */
+		$contract = igbz()->get( 'api.contract' );
+		$route    = (string) $request->get_route();
+		foreach ( $request->get_method() ? [ $request->get_method() ] : [] as $method ) {
+			foreach ( $contract->deprecation_headers( $route, (string) $method ) as $header => $value ) {
+				header( $header . ': ' . $value );
+			}
+		}
+		return $served;
 	}
 
 	/** The API can run with the MultiTenant module switched off, so build a fallback instance. */
@@ -214,11 +258,15 @@ final class RestApiModule implements ModuleInterface {
 			$devices = $plugin->get( 'api.devices' );
 			$stale   = $devices->prune_stale( max( 30, $plugin->settings()->int( 'api.device_retention_days', 180 ) ) );
 
-			if ( $deleted > 0 || $stale > 0 ) {
+			/** @var IdempotencyService $idempotency */
+			$idempotency = $plugin->get( 'api.idempotency' );
+			$expired     = $idempotency->prune_expired(); // Phase 67: replay records past their window.
+
+			if ( $deleted > 0 || $stale > 0 || $expired > 0 ) {
 				$plugin->logger()->info(
 					'api',
 					'Daily API housekeeping',
-					[ 'tokens_pruned' => $deleted, 'devices_pruned' => $stale ]
+					[ 'tokens_pruned' => $deleted, 'devices_pruned' => $stale, 'idempotency_pruned' => $expired ]
 				);
 			}
 		} );

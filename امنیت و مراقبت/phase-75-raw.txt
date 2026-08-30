@@ -1,0 +1,38 @@
+== 1) permission_callback روی هر مسیر REST ==
+  route_calls=165 without_explicit_permission=0 (پیش‌فرض __return_true یعنی عمومی — هر GAP باید عمداً عمومی باشد)
+== 2) توابع خطرناک (eval/exec/shell/unserialize بدون گارد/proc) ==
+  HIT igbz-suite/src/Modules/Pado/Ai/AiRequest.php:14: *   - command plane: $system (Playbook instructions) + $tools (allowlisted tool names);
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:16: *  2. Hard blacklist of executable PHP patterns: eval(, base64_decode(, assert(, system(,
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:17: *     exec(, shell_exec(, passthru(, popen(, proc_open(, pcntl_, <script language=php,
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:44:		'eval(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:52:		'system(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:53:		'exec(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:54:		'passthru(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:55:		'proc_open(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:56:		'popen(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:59:		'shell_exec(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:210:			if ( ! in_array( 'php', $kinds, true ) && ! in_array( $pat, [ 'eval(', 'base64_decode(' ], true ) ) {
+  dangerous_calls=11
+== 3) unserialize / base64_decode / create_function ==
+  HIT igbz-suite/src/Modules/Hub/Services/VipLinkService.php:181:		return (string) base64_decode( $padded, true );
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:16: *  2. Hard blacklist of executable PHP patterns: eval(, base64_decode(, assert(, system(,
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:45:		'base64_decode(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:50:		'create_function(',
+  HIT igbz-suite/src/Modules/Pado/Services/ThemeValidator.php:210:			if ( ! in_array( 'php', $kinds, true ) && ! in_array( $pat, [ 'eval(', 'base64_decode(' ], true ) ) {
+  HIT igbz-suite/src/Modules/RestApi/Auth/Jwt.php:111:		return (string) base64_decode( $padded, true );
+  HIT igbz-suite/src/Modules/RestApi/Pagination/CursorCodec.php:66:		$json = base64_decode( $b64, true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
+  HIT igbz-suite/src/Support/Backup/BackupService.php:266:			if ( false !== file_put_contents( $dest, (string) base64_decode( (string) ( $payload['files'][ $rel ] ?? '' ), true ) ) ) { // phpcs:ignore
+  HIT igbz-suite/src/Support/Backup/Bundle.php:75:			$raw  = base64_decode( (string) ( $payload['files'][ $path ] ?? '' ), true );
+== 4) ورودی خام $_GET/$_POST/$_REQUEST/$_COOKIE بدون wp_unslash|sanitize|absint|filter_input ==
+== 5) اسکن سیکرت در کل گیت (نمونه‌های الگو) ==
+  (الگوهای رمز عبور در entrypoint/runbook عمداً از متغیر محیطی می‌آیند — بررسی دستی زیر)
+== 6) رشته‌ای که شبیه مقدار واقعی سیکرت است (نه نام کلید) ==
+  (خالی = سبز)
+== 7) دسترسی فایل/دایرکتوری حساس: wp-config/debug.log در مخزن؟ ==
+  (خالی = سبز)
+== 8) exit/ABSPATH سراسری در فایل‌های محصول (نمونه‌گیری بارگذاری مستقیم) ==
+  files_without_direct_access_guard=0
+== 9) register_setting بدون sanitize_callback ==
+  (CHECK = بازبینی دستی)
+== 10) حلقهٔ SSRF: هر wp_remote_* از UrlGuard می‌گذرد؟ ==
+  files_with_raw_remote:  igbz-suite/src/Modules/Pado/Services/ThemeValidator.php igbz-suite/src/Support/Release/Cli.php

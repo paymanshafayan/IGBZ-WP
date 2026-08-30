@@ -22,6 +22,7 @@ declare( strict_types = 1 );
 namespace IGBZ\Suite\Support\Jobs;
 
 use IGBZ\Suite\Support\Crypto;
+use IGBZ\Suite\Support\Trace;
 use IGBZ\Suite\Support\Db;
 use IGBZ\Suite\Support\Logger;
 
@@ -278,7 +279,10 @@ final class JobQueue {
 
 		foreach ( $claimed as $row ) {
 			$id     = (int) $row['id'];
-			$result = $this->run_one( $row );
+			$trace  = Envelope::open( (string) $row['envelope'] )['trace_id'] ?? '';
+			// Phase 71: the job runs under the trace it was enqueued with, so every
+			// log line its handler writes joins the request that spawned it.
+			$result = Trace::fork( (string) $trace, fn (): string => $this->run_one( $row ) );
 
 			if ( 'done' === $result ) {
 				$this->complete( $id );

@@ -288,11 +288,12 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 | SEC-003 | حداقل اختیار نقش و مسیرهای هسته | DESIGN-GAPS-FIX؛ LEGAL §۷.۷ | `Capabilities`, `CoreSurfaceGuard`, `SecurityGapsTest` | پیاده‌شدهٔ جزئی؛ آزمون زندهٔ همهٔ درها/نقش‌ها باقی است |
 | SEC-004 | محدودیت مصرف و جریان حساس | OWASP API4/API6 | OTP phone+IP؛ rate limitهای پراکنده | پیاده‌شدهٔ جزئی؛ شمارندهٔ اتمیک، quota هزینه و جریان‌های دیگر باقی‌اند |
 | SEC-005 | پاسخ نرخ استاندارد | IETF/RFC 6585/9110 | `retry_after` در بخشی از سرویس‌ها | شکاف؛ نگاشت یکنواخت ۴۲۹ و `Retry-After` تأیید نشده |
-| SEC-006 | SSRF و دانلود محدود | OWASP SSRF؛ PADO §۱۹ | `Support/Http`, `UrlGuard`, `PadoGateway` | ✅ فاز ۱۰: دروازهٔ متمرکز `UrlGuard` (اسکیم/میزبان/بازه‌های خصوصی و متادیتا)، خاموشی redirect، سقف اندازهٔ پاسخ، سیاست ارسال حامل فقط به میزبان پیکربندی‌شده؛ تست `UrlGuardTest` |
+| SEC-006 | SSRF و دانلود محدود | OWASP SSRF؛ PADO §۱۹ | `Support/Http`, `UrlGuard`, `PadoGateway`, `ThemeReleaseService` | ✅ فاز ۱۰: دروازهٔ متمرکز `UrlGuard` (اسکیم/میزبان/بازه‌های خصوصی و متادیتا)، خاموشی redirect، سقف اندازهٔ پاسخ، سیاست ارسال حامل فقط به میزبان پیکربندی‌شده؛ تست `UrlGuardTest`؛ ✅ فاز ۷۵: استثنای باقیماندهٔ `ThemeReleaseService::fetch` هم گارد شد (یونیت `internal_urls_never_leave_the_process`) |
 | SEC-007 | فایل و artefact غیرقابل‌اجرا | PADO §۱۹ | `ThemeValidator`, `ThemeService` | شکاف: PHP پذیرفته می‌شود؛ blacklist sandbox نیست |
 | SEC-008 | JWT، refresh، device و replay | LEGAL §۷.۶؛ API | `Jwt`, `RefreshTokenService`, device routes | پیاده‌شده؛ آزمون نقش، ابطال و race کامل نیست |
 | SEC-009 | خروج حساس با حضور انسان/بیومتریک | OWASP API6؛ LEGAL §۷.۶ | `Support/BiometricGate`, `DeviceRepository` | ✅ فاز ۱۲: قرارداد سمت سرور (پنجرهٔ زمانی/نانس یک‌بارمصرف/زمان ثابت) + کلید رمزگذاری‌شدهٔ دستگاه (دیتابیس v22) و آزمون؛ آزمون زندهٔ اپ مدیریت پس از ساخت اپ باقی است |
 | SEC-010 | audit بدون secret/PII و retention | طراحی امنیت/ویرا | `Logger`, `TenantOffboarding` | ✅ فاز ۱۳: ماسک راز+دادهٔ شخصی در لحظهٔ ورود (تودرتو هم)، ماندگاری خودکار رویداد/توکن، جاروی خروج مستأجر با ثبت امنیتی؛ `OffboardingTest` |
+| SEC-011 | ممیزی امنیتی نهاییِ تکرارپذیر | PLAN §۲۳.۱۲ (فاز ۷۵)؛ امنیت و مراقبت/README | `امنیت و مراقبت/phase-75-scan.sh` + `SECURITY-AUDIT-FINAL.md` | ✅ فاز ۷۵: ۱۰ بررسی خودکار (مجوز REST ۱۶۵/۰، توابع خطرناک ۰ واقعی، سیکرت/فایل حساس ۰، گارد دسترسی ۳۶۰/۳۶۰، SSRF کامل‌شده، sanitize کامل) + دو اصلاح (گارد SSRF رندر-مقایسه، ABspath یک فایل)؛ بازبینی دستی وابستگی/webhook/کد یکبارمصرف؛ CVE-feed نسخه‌های پین‌شده = وظیفهٔ staging |
 
 ### ۶.۳ چندمستأجری و داده
 
@@ -355,36 +356,36 @@ secret، منوی قابل دسترس، تست واقعی و پرهیز از end
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| IG-001 | اتصال رسمی Zernio، profile جدا، revoke و tenant scope | ADR-0004؛ طراحی Zernio | AccountCredentials فقط برای معماری قدیمی | شکاف: adapter/profile mapping/rotation/آزمون دو فروشگاه پیاده نشده |
-| IG-002 | تولید، زمان‌بندی، انتشار و صدای رسمی با Zernio | ADR-0004؛ طراحی Zernio | ManusClient legacy؛ Agent Reach فقط پیشنهاد تاریخی ردشده | شکاف: migration و endpointهای Zernio کد ندارند؛ audio گیت production است |
-| IG-003 | comment-to-DM رسمی با policy بک‌اند | ADR-0004؛ طراحی Zernio | ChatPlace/ManyChat/Funnel legacy | شکاف: webhook امضاشده، dedup، opt-out و delivery واقعی Zernio پیاده نشده |
+| IG-001 | اتصال رسمی Zernio، profile جدا، revoke و tenant scope | ADR-0004؛ طراحی Zernio | `ZernioAdapterInterface`/`ZernioClient` + `ig_zernio_profiles`(key_id) + `ig_social_migration` + جاب ساعتی + `SocialProviders` (گارد معماری) | ✅ فاز ۵۰: adapter کامل (OAuth، کلید profile-scoped، retry، health، حذف profile)، مهاجرت مستأجر-محور با دفترچه، حذف کامل Manus/ChatPlace/ManyChat + `SocialArchitectureGuardTest`؛ revoke با offboarding/حذف profile. بازِ اجرایی: آزمون دو فروشگاه با اعتبارنامهٔ واقعی (PV-ZERNIO-*) روی staging |
+| IG-002 | تولید، زمان‌بندی، انتشار و صدای رسمی با Zernio | ADR-0004؛ طراحی Zernio | endpointهای Zernio در `ZernioClient` (پست/تطبیق/retry/آنالیتیک/صدا) + `ContentPublishService` (فاز ۵۳) | ✅ فازهای ۵۰+۵۳: زمان‌بندی (۶۰ث تا ۹۰روز)، نتیجهٔ واقعی از webhook/polling با قیف فقط-روبه‌جلو، duplicate prevention با کلید ثابت سطر، failure/retry با سقف، گزارش رویدادها (`ig_publish_events`)؛ باگ CREATE آن جدول در ۵۴ پیدا و رفع شد. صدا گیت production ماند: `igbz.publisher_audio` فقط با voice_url واقعی؛ راستی‌آزمایی endpoint ترند-صدا با اعتبارنامهٔ واقعی باز |
+| IG-003 | comment-to-DM رسمی با policy بک‌اند | ADR-0004؛ طراحی Zernio | `InboxService` + جداول v39 (`ig_zernio_inbox`/`ig_inbox_rules`/`ig_inbox_actions`/`ig_inbox_optouts`) | ✅ فاز ۵۱: وب‌هوک امضاشده (HMAC + پنجرهٔ زمانی)، dedupe روی (profile,event)، قواعد بک‌اند با اولویت، opt-out رجیستری، rate limit ساعتی per-sender/tenant، approval انسانی (پیش‌فرض خاموش)، دفترچهٔ delivery با idempotency؛ `InboxTest`. بازِ اجرایی: delivery واقعی با اعتبارنامهٔ Zernio روی staging |
 | IG-004 | ثبت محصول ۱۳مرحله‌ای | MODULES/Apps | intake services؛ ۱۸ تست | پیاده‌شدهٔ قابل توجه؛ providerها و E2E زنده کامل نیست |
 | IG-005 | VIP کامل و امن | DESIGN-VIP/EXPIRY | ۱۰ جدول VIP؛ ۲۶ تست | پیاده‌شدهٔ پایه؛ اپ، provider پرداخت و بار/امنیت زنده باز است |
-| IG-006 | Giveaway، Insight و تحلیل رسمی/دستی رقبا | ADR-0004؛ Growth prompt | services؛ test قرعه‌کشی | شکاف: ingestion Zernio/provenance کامل نیست؛ Business Discovery و Hashtag Search تا endpoint رسمی backlog هستند |
+| IG-006 | Giveaway، Insight و تحلیل رسمی/دستی رقبا | ADR-0004؛ Growth prompt؛ DESIGN-LEGAL-AUTH §۷.۷.۵۵ | GiveawayDrawService + InsightService + CompetitorService؛ ۱۸ مسیر REST (GrowthIntelController)؛ GrowthIntelTest ۱۲ سناریو؛ دود زنده | ✅ فاز ۵۵: قرعه‌کشی commit–reveal قابل بازمشیق، provenance (manual/zernio) + retention، رقبا با evidence. باقی‌ماندهٔ PV: Business Discovery و Hashtag Search تا endpoint رسمی Zernio backlog هستند |
 
 ### ۶.۹ پادو
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| PAD-001 | adapter ساختاریافتهٔ DeepInfra با حساب مستقل فروشگاه | ADR-0004؛ DESIGN-PADO §۲۲ | PadoGateway قدیمی | شکاف: `AiProviderInterface`، adapter و قرارداد عمومی کد ندارند |
-| PAD-002 | صف مجوز اتمیک و دقیقاً یک‌بار | ADR-0004؛ منبع HITL | ApprovalRequestService | شکاف بحرانی race؛ فقط مسیر قالب سیم‌کشی واقعی دارد |
-| PAD-003 | عملیات حساس همگی از صف عبور کنند | ADR-0004؛ PADO | labelها در PadoPage | شکاف: قیمت/refund/حذف/کمپین/انتشار اجراکننده ندارند |
-| PAD-004 | قالب امن، preview و live tenant-scoped | ADR-0001/0003/0004؛ PADO §۱۸–۲۲ | ThemeValidator/Service | سه خروجی پذیرفته شد؛ اعتبارسنج/preview/Multisite و خط لولهٔ بازبینی PHP شکاف بحرانی‌اند |
-| PAD-005 | چهار Playbook، حافظه، KPI و حلقهٔ یادگیری | ADR-0004؛ Growth prompt | طراحی سندی | شکاف: schema/version/provenance و یادگیری از فروش/Insight/campaign کد ندارد |
-| PAD-006 | دفاع در برابر تزریق، ابزار، هزینه و نشت secret | ADR-0004؛ OWASP Agentic | کنترل محدود | ابزار allowlist، بودجه، benchmark فارسی، منع نگهداشت credential و آزمون خصمانه هنوز کد ندارد |
+| PAD-001 | adapter ساختاریافتهٔ DeepInfra با حساب مستقل فروشگاه | ADR-0004؛ DESIGN-PADO §۲۲؛ DESIGN-LEGAL-AUTH §۷.۷.۵۶ | AiProviderInterface v1 + DeepInfraAdapter + AiToolbox؛ DeepInfraAdapterTest ۱۳ سناریو؛ دود زنده | ✅ فاز ۵۶ (کد/گیت‌ها/بودجه/هزینه). فعال‌سازی واقعی منتظر حساب DeepInfra + تأیید benchmark کارفرما |
+| PAD-002 | صف مجوز اتمیک و دقیقاً یک‌بار | ADR-0004؛ منبع HITL؛ DESIGN-LEGAL-AUTH §۷.۷.۵۷ | ApprovalRequestService اتمیک (v44): فلیپ شرطی/idempotency/capability/expiry/claim/audit؛ PermissionQueueTest ۱۲ سناریو؛ دود زنده | ✅ فاز ۵۷ (زیرساخت صف). اتصال عملیات حساس = فازهای ۵۸–۵۹ |
+| PAD-003 | عملیات حساس همگی از صف عبور کنند | ADR-0004؛ DESIGN-LEGAL-AUTH §۷.۷.۵۸ | SensitiveOperationsService (بایند pado.ops): قیمت/refund/حذف انبوه با گیت manage_tenant، هش پیش از اجرا، اجرای قابل جبران، فقط trash؛ SensitiveOpsTest ۱۰ سناریو؛ دود زندهٔ ۱۹گامی + ویژوال | ✅ فازهای ۵۸+۵۹ (قیمت/refund/حذف انبوه + انتشار/کمپین/سیاست). گیت‌های تأیید انسانی خودِ محصول دست‌نخورده |
+| PAD-004 | قالب امن، preview و live tenant-scoped | ADR-0001/0003/0004؛ PADO §۱۸–۲۲ | اسکلت مرجع igbz-store-theme (فاقد PHP/JS/شبکه) + ThemeContract (درگاه سخت‌گیر validate_php_free متصل به ingest) + ThemeValidator/Service (preview/live tenant-scoped از فازهای ۱۵/۱۸) | ✅ نوع ۱ کامل (۶۰+۶۱: قرارداد فاقد PHP + artefact امضاشده و راستی‌آزمایی در پیش‌نمایش/فعال‌سازی + مقایسهٔ ساختاری + rollback واقعی)؛ قالب کلاسیک PHP هنوز نیازمند خط لولهٔ sandbox/بازبینی انسانی جدا (ADR-0003 نوع ۲) |
+| PAD-005 | چهار Playbook، حافظه، KPI و حلقهٔ یادگیری | ADR-0004؛ Growth prompt؛ DESIGN-PADO §لایهٔ ۴؛ پژوهش نسخه‌برداری/rollback عامل (۶۳) | حافظهٔ پادو کامل (۶۲): PadoMemoryService روی جدول‌های v45 — چهار لایه با provenance/اعتماد، tenant scope در ذخیره، retention کرونی، دفاع poisoning (دستور/راز رد، سقف ماشینی، bump، رمزنگاری+ماسک+ممیزی خاطره)؛ PadoMemoryTest ۱۲ سناریو + دود ۱۹/۱۹ + ویژوال | حافظه ✅ (۶۲) + چهار Playbook نسخه‌دار با rollback، روزنامهٔ اجرا، قرارداد داده/خروجی سخت‌گیر، KPI واقعی، هزینه به‌ازای پذیرفته و نگهداشت کرونی ✅ (۶۳) | باقی: اتصال اجرای واقعی مدل به provider در تولید پس از فعال‌سازی گیت‌ها + خودبازبینی دوره‌ای در قالب آزمون خصمانهٔ ۶۴ |
+| PAD-006 | دفاع در برابر تزریق، ابزار، هزینه و نشت secret | ADR-0004؛ OWASP Agentic؛ پژوهش امنیت حافظهٔ عامل (۶۲) | allowlist ابزار + اعتبارسنجی آرگومان + بودجه روزانه + کلید فقط زمانِ اجرا + تفکیک داده/دستور + گیت benchmark/جغرافیا (۵۶)؛ لایهٔ حافظه (۶۲): گیت نوشتار، provenance، بازیابی اعتمادآگاه، جداسازی در لایهٔ ذخیره، ممیزی CRUD، رمزنگاری/ماسک خاطره | ✅ provider (۵۶) + حافظه (۶۲) + آزمون خصمانهٔ یکپارچهٔ ۶۴: تزریق مستقیم/غیرمستقیم، tool poisoning، memory poisoning، جعل tenant، نشت secret، artefact مخرب، race مجوز، قطع مدل — با چهار سخت‌سازی تازه | ✅ کامل؛ اجرای واقعی مدل در تولید همچنان پشت گیت فعال‌سازی/بنچمارک |
 
 ### ۶.۱۰ API، تجربه و عملیات
 
 | شناسه | نیاز | سند/منبع | کد/آزمون فعلی | وضعیت و شکاف |
 |---|---|---|---|---|
-| API-001 | قرارداد نسخه‌دار و قابل تولید کلاینت | APPS/MODULES | ۱۲۴ ثبت مسیر کنترلرها | شکاف: OpenAPI مرجع و contract test کامل وجود ندارد |
-| API-002 | pagination/idempotency/upload/push | APPS | BaseController/controllers/FCM | پیاده‌شدهٔ ناهمگون؛ ماتریس مسیر کامل نیست |
-| UX-001 | فارسی کامل طبق دامنهٔ مصوب | تصمیم کارفرما؛ POT | POT ۲۳۵۱ رشته | شکاف: `fa_IR.po/mo` نهایی ندارد |
-| UX-002 | RTL، دسترس‌پذیری و نقش‌ها | قانون ویژوال | ۳۵ تصویر | شکاف: checkout `US/CA`، glyph مربعی و متن انگلیسی |
+| API-001 | قرارداد نسخه‌دار و قابل تولید کلاینت | APPS/MODULES؛ PLAN §۲۳.۱۱ (فاز ۶۵) | ApiContractService + GET /igbz/v1/contract: سند OpenAPI 3.1 از ۱۷۰ مسیر واقعی، تاکسونومی خطای هفت‌کدی، دو پاکت خطای مستند، گیت breaking_changes با ۸ نوع نقض، خط پایهٔ پین‌شده contracts/api-v1.json، سرصفحه‌های Deprecation/Sunset/Link | ✅ فاز ۶۵ (قرارداد + سیاست سازگاری + sunset). احراز دستگاه ✅ (۶۶: ممیزی کامل + پنجرهٔ مهلت چرخش v47) |
+| API-002 | pagination/idempotency/upload/push | APPS | CursorCodec/IdempotencyService/controllers/FCM | ✅ فاز ۶۷: کرسر کیست مات چهار فید + idempotency نوشتن (۸ مسیر حساس) + تعارض آفلاین نمایه؛ upload/push در ممیزی ۶۷ کافی (پین قرارداد 1.1.0، ۱۸۷ عملیات) |
+| UX-001 | فارسی کامل طبق دامنهٔ مصوب | تصمیم کارفرما؛ POT | POT ۱۹۳۱ رشته؛ `igbz-suite-fa_IR.po/mo` ۳۱۵ رشته | ✅ فاز ۶۸: بستهٔ fa_IR (کل سطح موبایل+ویترین)، FaStorefront (IRT/تومان، کشور تسویه=IR، ارقام فارسی محافظ‌دار)، FaLocale (گلیف/نیم‌فاصله/جلالی)؛ ترجمهٔ هستهٔ WC از بستهٔ رسمی وردپرس در تولید |
+| UX-002 | RTL، دسترس‌پذیری و نقش‌ها | قانون ویژوال | ۳۵ تصویر | ✅ فاز ۶۸: کشور تسویه مهمان/کاربر=IR (اثبات Store API، مقدار ذخیره‌شده دست‌نخورده) + گلیف ي/ك/ة/ارقام عربی نرمال‌سازی و نیم‌فاصلهٔ محافظه‌کار؛ ✅ فاز ۶۹: axe-core ۸ صفحه × ۳ ویوپورت + مهمان، کیبورد/focus/کنتراست/RTL سبز، ماتریس نقش کامل (API از یونیت)، اصلاح file-input پادو؛ ۴ خانوادهٔ بالادستی WC/WP ثبت شد |
 | OPS-001 | استقرار تکرارپذیر و DB پشتیبانی‌شده | Railway docs | Docker/entrypoint | پیاده‌شدهٔ پایه؛ راهنما MySQL 8.0 منقضی را پیشنهاد می‌دهد |
-| OPS-002 | worker، SLO، هشدار و Runbook | برنامهٔ جامع | health/status/log | شکاف؛ SLO/هشدار/صف عملیاتی کامل نیست |
-| OPS-003 | backup، restore و rollback آزموده | `_backup`, Railway | اسکریپت/راهنما | شکاف؛ drill و RPO/RTO ثبت‌شده ندارد |
-| OPS-004 | آزمون بار، soak، chaos و انتشار مرحله‌ای | برنامهٔ جامع | مدرک ثبت‌شده ندارد | شکاف کامل |
+| OPS-002 | worker، SLO، هشدار و Runbook | برنامهٔ جامع | health/status/log | ✅ فاز ۷۱: trace/`request_id` در هر سطر لاگ + اجرای کار زیر trace پاکت (`Trace::fork`)؛ سنجه‌های SLO از جداول jobs/logs با آستانهٔ تنظیم‌پذیر `slo.*` و پنل سبز/قرمز وضعیت؛ worker/cron سرور با `IGBZ_SERVER_CRON=1` (هر ۶۰ث due+drain)؛ `RUNBOOK-SLO-ALERTS.md` با اقدام هر چهار نقض؛ هشدار push (ساعته+wp_mail فقط در لبهٔ سبز→قرمز) به‌عنوان پیشنهاد ثبت شده و منتظر دستور کارفرماست |
+| OPS-003 | backup، restore و rollback آزموده | `_backup`, Railway | `Backup/BackupService`+`Bundle`+Cli (فاز ۷۲) | ✅ فاز ۷۲: باندل رمز‌شدهٔ AES-256-GCM (دامپ ۱۰۰ جدول+تنظیمات+uploads با checksum و skipped صادقانه)، کار روزانهٔ idempotent با مهر RPO و نقض `slo.max_backup_hours` در پنل، retention 7، `wp igbz backup create/list/verify/restore[--apply]`، ران‌بوک RPO≤24h/RTO≤4h با تلهٔ salts و تمرین فصلی؛ rollback دامنهٔ فاز ۷۳ |
+| OPS-004 | آزمون بار، soak، chaos و انتشار مرحله‌ای | برنامهٔ جامع | مدرک ثبت‌شده ندارد | 🔶 انتشار/گیت: فاز ۷۳ `ReleaseGate`+`wp igbz release verify`+`RUNBOOK-RELEASE-ROLLBACK.md` (canary دو-لایه، rollback افزونه/DB/قالب، اهرم توقف صف). بار/soak/chaos = فاز ۷۴ باز |
 
 ---
 

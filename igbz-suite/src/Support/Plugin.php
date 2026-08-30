@@ -50,6 +50,13 @@ final class Plugin {
 
 		WooCommerceCompat::register();
 
+		// Phase 68: the Persian storefront layer (toman currency, checkout country
+		// defaults, Persian front digits) — see FaStorefront.
+		FaStorefront::register();
+
+		// Phase 70: the product's own health/readiness probe (GET /?igbz_health=1).
+		HealthEndpoint::register();
+
 		add_action( 'plugins_loaded', [ $this, 'on_plugins_loaded' ], 5 );
 		add_action( 'init', [ $this, 'load_textdomain' ], 1 );
 	}
@@ -143,6 +150,8 @@ final class Plugin {
 	private function register_core_services(): void {
 		$this->bind( 'settings', static fn () => new Settings() );
 		$this->bind( 'logger', static fn ( Plugin $c ) => new Logger( $c->get( 'settings' ) ) );
+		$this->bind( 'slo', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Observability\Slo( $c->get( 'db' ), $c->get( 'settings' ) ) );
+		$this->bind( 'backup', static fn ( Plugin $c ) => new \IGBZ\Suite\Support\Backup\BackupService( $c->get( 'db' ), $c->get( 'settings' ), $c->get( 'logger' ) ) );
 		$this->bind( 'db', static fn () => new Db() );
 		$this->bind( 'http', static fn ( Plugin $c ) => new Http( $c->get( 'logger' ) ) );
 		$this->bind( 'tenancy', static fn ( Plugin $c ) => new \IGBZ\Suite\Modules\MultiTenant\Repository\TenantContext( $c->get( 'db' ) ) );
@@ -162,6 +171,14 @@ final class Plugin {
 
 	public function db(): Db {
 		return $this->get( 'db' );
+	}
+
+	public function slo(): \IGBZ\Suite\Support\Observability\Slo {
+		return $this->get( 'slo' );
+	}
+
+	public function backup(): \IGBZ\Suite\Support\Backup\BackupService {
+		return $this->get( 'backup' );
 	}
 
 	public function http(): Http {

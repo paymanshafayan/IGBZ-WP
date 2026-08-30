@@ -75,3 +75,4 @@ _devenv/test-*.mjs
 # آرشیوهای بکاپ هوشا — باینری، محلی، و معادل کامیت 647b5b1
 _backup/*.tar.gz
 _backup/.last
+__pycache__/

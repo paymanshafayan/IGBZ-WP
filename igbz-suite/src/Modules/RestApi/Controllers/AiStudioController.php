@@ -32,6 +32,11 @@ final class AiStudioController extends BaseController {
 	}
 
 	public function generate( \WP_REST_Request $request ): \WP_REST_Response {
+		// Phase 67: generation spends credits — a retry must replay, not spend twice.
+		return $this->with_idempotency( $request, fn (): \WP_REST_Response => $this->do_generate( $request ) );
+	}
+
+	private function do_generate( \WP_REST_Request $request ): \WP_REST_Response {
 		$user_id = get_current_user_id();
 
 		if ( ! igbz()->settings()->bool( 'ai_credits.enabled', true ) ) {

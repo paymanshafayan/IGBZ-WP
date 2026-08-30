@@ -71,18 +71,57 @@ final class VipBillingService {
 		$tenant_id = (int) $plan['tenant_id'];
 		$now       = current_time( 'mysql', true );
 
-		$membership_id = $this->db->insert(
-			'vip_memberships',
-			[
-				'tenant_id'  => $tenant_id,
-				'user_id'    => $user_id,
-				'plan_id'    => $plan_id,
-				'status'     => VipAccessService::STATUS_PENDING,
-				'price_paid' => $price,
-				'created_at' => $now,
-				'updated_at' => $now,
-			]
+		// Phase 54: a free plan that is already live mints nothing — a second tap returns
+		// the existing membership instead of stacking a fresh free term. Paid plans
+		// deliberately skip this: buying a new term before the old one ends is a renewal,
+		// and activate_membership() extends from the paid-for end date.
+		if ( $price <= 0 ) {
+			$active_id = (int) $this->db->scalar(
+				'SELECT id FROM ' . $this->db->table( 'vip_memberships' ) .
+				' WHERE user_id = %d AND plan_id = %d AND tenant_id = %d AND status = %s
+				   AND (ends_at IS NULL OR ends_at > %s) ORDER BY id DESC LIMIT 1',
+				$user_id,
+				$plan_id,
+				$tenant_id,
+				VipAccessService::STATUS_ACTIVE,
+				$now
+			);
+			if ( $active_id > 0 ) {
+				return [ 'ok' => true, 'membership_id' => $active_id, 'payment_id' => 0, 'redirect_url' => '', 'error' => '' ];
+			}
+		}
+
+		// An earlier attempt that never reached the PSP is reused as-is; its payment row is
+		// recovered through the same dedupe key below, so the shopper sees one payment, not two.
+		$membership_id = (int) $this->db->scalar(
+			'SELECT id FROM ' . $this->db->table( 'vip_memberships' ) .
+			' WHERE user_id = %d AND plan_id = %d AND tenant_id = %d AND status = %s ORDER BY id DESC LIMIT 1',
+			$user_id,
+			$plan_id,
+			$tenant_id,
+			VipAccessService::STATUS_PENDING
 		);
+
+		if ( $membership_id > 0 ) {
+			$this->db->update(
+				'vip_memberships',
+				[ 'price_paid' => $price, 'updated_at' => $now ],
+				[ 'id' => $membership_id ]
+			);
+		} else {
+			$membership_id = $this->db->insert(
+				'vip_memberships',
+				[
+					'tenant_id'  => $tenant_id,
+					'user_id'    => $user_id,
+					'plan_id'    => $plan_id,
+					'status'     => VipAccessService::STATUS_PENDING,
+					'price_paid' => $price,
+					'created_at' => $now,
+					'updated_at' => $now,
+				]
+			);
+		}
 
 		if ( $membership_id <= 0 ) {
 			return $fail( __( 'Could not start the subscription.', 'igbz-suite' ) );
@@ -132,6 +171,7 @@ final class VipBillingService {
 				'user_id'       => $user_id,
 				'membership_id' => $membership_id,
 				'plan_id'       => $plan_id,
+				'dedupe_key'    => 'vip_membership:' . $membership_id,
 			],
 			$gateway_id
 		);
@@ -193,17 +233,26 @@ final class VipBillingService {
 		$base = $current_end ? (string) $current_end : $now;
 		$ends = $days > 0 ? gmdate( 'Y-m-d H:i:s', strtotime( $base ) + ( $days * DAY_IN_SECONDS ) ) : null;
 
-		$this->db->update(
-			'vip_memberships',
-			[
-				'status'     => VipAccessService::STATUS_ACTIVE,
-				'starts_at'  => $now,
-				'ends_at'    => $ends,
-				'payment_id' => $payment_id > 0 ? $payment_id : (int) $membership['payment_id'],
-				'updated_at' => $now,
-			],
-			[ 'id' => $membership_id ]
-		);
+		// Phase 54: conditional flip. Two webhook deliveries racing on the same pending row
+		// must produce one activation and one hook, not two — the loser reads 0 rows and
+		// walks away without firing anything.
+		$won = $this->db->query(
+			'UPDATE ' . $this->db->table( 'vip_memberships' ) . '
+			 SET status = %s, starts_at = %s, ends_at = %s,
+			     payment_id = %d, updated_at = %s
+			 WHERE id = %d AND status = %s',
+			VipAccessService::STATUS_ACTIVE,
+			$now,
+			$ends,
+			$payment_id > 0 ? $payment_id : (int) $membership['payment_id'],
+			$now,
+			$membership_id,
+			VipAccessService::STATUS_PENDING
+		) > 0;
+
+		if ( ! $won ) {
+			return false;
+		}
 
 		$this->logger->info( 'vip', 'VIP membership activated', [ 'membership_id' => $membership_id, 'ends_at' => $ends ] );
 		do_action( 'igbz_vip_membership_activated', $membership_id, (int) $membership['user_id'] );
@@ -246,15 +295,23 @@ final class VipBillingService {
 		);
 
 		foreach ( array_map( 'intval', (array) $ids ) as $id ) {
-			$this->db->update(
-				'vip_memberships',
-				[
-					'status'     => VipAccessService::STATUS_EXPIRED,
-					'updated_at' => $now,
-				],
-				[ 'id' => $id ]
-			);
-			do_action( 'igbz_vip_membership_expired', $id );
+			// Phase 54: conditional flip. A renewal that lands between the SELECT and this
+			// write must not expire a row that just gained fresh days; the WHERE clause is
+			// the whole guard, and the hook fires only for the writer that actually flipped.
+			$won = $this->db->query(
+				'UPDATE ' . $this->db->table( 'vip_memberships' ) . '
+				 SET status = %s, updated_at = %s
+				 WHERE id = %d AND status = %s AND ends_at IS NOT NULL AND ends_at <= %s',
+				VipAccessService::STATUS_EXPIRED,
+				$now,
+				$id,
+				VipAccessService::STATUS_ACTIVE,
+				$now
+			) > 0;
+
+			if ( $won ) {
+				do_action( 'igbz_vip_membership_expired', $id );
+			}
 		}
 
 		return count( (array) $ids );
@@ -337,9 +394,10 @@ final class VipBillingService {
 			$price,
 			self::PURPOSE_POST,
 			[
-				'tenant_id' => $tenant_id,
-				'user_id'   => $user_id,
-				'post_id'   => $post_id,
+				'tenant_id'  => $tenant_id,
+				'user_id'    => $user_id,
+				'post_id'    => $post_id,
+				'dedupe_key' => 'vip_post:' . $post_id . ':' . $user_id,
 			],
 			$gateway_id
 		);
@@ -403,9 +461,37 @@ final class VipBillingService {
 			]
 		);
 
-		if ( $id > 0 ) {
-			do_action( 'igbz_vip_entitlement_granted', $id, $user_id, $post_id );
+		// Phase 54: two grants racing on the same (user, post) — the pre-check above saw
+		// nothing, the UNIQUE key rejects the second insert. Falling through with 0 would
+		// hand back "nothing granted" for money that was actually paid, so the row is
+		// re-read and revived instead: the member keeps the entitlement either way.
+		if ( $id <= 0 ) {
+			$raced = $this->db->row(
+				'SELECT id FROM ' . $this->db->table( 'vip_entitlements' ) . ' WHERE user_id = %d AND post_id = %d',
+				$user_id,
+				$post_id
+			);
+			if ( ! $raced ) {
+				return 0;
+			}
+
+			$this->db->update(
+				'vip_entitlements',
+				[
+					'source'     => $source,
+					'payment_id' => $payment_id,
+					'price_paid' => $price,
+					'revoked_at' => null,
+					'updated_at' => $now,
+				],
+				[ 'id' => (int) $raced['id'] ]
+			);
+
+			do_action( 'igbz_vip_entitlement_granted', (int) $raced['id'], $user_id, $post_id );
+			return (int) $raced['id'];
 		}
+
+		do_action( 'igbz_vip_entitlement_granted', $id, $user_id, $post_id );
 
 		return $id;
 	}

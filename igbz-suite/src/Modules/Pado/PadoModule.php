@@ -107,5 +107,71 @@ final class PadoModule implements ModuleInterface {
 		$plugin->bind( 'pado.gateway', static fn ( Plugin $c ) => new PadoGateway( $c->http(), $c->logger() ) );
 		$plugin->bind( 'pado.validator', static fn () => new ThemeValidator() );
 		$plugin->bind( 'pado.themes', static fn ( Plugin $c ) => new ThemeService( $c->db() ) );
+
+		// Phase 56 — the versioned inference plane: toolbox allowlist + the sole
+		// version-one provider. Activation flags default to off (ADR-0004 §4).
+		$plugin->bind( 'pado.ai.toolbox', static fn (): \IGBZ\Suite\Modules\Pado\Ai\AiToolbox => new \IGBZ\Suite\Modules\Pado\Ai\AiToolbox() );
+		// Phase 58 — the sensitive commercial operations ride the phase-57 queue.
+		$plugin->bind(
+			'pado.ops',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\SensitiveOperationsService => new \IGBZ\Suite\Modules\Pado\Services\SensitiveOperationsService(
+				$c->db(),
+				$c->logger(),
+				$c->get( 'pado.approvals' ),
+				$c->get( 'payments' )
+			)
+		);
+		// Phase 62 — Pado's memory: four layers, provenance, tenant scope,
+		// retention and poisoning defence.
+		$plugin->bind(
+			'pado.memory',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\PadoMemoryService => new \IGBZ\Suite\Modules\Pado\Services\PadoMemoryService(
+				$c->db(),
+				$c->logger()
+			)
+		);
+
+		// Phase 63 — the four growth Playbooks: immutable versions, run
+		// journal, KPI learning loop and periodic maintenance.
+		$plugin->bind(
+			'pado.playbooks',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\GrowthPlaybookService => new \IGBZ\Suite\Modules\Pado\Services\GrowthPlaybookService(
+				$c->db(),
+				$c->logger(),
+				$c->get( 'pado.memory' )
+			)
+		);
+
+		// Phase 61 — the signed-artefact release pipeline (sign / verify / diff).
+		$plugin->bind(
+			'pado.theme_releases',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\ThemeReleaseService => new \IGBZ\Suite\Modules\Pado\Services\ThemeReleaseService(
+				$c->db(),
+				$c->logger()
+			)
+		);
+
+		// Phase 59 — publishing, campaigns and policy changes on the same queue.
+		$plugin->bind(
+			'pado.content_ops',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Services\ContentOperationsService => new \IGBZ\Suite\Modules\Pado\Services\ContentOperationsService(
+				$c->db(),
+				$c->logger(),
+				$c->get( 'pado.approvals' ),
+				$c->get( 'ig.content_publish' ),
+				$c->get( 'vip.messages' ),
+				$c->settings()
+			)
+		);
+		$plugin->bind(
+			'pado.ai.deepinfra',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter => new \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter(
+				$c->http(),
+				$c->db(),
+				$c->logger(),
+				$c->settings(),
+				$c->get( 'pado.ai.toolbox' )
+				)
+		);
 	}
 }

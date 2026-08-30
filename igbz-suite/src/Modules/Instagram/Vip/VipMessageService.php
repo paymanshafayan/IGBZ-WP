@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
  * particular there is no 24-hour window, so the shop can answer a question three days later or
  * open a conversation itself.
  */
-final class VipMessageService {
+class VipMessageService { // not final: phase-59 tests subclass the environment seam
 
 	public const STATUS_OPEN     = 'open';
 	public const STATUS_CLOSED   = 'closed';

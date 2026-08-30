@@ -66,6 +66,13 @@ bootstrap() {
 	done
 	echo "igbz: database ready"
 
+	# فاز ۷۰ — TLS اختیاری به دیتابیس (network خصوصی ریل‌وی رمزنگاری‌شده است؛
+	# برای دیتابیس عمومی/سفارشی IGBZ_DB_TLS=1 بگذارید تا MYSQLI_CLIENT_SSL فعال شود)
+	if [ "${IGBZ_DB_TLS:-0}" = "1" ]; then
+		echo "igbz: enabling database TLS (MYSQLI_CLIENT_SSL)"
+		wp --allow-root --path="$WEBROOT" config set MYSQL_CLIENT_FLAGS 'MYSQLI_CLIENT_SSL' --raw
+	fi
+
 	# ۴) نصب هسته (فقط بار اول) — رمز ادمین از متغیر محیطی؛ هرگز rand()
 	local URL="${WP_PUBLIC_URL:-https://${RAILWAY_PUBLIC_DOMAIN:-localhost}}"
 	if ! wp --allow-root --path="$WEBROOT" core is-installed; then
@@ -111,5 +118,46 @@ bootstrap() {
 	echo "igbz: bootstrap done — $URL"
 }
 
-bootstrap
+bootstrap &
+
+# فاز ۷۰ — گیت آمادگی: سلامت خودمان را می‌پرسیم تا زمانی که ۲۰۰ بدهد؛
+# نتیجه در لاگ استقرار دیده می‌شود و railway.json هم healthcheckPath دارد.
+(
+	try=0
+	until [ "$try" -gt 30 ]; do
+		try=$((try+1))
+		code=$(curl -s -o /tmp/igbz-health.json -w "%{http_code}" "http://127.0.0.1/?igbz_health=1" || echo 000)
+		if [ "$code" = "200" ]; then
+			touch /tmp/igbz-ready
+			echo "igbz: ready (health 200, attempt $try)"
+			exit 0
+		fi
+		echo "igbz: not ready yet (health $code, attempt $try/30)"
+		sleep 10
+	done
+	echo "igbz: WARNING — health never reached 200; inspect /tmp/igbz-health.json"
+) &
+
+# فاز ۷۱ — worker/cron سرور: با IGBZ_SERVER_CRON=1 حلقهٔ پس‌زمینه‌ای هر ۶۰ ثانیه
+# wp-cron و صف کارها را از CLI می‌راند (به‌جای ضربان loopback وب). loopback در
+# پلتفرم‌های کانتینری (ریل‌وی) دقیق نیست: درخواست‌ها می‌میرند، ضربان گم می‌شود و
+# صف پشت‌می‌گذارد. قدم اول این نیست که wp-cron را خاموش کنیم — فعال می‌ماند تا
+# اگر حلقه مُرد، سایت همچنان کار کند (دو راننده بدتر از صفر راننده نیست)؛ اما
+# رویدادهای تکرارشونده idempotent اند و دوبار زدنشان بی‌ضرر است.
+if [ "${IGBZ_SERVER_CRON:-0}" = "1" ]; then
+	echo "igbz: server cron/worker loop enabled (60s beat)"
+	(
+		while true; do
+			# فقط وقتی بوت‌استرپ تمام شده (وگرنه wp روی نصب ناتمام می‌خرد)
+			if [ -f "$WEBROOT/wp-load.php" ] && wp --allow-root --path="$WEBROOT" core is-installed >/dev/null 2>&1; then
+				wp --allow-root --path="$WEBROOT" cron event run --due >/dev/null 2>&1 || echo "igbz: cron beat failed (will retry)"
+				wp --allow-root --path="$WEBROOT" igbz jobs drain >/dev/null 2>&1 || echo "igbz: worker drain failed (will retry)"
+			fi
+			sleep 60
+		done
+	) &
+fi
+
+# کانتینر تا پایان عمر آپاچی زنده می‌ماند؛ حلقهٔ آمادگی فقط تزئینیِ لاگ نیست —
+# خروج موفقش هرگز فرایند والد را نمی‌کشد.
 wait "$APACHE_PID"
