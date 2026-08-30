@@ -46,15 +46,16 @@ APACHECONF
 a2enconf igbz-bootstrap-deny >/dev/null
 trap 'cleanup_maintenance; kill "${APACHE_PID:-}" 2>/dev/null || true' TERM INT EXIT
 
-docker-entrypoint.sh apache2-foreground &
-APACHE_PID=$!
+# Ask the official entrypoint to materialize WordPress, then stop Apache before
+# any wp-cli mutation. This removes the race entirely; no web worker exists while
+# bootstrap touches wp_options.
+docker-entrypoint.sh apache2 -k start
+apache2ctl stop >/dev/null 2>&1 || true
 
 until [ -f "$WEBROOT/wp-load.php" ] && [ -s "$WEBROOT/wp-config.php" ]; do
-	if ! kill -0 "$APACHE_PID" 2>/dev/null; then
-		wait "$APACHE_PID"
-	fi
 	sleep 2
 done
+APACHE_PID=""
 
 bootstrap() {
 	# ۱) اطمینان از قرارگرفتن فایل‌های هسته در وب‌روت
@@ -139,8 +140,7 @@ bootstrap() {
 bootstrap
 cleanup_maintenance
 # Only now expose WordPress to Railway probes and users.
-a2disconf igbz-bootstrap-deny >/dev/null
-apache2ctl graceful
+a2disconf igbz-bootstrap-deny >/dev/null 2>&1 || true
 
 # فاز ۷۰ — گیت آمادگی: سلامت خودمان را می‌پرسیم تا زمانی که ۲۰۰ بدهد؛
 # نتیجه در لاگ استقرار دیده می‌شود و railway.json هم healthcheckPath دارد.
@@ -182,4 +182,4 @@ fi
 
 # کانتینر تا پایان عمر آپاچی زنده می‌ماند؛ حلقهٔ آمادگی فقط تزئینیِ لاگ نیست —
 # خروج موفقش هرگز فرایند والد را نمی‌کشد.
-wait "$APACHE_PID"
+exec apache2-foreground
