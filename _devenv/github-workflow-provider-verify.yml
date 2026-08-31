@@ -62,12 +62,15 @@ jobs:
                   -H "Authorization: Bearer $DEEPINFRA_API_KEY" \
                   -H "Content-Type: application/json" \
                   -d "$BODY" 2>/dev/null) || HTTP="000"
+                ERRMSG=$(jq -r '.error // .message // ""' /tmp/di.json 2>/dev/null | head -c 160)
                 if [ "$HTTP" = "000" ]; then
                   FAIL "deepinfra:$MODEL  network/abort"
                 elif [ "$HTTP" = "401" ] || [ "$HTTP" = "403" ]; then
                   FAIL "deepinfra:$MODEL  HTTP $HTTP — key rejected"
+                elif [ "$HTTP" = "402" ]; then
+                  FAIL "deepinfra:$MODEL  HTTP 402 — account has no credits/payment. ${ERRMSG}"
                 elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
-                  FAIL "deepinfra:$MODEL  HTTP $HTTP"
+                  FAIL "deepinfra:$MODEL  HTTP $HTTP — ${ERRMSG}"
                 else
                   COST=$(jq -r '.usage.estimated_cost // "n/a"' /tmp/di.json 2>/dev/null)
                   REPLY=$(jq -r '.choices[0].message.content // ""' /tmp/di.json 2>/dev/null | head -c 100)
@@ -92,6 +95,9 @@ jobs:
                 -H "Authorization: Bearer $ZERNIO_API_KEY" \
                 -H "Content-Type: application/json" \
                 -d "{\"name\":\"$SLUG\",\"description\":\"IGBZ CI probe (auto-deleted)\"}" 2>/dev/null) || HTTP="000"
+              # Mask any field whose name looks like a key/token/secret, then show the shape.
+              SHAPE=$(jq -c 'walk(if type=="object" then with_entries(if (.key|ascii_downcase|test("key|token|secret")) then .value="***" else . end) else . end)' /tmp/zp.json 2>/dev/null | head -c 400)
+              echo "zernio:create-profile HTTP=$HTTP body=$SHAPE"
               if [ "$HTTP" = "000" ]; then
                 FAIL "zernio:create-profile  network/abort"
               elif [ "$HTTP" = "401" ] || [ "$HTTP" = "403" ]; then
@@ -99,9 +105,9 @@ jobs:
               elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
                 FAIL "zernio:create-profile  HTTP $HTTP"
               else
-                PID=$(jq -r '.data.profile_id // .data.profileId // .data.id // .profile_id // .profileId // .id // empty' /tmp/zp.json 2>/dev/null)
+                PID=$(jq -r '.data.profile_id // .data.profileId // .data.id // .data.profile.id // .profile_id // .profileId // .id // .profile.id // .result.id // .result.profile_id // empty' /tmp/zp.json 2>/dev/null)
                 if [ -z "$PID" ]; then
-                  FAIL "zernio:create-profile  HTTP $HTTP — no profile id in response"
+                  FAIL "zernio:create-profile  HTTP $HTTP — no profile id in response (see body above)"
                 else
                   PASS "zernio:create-profile  HTTP $HTTP profile_id=$PID"
                   DHTTP="000"
