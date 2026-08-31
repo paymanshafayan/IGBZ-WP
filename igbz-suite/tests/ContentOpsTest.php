@@ -283,35 +283,35 @@ final class ContentOpsTest extends TestCase {
 
 	private function a_policy_change_applies_with_old_value_on_record(): void {
 		$this->fresh();
-		ContentOpsWorld::$policy['pado.deepinfra.daily_token_budget'] = 20000;
+		ContentOpsWorld::$policy['pado.ai.routing.routine'] = 'groq';
 
-		$made = $this->ops->request_policy_change( 1, 'pado.deepinfra.daily_token_budget', 5000, 7, 'کاهش هزینه' );
+		$made = $this->ops->request_policy_change( 1, 'pado.ai.routing.routine', 'openrouter', 7, 'تغییر ارائه‌دهندهٔ امور اداری' );
 		$this->assert_true( $made['ok'], 'the policy change lands' , 'the invariant holds' );
 		$this->assert_same( 'critical', (string) $this->db->approvals[ $made['id'] ]['impact'], 'policy changes are critical impact' );
 
 		$payload = json_decode( (string) $this->db->approvals[ $made['id'] ]['payload'], true );
-		$this->assert_same( 20000, (int) $payload['old_value'], 'the captured before-state is on record' );
+		$this->assert_same( 'groq', (string) $payload['old_value'], 'the captured before-state is on record' );
 
 		$ok = $this->decide( $made['id'] );
 		$this->assert_true( $ok, 'the policy change executes' , 'the invariant holds' );
-		$this->assert_same( 5000, (int) ContentOpsWorld::$policy['pado.deepinfra.daily_token_budget'], 'the new budget applies' );
+		$this->assert_same( 'openrouter', (string) ContentOpsWorld::$policy['pado.ai.routing.routine'], 'the new routing applies' );
 
 		$meta = $this->outcome( $made['id'] );
-		$this->assert_same( 20000, (int) $meta['from'], 'the outcome proves what it changed from' );
-		$this->assert_same( 5000, (int) $meta['to'], 'the outcome proves what it changed to' );
+		$this->assert_same( 'groq', (string) $meta['from'], 'the outcome proves what it changed from' );
+		$this->assert_same( 'openrouter', (string) $meta['to'], 'the outcome proves what it changed to' );
 	}
 
 	private function a_policy_write_that_does_not_stick_is_compensated(): void {
 		$this->fresh();
-		ContentOpsWorld::$policy['pado.deepinfra.enabled'] = false;
+		ContentOpsWorld::$policy['pado.ai.routing.judgment'] = 'openrouter';
 
-		$id = $this->ops->request_policy_change( 1, 'pado.deepinfra.enabled', true, 7, 'روشن‌سازی') ['id'];
+		$id = $this->ops->request_policy_change( 1, 'pado.ai.routing.judgment', 'groq', 7, 'تغییر ارائه‌دهندهٔ مدیریت') ['id'];
 		ContentOpsWorld::$policy_lag = true; // the first write pretends and does not stick
 
 		$ok = $this->decide( $id );
 		$this->assert_true( $ok, 'the decision completes either way — the fate lives in the status' , 'the invariant holds' );
 		$this->assert_same( 'failed', (string) $this->db->approvals[ $id ]['status'], 'the row dies as failed' );
-		$this->assert_false( (bool) ContentOpsWorld::$policy['pado.deepinfra.enabled'], 'the gate stays off — compensated back' );
+		$this->assert_same( 'openrouter', (string) ContentOpsWorld::$policy['pado.ai.routing.judgment'], 'the routing stays — compensated back' );
 
 		$meta = $this->outcome( $id );
 		$this->assert_same( 'write_did_not_stick', (string) $meta['error'], 'the refusal is on record' );
@@ -319,7 +319,7 @@ final class ContentOpsTest extends TestCase {
 
 	private function policy_keys_outside_the_list_are_refused(): void {
 		$this->fresh();
-		$made = $this->ops->request_policy_change( 1, 'pado.deepinfra.endpoint', 'https://evil.example', 7 );
+		$made = $this->ops->request_policy_change( 1, 'pado.ai.providers', 'https://evil.example', 7 );
 		$this->assert_false( $made['ok'], 'keys outside the closed list never reach the queue' , 'the invariant holds' );
 		$this->assert_same( 'policy_key_not_allowed', $made['error'], 'the invariant holds' );
 

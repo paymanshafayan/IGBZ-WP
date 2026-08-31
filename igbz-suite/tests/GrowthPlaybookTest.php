@@ -215,7 +215,7 @@ final class GrowthPlaybookTest extends TestCase {
 
 	private function versions_are_immutable_and_hashed(): void {
 		$this->fresh();
-		$r = $this->pb->create_version( 1, 'gather', 'گردآوری', [ 'body' => $this->body(), 'changelog' => 'نسخهٔ نخست', 'model' => 'deepinfra/x' ] );
+		$r = $this->pb->create_version( 1, 'gather', 'گردآوری', [ 'body' => $this->body(), 'changelog' => 'نسخهٔ نخست', 'model' => 'groq/llama-3.3-70b-versatile' ] );
 		$this->assert_true( $r['ok'], 'the first version lands' , 'the invariant holds' );
 		$this->assert_same( 1, $r['version'], 'versioning starts at one' );
 		$row = $this->db->playbooks[ $r['id'] ];
@@ -462,7 +462,7 @@ final class GrowthPlaybookTest extends TestCase {
 	}
 
 	private function seed_active( string $kind ): void {
-		$r = $this->pb->create_version( 1, $kind, 'عنوان', [ 'body' => $this->body(), 'model' => 'deepinfra/test-model' ] );
+		$r = $this->pb->create_version( 1, $kind, 'عنوان', [ 'body' => $this->body(), 'model' => 'groq/llama-3.3-70b-versatile' ] );
 		$this->pb->activate( 1, $kind, $r['version'] );
 	}
 }

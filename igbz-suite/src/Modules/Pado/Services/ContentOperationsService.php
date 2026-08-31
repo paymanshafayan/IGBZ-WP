@@ -39,10 +39,18 @@ class ContentOperationsService {
 	public const KIND_CAMPAIGN_SEND     = 'campaign_send';
 	public const KIND_POLICY_CHANGE     = 'policy_change';
 
-	/** The AI-policy keys a policy change may touch — closed list, backend-enforced. */
+	/**
+	 * The AI-policy keys a policy change may touch — closed list, backend-enforced.
+	 *
+	 * ADR-0005 moved the provider gates/budget into the provider records (admin-owned,
+	 * edited in the Pado panel), so the old `pado.deepinfra.*` keys are gone. The closed
+	 * list now covers the routing policy a tenant may request to change through the
+	 * approval queue.
+	 */
 	public const POLICY_KEYS = [
-		'pado.deepinfra.enabled'           => 'bool',
-		'pado.deepinfra.daily_token_budget' => 'int',
+		'pado.ai.routing.routine'  => 'string',
+		'pado.ai.routing.judgment' => 'string',
+		'pado.ai.default_provider' => 'string',
 	];
 
 	private const CATEGORIES = [
@@ -160,6 +168,8 @@ class ContentOperationsService {
 
 		if ( 'bool' === $type ) {
 			$new_value = (bool) $new_value;
+		} elseif ( 'string' === $type ) {
+			$new_value = sanitize_text_field( (string) $new_value );
 		} else {
 			$new_value = (int) $new_value;
 			if ( str_contains( $key, 'budget' ) && ( $new_value < 0 || $new_value > 1000000 ) ) {
@@ -356,6 +366,9 @@ class ContentOperationsService {
 	}
 
 	private function policy_differs( mixed $a, mixed $b ): bool {
+		if ( is_string( $a ) || is_string( $b ) ) {
+			return (string) $a !== (string) $b;
+		}
 		if ( is_bool( $a ) || is_bool( $b ) ) {
 			return (bool) $a !== (bool) $b;
 		}
@@ -395,9 +408,11 @@ class ContentOperationsService {
 	}
 
 	protected function get_policy( string $key ): mixed {
-		return 'bool' === ( self::POLICY_KEYS[ $key ] ?? 'bool' )
-			? $this->settings->bool( $key, false )
-			: $this->settings->int( $key, 0 );
+		return match ( self::POLICY_KEYS[ $key ] ?? 'string' ) {
+			'bool' => $this->settings->bool( $key, false ),
+			'int'  => $this->settings->int( $key, 0 ),
+			default => $this->settings->string( $key, '' ),
+		};
 	}
 
 	protected function set_policy( string $key, mixed $value ): void {

@@ -29,6 +29,9 @@ final class Settings {
 		'lms.video_hmac_secret',
 		'hub.vip_link_secret',
 		'pado.api_key',
+		// ADR-0005: the panel key vault (مخزن کلید پنل). One encrypted JSON map of
+		// provider id => api key, resolved by keyRef only at the moment of a call.
+		'pado.ai.key_vault',
 		// Phase 05 (API-KEYS.md §5 audit): the 22 password fields previously stored and
 		// re-rendered in plaintext. DriftGuardTest keeps this list in lockstep with the forms.
 		'bnpl.snapppay.password',

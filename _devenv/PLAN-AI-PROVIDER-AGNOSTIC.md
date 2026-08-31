@@ -69,7 +69,10 @@ quality             standard | premium   ← برای بخش‌بندی سبک/�
 enabled / benchmark_passed / geo_eligible     گیت‌های فعال‌سازی (پیش‌فرض خاموش)
 daily_token_budget  سقف روزانهٔ توکن هر فروشگاه
 timeout             مهلهٔ فراخوانی
-custom (فقط protocol=custom): request_template، headers، مسیرهای استخراج پاسخ و هزینه
+custom (فقط protocol=custom): request_method (پیش‌فرض POST) و request_path و
+       مسیرهای نقطه‌ای استخراج پاسخ/هزینه: response_content_path (پیش‌فرض
+       choices.0.message.content) و response_usage_prompt_path /
+       response_usage_completion_path / response_usage_total_path (پیش‌فرض usage.*_tokens)
 ```
 
 کلیدِ API طبق سیاست جاری **در تنظیمات ذخیره نمی‌شود**؛ در `AiRequest` به‌صورت runtime می‌آید (حساب مستقل همان فروشگاه).
@@ -133,9 +136,9 @@ embedding/reranking (Groq ندارد) · OCR باکیفیت (Groq محدود) ·
 | --- | --- | --- | --- |
 | احراز | `Bearer` | `x-api-key` | از قالب |
 | system | پیام `system` | پارامتر جدا | از قالب |
-| ابزارها | `tools` | بلوک `tool_use` | در صورت پشتیبانی، از قالب |
-| پاسخ | `choices[0].message.content` | `content[0].text` | مسیر JSON پیکربندی‌شده |
-| مصرف | `usage.prompt_tokens` و … | `usage.input_tokens/output_tokens` | مسیر JSON پیکربندی‌شده |
+| ابزارها | `tools` | — (خروجی ابزار در نسخهٔ فعلی هرگز اختراع نمی‌شود) | — (پاکت custom ابزار ندارد) |
+| پاسخ | `choices[0].message.content` | بلوک‌های `content[].text` به‌هم پیوسته | `response_content_path` |
+| مصرف | `usage.prompt_tokens` و … | `usage.input_tokens/output_tokens` | `response_usage_*_path` |
 
 نکتهٔ صادقانه: `custom` فقط «نگاشت JSON» است (نه منطق دلخواه)؛ اگر سرویسی به امضا/چرخهٔ مخصوص نیاز داشته باشد، آن مورد خارج از این طرح است و آداپتور اختصاصی می‌خواهد.
 
@@ -166,6 +169,15 @@ embedding/reranking (Groq ندارد) · OCR باکیفیت (Groq محدود) ·
 ۴. مدل تنظیمات + پنل ادمین (برگهٔ ارائه‌دهنده‌های API و مسیریابی بارکاری) با nonce از ماژول Crypto و سقف‌ها در بک‌اند.
 ۵. مهاجرت و سید `openrouter`/`groq` و حذف DeepInfra.
 ۶. بازنویسی ورک‌فلو و بنچمارک فارسی روی ارائه‌دهنده‌های انتخابی.
+
+### وضعیت اجرا (به‌روزرسانی خودکار)
+
+- ✅ ۱ `ADR-0005` — نوشته و در `ADR/README.md` ثبت شده.
+- ✅ ۲ هستهٔ بدون UI — `AiProviderInterface`، `ProviderDefinition`، `ProviderRegistry`، `AiGateway` (Router)، `Workload`، `KeyVault`، `AiToolbox` + تست‌های `AiGatewayTest`/`OpenAiAdapterTest`.
+- ✅ ۳ سه آداپتور گویش — `OpenAiProtocolAdapter`، `AnthropicProtocolAdapter`، `CustomProtocolAdapter` بر پایهٔ `AbstractProtocolAdapter` + تست‌های `AnthropicAdapterTest`/`CustomAdapterTest`.
+- ✅ ۴ مدل تنظیمات + پنل ادمین — `PadoPage` (صفحهٔ «ثبت کلیدها» + پنل ⚙ + فرم ارائه‌دهنده)، nonce از ماژول Crypto، سقف‌ها در بک‌اند.
+- ✅ ۵ مهاجرت و سید — `migrate_to_v49`، سید `groq`/`openrouter`، حذف `DeepInfraAdapter` و کلیدهای `pado.deepinfra.*`؛ مستندات (`ADR-0004 §۴`، `API-KEYS.md`، `DESIGN-*`) به‌روز شد.
+- ✅ ۶ بازنویسی ورک‌فلو و بنچمارک فارسی — `github-workflow-provider-verify.yml` و `provider-verify.mjs` اکنون هر دو گویش `openai` (OpenRouter/Groq) و `anthropic` (در صورت وجود کلید) را با یک پرامپت کوچک فارسی می‌سنجند و پروب Zernio + پاک‌سازی پروفایل یتیم حفظ شده است.
 
 ## ۱۲. ریسک‌ها (واقعیت، بدون بزرگ‌نمایی)
 

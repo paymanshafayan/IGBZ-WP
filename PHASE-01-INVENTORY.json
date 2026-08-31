@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 262,
-    "source_php_sha256": "da95abda245a2ab347b014bf4225eb6fa5a3796041639b8d0dbeb6df38c3e5ed",
+    "source_php_count": 270,
+    "source_php_sha256": "fe20483b0c184bb854bb901f8a8cec42710488cb54bafefc5a0b1450589a879a",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -224,11 +224,19 @@
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletResult.php",
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletService.php",
       "igbz-suite/src/Modules/Pado/Admin/PadoPage.php",
+      "igbz-suite/src/Modules/Pado/Ai/AbstractProtocolAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/AiGateway.php",
       "igbz-suite/src/Modules/Pado/Ai/AiProviderInterface.php",
       "igbz-suite/src/Modules/Pado/Ai/AiRequest.php",
       "igbz-suite/src/Modules/Pado/Ai/AiResult.php",
       "igbz-suite/src/Modules/Pado/Ai/AiToolbox.php",
-      "igbz-suite/src/Modules/Pado/Ai/DeepInfraAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/AnthropicProtocolAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/CustomProtocolAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/KeyVault.php",
+      "igbz-suite/src/Modules/Pado/Ai/OpenAiProtocolAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/ProviderDefinition.php",
+      "igbz-suite/src/Modules/Pado/Ai/ProviderRegistry.php",
+      "igbz-suite/src/Modules/Pado/Ai/Workload.php",
       "igbz-suite/src/Modules/Pado/PadoModule.php",
       "igbz-suite/src/Modules/Pado/Services/ApprovalRequestService.php",
       "igbz-suite/src/Modules/Pado/Services/ContentOperationsService.php",
@@ -320,14 +328,14 @@
       "Hub": 11,
       "Instagram": 39,
       "MultiTenant": 102,
-      "Pado": 17,
+      "Pado": 25,
       "RestApi": 31
     },
     "support_php_count": 42,
-    "all_plugin_php_count": 354
+    "all_plugin_php_count": 365
   },
   "database": {
-    "version": 48,
+    "version": 49,
     "table_count": 100,
     "tables": [
       "tenants",
@@ -598,6 +606,7 @@
       "nowpayments.api_key",
       "otp.kavenegar.api_key",
       "otp.smsir.api_key",
+      "pado.ai.key_vault",
       "pado.api_key",
       "payments.asanpardakht.api_key",
       "payments.httppsp.api_key",
@@ -615,7 +624,7 @@
       "vip.media_hmac_secret",
       "zernio.central_api_key"
     ],
-    "secret_registry_count": 35,
+    "secret_registry_count": 36,
     "password_secret_overlap": [
       "api.fcm_service_account",
       "api.jwt_secret",
@@ -655,6 +664,7 @@
     "password_missing_from_secret_registry": [],
     "password_missing_from_secret_registry_count": 0,
     "registry_without_password_field": [
+      "pado.ai.key_vault",
       "pado.api_key",
       "vip.media_hmac_secret"
     ]
@@ -842,7 +852,7 @@
     "action_scheduler_calls_in_source": 0
   },
   "provider_candidates": {
-    "count": 44,
+    "count": 48,
     "files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Fx/Contracts/FxPayoutAdapterInterface.php",
@@ -885,18 +895,24 @@
       "igbz-suite/src/Modules/MultiTenant/Translation/HttpTranslationAdapter.php",
       "igbz-suite/src/Modules/MultiTenant/Translation/TranslatorAdapterInterface.php",
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletGateway.php",
+      "igbz-suite/src/Modules/Pado/Ai/AbstractProtocolAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/AiGateway.php",
       "igbz-suite/src/Modules/Pado/Ai/AiProviderInterface.php",
-      "igbz-suite/src/Modules/Pado/Ai/DeepInfraAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/AnthropicProtocolAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/CustomProtocolAdapter.php",
+      "igbz-suite/src/Modules/Pado/Ai/OpenAiProtocolAdapter.php",
       "igbz-suite/src/Modules/Pado/Services/PadoGateway.php"
     ],
     "note": "Filename-based candidate inventory only; the active provider list is a Phase 02 decision and providers must not be aggregated into one implementation phase."
   },
   "tests": {
     "source": "igbz-suite/tests/run.php",
-    "php_file_count": 90,
+    "php_file_count": 93,
     "php_files": [
       "igbz-suite/tests/AdversarialPadoTest.php",
       "igbz-suite/tests/AffiliateHardenTest.php",
+      "igbz-suite/tests/AiGatewayTest.php",
+      "igbz-suite/tests/AnthropicAdapterTest.php",
       "igbz-suite/tests/ApiAuthDeviceTest.php",
       "igbz-suite/tests/ApiContractTest.php",
       "igbz-suite/tests/ApiMobileBehaviorTest.php",
@@ -912,8 +928,8 @@
       "igbz-suite/tests/CronJobsTest.php",
       "igbz-suite/tests/CronScheduleTest.php",
       "igbz-suite/tests/CryptoTest.php",
+      "igbz-suite/tests/CustomAdapterTest.php",
       "igbz-suite/tests/DailyJobsTest.php",
-      "igbz-suite/tests/DeepInfraAdapterTest.php",
       "igbz-suite/tests/DomainLifecycleTest.php",
       "igbz-suite/tests/DomainOrderTest.php",
       "igbz-suite/tests/DomainRegistrationTest.php",
@@ -947,6 +963,7 @@
       "igbz-suite/tests/MoneyTest.php",
       "igbz-suite/tests/NationalIdVerifierTest.php",
       "igbz-suite/tests/OffboardingTest.php",
+      "igbz-suite/tests/OpenAiAdapterTest.php",
       "igbz-suite/tests/PadoMemoryTest.php",
       "igbz-suite/tests/PermissionQueueTest.php",
       "igbz-suite/tests/Phases2Test.php",
@@ -986,7 +1003,7 @@
       "igbz-suite/tests/doubles-namespaced.php",
       "igbz-suite/tests/run.php"
     ],
-    "main_case_count": 87,
+    "main_case_count": 90,
     "main_cases": [
       "CryptoTest",
       "SettingsTest",
@@ -1057,7 +1074,10 @@
       "ContentPublishTest",
       "VipChannelTest",
       "GrowthIntelTest",
-      "DeepInfraAdapterTest",
+      "OpenAiAdapterTest",
+      "AiGatewayTest",
+      "AnthropicAdapterTest",
+      "CustomAdapterTest",
       "PermissionQueueTest",
       "SensitiveOpsTest",
       "ContentOpsTest",

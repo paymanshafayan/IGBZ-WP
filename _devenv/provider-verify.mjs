@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Live verification of the Zernio and DeepInfra keys + endpoint contracts
- * (the PV-ZERNIO-* and DeepInfra benchmark gates).
+ * Live verification of the Zernio + inference-provider keys and endpoint contracts
+ * (the PV-ZERNIO-* and ADR-0005 provider benchmark gates).
  *
  * Runs in GitHub Actions, where outbound HTTPS is open. The dev sandbox only
  * reaches registry.npmjs.org, so this script cannot run there — this is by
@@ -13,19 +13,29 @@
  *   ZERNIO_BASE_URL         default https://zernio.com/api/v1
  *   ZERNIO_AUTH_SCHEME      default Bearer
  *   ZERNIO_PROBE_SLUG       probe profile name prefix (default igbz-ci-probe)
- *   DEEPINFRA_API_KEY       store's DeepInfra key
- *   DEEPINFRA_ENDPOINT      default https://api.deepinfra.com/v1/openai/chat/completions
- *   DEEPINFRA_MODELS        comma list; empty = plugin pinned list
- *   DEEPINFRA_BENCHMARK_PROMPT  Persian prompt (tiny, ~128 tokens)
- *   RUN_ZERNIO / RUN_DEEPINFRA  'false'/'0' to skip
+ *
+ *   OPENROUTER_API_KEY      OpenRouter key (openai dialect)
+ *   OPENROUTER_ENDPOINT     default https://openrouter.ai/api/v1/chat/completions
+ *   OPENROUTER_MODELS       comma list; empty = plugin pinned list
+ *
+ *   GROQ_API_KEY            Groq key (openai dialect)
+ *   GROQ_ENDPOINT           default https://api.groq.com/openai/v1/chat/completions
+ *   GROQ_MODELS             comma list; empty = plugin pinned list
+ *
+ *   ANTHROPIC_API_KEY       Anthropic key (anthropic dialect; optional)
+ *   ANTHROPIC_ENDPOINT      default https://api.anthropic.com/v1/messages
+ *   ANTHROPIC_MODELS        comma list; empty = plugin pinned list
+ *
+ *   BENCHMARK_PROMPT        Persian prompt (tiny, ~128 tokens)
+ *   RUN_ZERNIO / RUN_OPENROUTER / RUN_GROQ / RUN_ANTHROPIC  'false'/'0' to skip
  */
 
-// Matches the plugin's pinned defaults (DeepInfraAdapter::DEFAULT_MODELS).
-const PINNED_MODELS = [
-  'deepseek-ai/DeepSeek-V3',
-  'moonshotai/Kimi-K2.7-Code',
-  'moonshotai/Kimi-K3',
-];
+// Matches the plugin's seeded defaults (ProviderDefinition::seed_defaults).
+const PINNED = {
+  openrouter: ['anthropic/claude-sonnet-4', 'openai/gpt-4o-mini', 'google/gemini-2.5-pro', 'meta-llama/llama-3.1-405b-instruct'],
+  groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'meta-llama/llama-4-scout-17b-16e-instruct', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+  anthropic: ['claude-sonnet-4-20250514'],
+};
 
 const REDACT = /("?(?:api_?key|key|token|secret|access_token|authUrl|auth_url)"?\s*[:=]\s*)("[^"]*"|[^\s,}]+)/gi;
 const scrub = (s) => String(s).replace(REDACT, '$1"***"');
@@ -35,10 +45,10 @@ function firstObj(v) {
   return v && typeof v === 'object' ? v : {};
 }
 
-async function req(method, url, { key, scheme = 'Bearer', json, timeoutMs = 30000 } = {}) {
+async function req(method, url, { key, scheme = 'Bearer', headers: extra = {}, json, timeoutMs = 30000 } = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  const headers = { Accept: 'application/json' };
+  const headers = { Accept: 'application/json', ...extra };
   if (key) headers.Authorization = `${scheme} ${key}`;
   let body;
   if (json !== undefined) {
@@ -71,33 +81,37 @@ async function check(name, fn) {
 
 const env = process.env;
 const RUN_ZERNIO = env.RUN_ZERNIO !== 'false' && env.RUN_ZERNIO !== '0';
-const RUN_DEEPINFRA = env.RUN_DEEPINFRA !== 'false' && env.RUN_DEEPINFRA !== '0';
-const ZERNIO_BASE = (env.ZERNIO_BASE_URL || 'https://zernio.com/api/v1').replace(/\/+$/, '');
-const ZERNIO_SCHEME = env.ZERNIO_AUTH_SCHEME || 'Bearer';
-const DEEPINFRA_ENDPOINT = env.DEEPINFRA_ENDPOINT || 'https://api.deepinfra.com/v1/openai/chat/completions';
-const DEEPINFRA_MODELS = (env.DEEPINFRA_MODELS || '').split(',').map((s) => s.trim()).filter(Boolean);
-const BENCH_PROMPT = env.DEEPINFRA_BENCHMARK_PROMPT || 'در یک جمله کوتاه، مهم‌ترین مزیت یک فروشگاه اینستاگرامی را بنویس.';
+const RUN_OPENROUTER = env.RUN_OPENROUTER !== 'false' && env.RUN_OPENROUTER !== '0';
+const RUN_GROQ = env.RUN_GROQ !== 'false' && env.RUN_GROQ !== '0';
+const RUN_ANTHROPIC = env.RUN_ANTHROPIC === 'true' || env.RUN_ANTHROPIC === '1';
+const BENCH_PROMPT = env.BENCHMARK_PROMPT || 'در یک جمله کوتاه، مهم‌ترین مزیت یک فروشگاه اینستاگرامی را بنویس.';
 
-async function deepinfra() {
-  if (!env.DEEPINFRA_API_KEY) {
-    results.push({ name: 'deepinfra', ok: false, detail: 'DEEPINFRA_API_KEY secret missing' });
+function models(name, envList) {
+  const list = (envList || '').split(',').map((s) => s.trim()).filter(Boolean);
+  return list.length ? list : PINNED[name];
+}
+
+async function openaiDialect(name) {
+  const keyEnv = `${name.toUpperCase()}_API_KEY`;
+  const modelsEnv = `${name.toUpperCase()}_MODELS`;
+  const endpoint = env[`${name.toUpperCase()}_ENDPOINT`]
+    || (name === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions');
+  if (!env[keyEnv]) {
+    results.push({ name, ok: false, detail: `${keyEnv} secret missing` });
     return;
   }
-  const models = DEEPINFRA_MODELS.length ? DEEPINFRA_MODELS : PINNED_MODELS;
-  for (const model of models) {
-    await check(`deepinfra:${model}`, async () => {
-      const r = await req('POST', DEEPINFRA_ENDPOINT, {
-        key: env.DEEPINFRA_API_KEY,
-        json: {
-          model,
-          messages: [{ role: 'user', content: BENCH_PROMPT }],
-          max_tokens: 128,
-          temperature: 0.2,
-        },
+  for (const model of models(name, env[modelsEnv])) {
+    await check(`${name}:${model}`, async () => {
+      const r = await req('POST', endpoint, {
+        key: env[keyEnv],
+        json: { model, messages: [{ role: 'user', content: BENCH_PROMPT }], max_tokens: 128, temperature: 0.2 },
       });
       if (r.status === 0) return { ok: false, detail: `network/abort: ${r.error}` };
       if (r.status === 401 || r.status === 403) {
         return { ok: false, detail: `HTTP ${r.status} — key rejected. ${scrub(r.raw).slice(0, 160)}` };
+      }
+      if (r.status === 402) {
+        return { ok: false, detail: `HTTP 402 — account has no credits/payment. ${scrub(r.raw).slice(0, 160)}` };
       }
       if (r.status < 200 || r.status >= 300) {
         return { ok: false, detail: `HTTP ${r.status} — ${scrub(r.raw).slice(0, 160)}` };
@@ -112,7 +126,40 @@ async function deepinfra() {
   }
 }
 
+async function anthropic() {
+  const endpoint = env.ANTHROPIC_ENDPOINT || 'https://api.anthropic.com/v1/messages';
+  if (!env.ANTHROPIC_API_KEY) {
+    results.push({ name: 'anthropic', ok: false, detail: 'ANTHROPIC_API_KEY secret missing' });
+    return;
+  }
+  for (const model of models('anthropic', env.ANTHROPIC_MODELS)) {
+    await check(`anthropic:${model}`, async () => {
+      const r = await req('POST', endpoint, {
+        key: env.ANTHROPIC_API_KEY,
+        headers: { 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        json: { model, max_tokens: 128, messages: [{ role: 'user', content: BENCH_PROMPT }] },
+      });
+      if (r.status === 0) return { ok: false, detail: `network/abort: ${r.error}` };
+      if (r.status === 401 || r.status === 403) {
+        return { ok: false, detail: `HTTP ${r.status} — key rejected. ${scrub(r.raw).slice(0, 160)}` };
+      }
+      if (r.status < 200 || r.status >= 300) {
+        return { ok: false, detail: `HTTP ${r.status} — ${scrub(r.raw).slice(0, 160)}` };
+      }
+      const blocks = Array.isArray(r.parsed && r.parsed.content) ? r.parsed.content : [];
+      const content = blocks.filter((b) => b && b.type === 'text').map((b) => b.text || '').join('');
+      const u = (r.parsed && r.parsed.usage) || {};
+      return {
+        ok: true,
+        detail: `HTTP ${r.status} in ${r.ms}ms · model=${(r.parsed && r.parsed.model) || model} · tokens=${u.input_tokens ?? '?'}+${u.output_tokens ?? '?'} · reply=${scrub(content).slice(0, 120)}`,
+      };
+    });
+  }
+}
+
 async function zernio() {
+  const ZERNIO_BASE = (env.ZERNIO_BASE_URL || 'https://zernio.com/api/v1').replace(/\/+$/, '');
+  const ZERNIO_SCHEME = env.ZERNIO_AUTH_SCHEME || 'Bearer';
   if (!env.ZERNIO_API_KEY) {
     results.push({ name: 'zernio', ok: false, detail: 'ZERNIO_API_KEY secret missing' });
     return;
@@ -151,8 +198,14 @@ async function zernio() {
 }
 
 async function main() {
-  if (RUN_DEEPINFRA) await deepinfra();
-  else results.push({ name: 'deepinfra', ok: true, detail: 'skipped (RUN_DEEPINFRA=false)' });
+  if (RUN_OPENROUTER) await openaiDialect('openrouter');
+  else results.push({ name: 'openrouter', ok: true, detail: 'skipped (RUN_OPENROUTER=false)' });
+
+  if (RUN_GROQ) await openaiDialect('groq');
+  else results.push({ name: 'groq', ok: true, detail: 'skipped (RUN_GROQ=false)' });
+
+  if (RUN_ANTHROPIC) await anthropic();
+  else results.push({ name: 'anthropic', ok: true, detail: 'skipped (RUN_ANTHROPIC=false)' });
 
   if (RUN_ZERNIO) await zernio();
   else results.push({ name: 'zernio', ok: true, detail: 'skipped (RUN_ZERNIO=false)' });

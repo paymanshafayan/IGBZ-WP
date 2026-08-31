@@ -1,9 +1,10 @@
 <?php
 /**
- * Phase 56 — the independent DeepInfra adapter: versioned contract, activation gates,
- * runtime-only credentials, data/command separation, tool allowlist, budget, timeout,
- * cost ledger. And the invariant that outlives every other feature: nothing the model
- * returns is ever executed.
+ * ADR-0005 — the provider-agnostic openai wire adapter. One adapter serves every
+ * openai-dialect host (Groq, OpenRouter): versioned contract, record-driven activation
+ * gates, runtime-only credentials with the panel key vault fallback, data/command
+ * separation, tool allowlist, budget, timeout, cost ledger — and the invariant that
+ * outlives every other feature: nothing the model returns is ever executed.
  */
 
 declare( strict_types = 1 );
@@ -11,7 +12,9 @@ declare( strict_types = 1 );
 use IGBZ\Suite\Modules\Pado\Ai\AiProviderInterface;
 use IGBZ\Suite\Modules\Pado\Ai\AiRequest;
 use IGBZ\Suite\Modules\Pado\Ai\AiToolbox;
-use IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter;
+use IGBZ\Suite\Modules\Pado\Ai\KeyVault;
+use IGBZ\Suite\Modules\Pado\Ai\OpenAiProtocolAdapter;
+use IGBZ\Suite\Modules\Pado\Ai\ProviderDefinition;
 use IGBZ\Suite\Support\Db;
 use IGBZ\Suite\Support\Http;
 
@@ -37,7 +40,7 @@ final class AiLedgerDb extends wpdb {
 	public function get_col( string $sql ) {
 		$this->queries[] = $sql;
 		if ( str_contains( $sql, 'ig_ai_credit_ledger' ) && str_contains( $sql, "reason = 'ai_usage'" ) ) {
-			$tenant = preg_match( "/tenant_id = '(\d+)'/", $sql, $m ) ? (int) $m[1] : 0;
+			$tenant = preg_match( "/tenant_id = '(\\d+)'/", $sql, $m ) ? (int) $m[1] : 0;
 			$today  = gmdate( 'Y-m-d' );
 			$out = [];
 			foreach ( $this->ledger as $row ) {
@@ -55,7 +58,7 @@ final class AiLedgerDb extends wpdb {
 	public function get_var( string $sql ) {
 		$this->queries[] = $sql;
 		if ( str_contains( $sql, 'ig_ai_credit_ledger' ) && str_contains( $sql, 'COUNT(*)' ) ) {
-			if ( preg_match( "/reference = '([^']+)'/", $sql, $r ) && preg_match( "/user_id = '(\d+)'/", $sql, $u) ) {
+			if ( preg_match( "/reference = '([^']+)'/", $sql, $r ) && preg_match( "/user_id = '(\\d+)'/", $sql, $u ) ) {
 				$count = 0;
 				foreach ( $this->ledger as $row ) {
 					if ( (string) $row['reference'] === $r[1] && (int) $row['user_id'] === (int) $u[1] && 'ai_usage' === (string) $row['reason'] ) {
@@ -69,15 +72,17 @@ final class AiLedgerDb extends wpdb {
 	}
 }
 
-final class DeepInfraAdapterTest extends TestCase {
+final class OpenAiAdapterTest extends TestCase {
 
 	private AiLedgerDb $db;
-	private DeepInfraAdapter $adapter;
+	private KeyVault $vault;
+	private OpenAiProtocolAdapter $adapter;
 
 	public function run(): void {
-		$this->the_contract_is_versioned_and_named();
+		$this->the_contract_is_versioned_and_names_the_provider();
 		$this->activation_requires_all_three_flags();
 		$this->the_runtime_key_travels_once_and_is_never_stored();
+		$this->the_panel_key_is_resolved_from_the_vault_once();
 		$this->the_model_allowlist_is_enforced();
 		$this->data_messages_cannot_pose_as_commands();
 		$this->tools_are_filtered_to_the_allowlist();
@@ -85,6 +90,7 @@ final class DeepInfraAdapterTest extends TestCase {
 		$this->usage_rows_dedupe_on_their_reference();
 		$this->the_daily_token_budget_is_enforced();
 		$this->non_https_endpoints_are_refused();
+		$this->the_openai_wire_shape_is_correct();
 		$this->tool_calls_from_the_model_are_validated();
 		$this->caps_and_timeouts_are_clamped();
 		$this->generated_output_is_never_executed();
@@ -92,32 +98,32 @@ final class DeepInfraAdapterTest extends TestCase {
 
 	// ------------------------------------------------------------ contract
 
-	private function the_contract_is_versioned_and_named(): void {
-		$this->fresh();
-		$this->assert_same( 'deepinfra', $this->adapter->provider(), 'the provider name is pinned' );
+	private function the_contract_is_versioned_and_names_the_provider(): void {
+		$this->fresh( activated: true );
+		$this->assert_same( 'groq', $this->adapter->provider(), 'the provider name comes from the record' );
+		$this->assert_same( 'openai', $this->adapter->protocol(), 'the wire dialect is pinned to openai' );
 		$this->assert_same( AiProviderInterface::CONTRACT_VERSION, $this->adapter->contract_version(), 'the adapter implements the current contract' );
+		$this->assert_same( [ 'chat', 'tools', 'json' ], $this->adapter->capabilities(), 'capabilities come from the record' );
 	}
 
 	private function activation_requires_all_three_flags(): void {
 		$this->fresh();
-
 		$off = $this->adapter->run( $this->request() );
 		$this->assert_false( $off->ok, 'with every flag off the run refuses' );
 		$this->assert_same( 'provider_disabled', $off->error, 'the refusal names the gate' );
 
-		igbz()->settings()->set( 'pado.deepinfra.enabled', 'yes' );
-		igbz()->settings()->set( 'pado.deepinfra.benchmark_passed', 'yes' );
+		$this->fresh( activated: false, overrides: [ 'enabled' => true, 'benchmark_passed' => true ] );
 		$still = $this->adapter->run( $this->request() );
 		$this->assert_false( $still->ok, 'two of three flags is not activation' );
 		$this->assert_same( 'provider_disabled', $still->error, 'still the gate, not a half-open plane' );
 
-		igbz()->settings()->set( 'pado.deepinfra.geo_eligible', 'yes' );
+		$this->fresh( activated: true );
 		$this->queue_http( [
 			'match'  => '/chat/completions',
 			'status' => 200,
 			'body'   => wp_json_encode( [
 				'id'      => 'chatcmpl-1',
-				'model'   => 'deepseek-ai/DeepSeek-V3',
+				'model'   => 'llama-3.3-70b-versatile',
 				'choices' => [ [ 'message' => [ 'role' => 'assistant', 'content' => 'سلام' ] ] ],
 				'usage'   => [ 'prompt_tokens' => 10, 'completion_tokens' => 5, 'total_tokens' => 15, 'estimated_cost' => 0.0001 ],
 			] ),
@@ -136,25 +142,46 @@ final class DeepInfraAdapterTest extends TestCase {
 			'body'   => wp_json_encode( [ 'choices' => [ [ 'message' => [ 'content' => 'ok' ] ] ] ] ),
 		] );
 
-		$result = $this->adapter->run( $this->request( key: 'di-store-key-123' ) );
+		$result = $this->adapter->run( $this->request( key: 'store-key-123' ) );
 		$this->assert_true( $result->ok, 'the run succeeds' );
 
 		$requests = $this->http_requests();
 		$this->assert_same( 1, count( $requests ), 'exactly one provider call' );
-		$this->assert_same( 'Bearer di-store-key-123', (string) ( $requests[0]['headers']['Authorization'] ?? '' ), 'the runtime key rides the call' );
+		$this->assert_same( 'Bearer store-key-123', (string) ( $requests[0]['headers']['Authorization'] ?? '' ), 'the runtime key rides the call' );
 
-		// Never stored: no option, no ledger row, no logged query carries it.
-		$this->assert_false( array_key_exists( 'pado.deepinfra.api_key', igbz()->settings()->all() ), 'no key option exists' );
+		// Never stored: the vault is empty, no ledger row, no logged query carries it.
+		$this->assert_false( $this->vault->has( 'groq' ), 'the runtime key is not written to the vault' );
 		foreach ( $this->db->queries as $query ) {
-			$this->assert_false( str_contains( (string) $query, 'di-store-key-123' ), 'the key never touches the database layer' );
+			$this->assert_false( str_contains( (string) $query, 'store-key-123' ), 'the key never touches the database layer' );
 		}
 		foreach ( $this->db->ledger as $row ) {
-			$this->assert_false( str_contains( (string) $row['meta'], 'di-store-key-123' ), 'the ledger never sees the key' );
+			$this->assert_false( str_contains( (string) $row['meta'], 'store-key-123' ), 'the ledger never sees the key' );
 		}
 
 		$missing = $this->adapter->run( $this->request( key: '' ) );
 		$this->assert_same( 'missing_runtime_key', $missing->error, 'no key, no call' );
 		$this->assert_same( 1, count( $this->http_requests() ), 'the refusal made no network traffic' );
+	}
+
+	private function the_panel_key_is_resolved_from_the_vault_once(): void {
+		$this->fresh( activated: true );
+		$this->vault->set( 'groq', 'panel-key-abc' );
+		$this->queue_http( [
+			'match'  => '/chat/completions',
+			'status' => 200,
+			'body'   => wp_json_encode( [ 'choices' => [ [ 'message' => [ 'content' => 'ok' ] ] ] ] ),
+		] );
+
+		$result = $this->adapter->run( $this->request( key: '' ) );
+		$this->assert_true( $result->ok, 'the panel key resolves the run' );
+
+		$requests = $this->http_requests();
+		$this->assert_same( 'Bearer panel-key-abc', (string) ( $requests[0]['headers']['Authorization'] ?? '' ), 'the vault key rides the call' );
+
+		// Encrypted at rest: the raw option never carries the plaintext.
+		$raw = igbz()->settings()->all()[ KeyVault::OPTION ] ?? '';
+		$this->assert_not_contains( 'panel-key-abc', (string) $raw, 'the vault option is not plaintext' );
+		$this->assert_contains( 'igbz1:', (string) $raw, 'the vault option is encrypted at rest' );
 	}
 
 	// ------------------------------------------------------------- planes
@@ -166,7 +193,7 @@ final class DeepInfraAdapterTest extends TestCase {
 		$this->assert_same( 'model_not_allowed', $result->error, 'the refusal names the allowlist' );
 		$this->assert_same( 0, count( $this->http_requests() ), 'no traffic for a refused model' );
 
-		igbz()->settings()->set( 'pado.deepinfra.models', 'acme/ratified-model' );
+		$this->fresh( activated: true, overrides: [ 'model_allowlist' => [ 'acme/ratified-model' ] ] );
 		$this->queue_http( [
 			'match'  => '/chat/completions',
 			'status' => 200,
@@ -234,7 +261,7 @@ final class DeepInfraAdapterTest extends TestCase {
 			'status' => 200,
 			'body'   => wp_json_encode( [
 				'id'      => 'chatcmpl-cost',
-				'model'   => 'deepseek-ai/DeepSeek-V3',
+				'model'   => 'llama-3.3-70b-versatile',
 				'choices' => [ [ 'message' => [ 'content' => 'تحلیل' ] ] ],
 				'usage'   => [ 'prompt_tokens' => 100, 'completion_tokens' => 40, 'total_tokens' => 140, 'estimated_cost' => 0.0021 ],
 			] ),
@@ -253,7 +280,8 @@ final class DeepInfraAdapterTest extends TestCase {
 		$this->assert_same( 0.0, (float) $row['delta'], 'usage accounting never mutates credits' );
 		$meta = json_decode( (string) $row['meta'], true );
 		$this->assert_same( 140, (int) $meta['total_tokens'], 'token counts are in the meta' );
-		$this->assert_same( 'deepseek-ai/DeepSeek-V3', (string) $meta['model'], 'provenance: the model is recorded' );
+		$this->assert_same( 'groq', (string) $meta['provider'], 'provenance: the provider id is recorded' );
+		$this->assert_same( 'llama-3.3-70b-versatile', (string) $meta['model'], 'provenance: the model is recorded' );
 	}
 
 	private function usage_rows_dedupe_on_their_reference(): void {
@@ -274,8 +302,7 @@ final class DeepInfraAdapterTest extends TestCase {
 	}
 
 	private function the_daily_token_budget_is_enforced(): void {
-		$this->fresh( activated: true );
-		igbz()->settings()->set( 'pado.deepinfra.daily_token_budget', '500' );
+		$this->fresh( activated: true, overrides: [ 'daily_token_budget' => 500 ] );
 
 		$this->db->ledger[1] = [
 			'tenant_id'  => 1,
@@ -297,11 +324,27 @@ final class DeepInfraAdapterTest extends TestCase {
 	// ------------------------------------------------------------ network
 
 	private function non_https_endpoints_are_refused(): void {
-		$this->fresh( activated: true );
-		igbz()->settings()->set( 'pado.deepinfra.endpoint', 'http://api.deepinfra.com/v1/openai/chat/completions' );
+		$this->fresh( activated: true, overrides: [ 'base_url' => 'http://api.groq.com/openai/v1' ] );
 		$result = $this->adapter->run( $this->request() );
 		$this->assert_false( $result->ok, 'the run refuses' );
 		$this->assert_same( 'provider_not_configured', $result->error, 'a plaintext endpoint is not a configuration' );
+	}
+
+	private function the_openai_wire_shape_is_correct(): void {
+		$this->fresh( activated: true );
+		$this->assert_same( 'https://api.groq.com/openai/v1/chat/completions', $this->adapter->endpoint(), 'the endpoint is base_url + /chat/completions' );
+
+		$this->queue_http( [
+			'match'  => '/chat/completions',
+			'status' => 200,
+			'body'   => wp_json_encode( [ 'choices' => [ [ 'message' => [ 'content' => '' ] ] ] ] ),
+		] );
+		$this->adapter->run( $this->request( max_tokens: 256, reference: 'shape' ) );
+
+		$body = json_decode( (string) $this->http_requests()[0]['body'], true );
+		$this->assert_same( 'llama-3.3-70b-versatile', (string) $body['model'], 'the model field is the request model' );
+		$this->assert_same( 256, (int) $body['max_tokens'], 'max_tokens rides the wire' );
+		$this->assert_same( 'system', (string) $body['messages'][0]['role'], 'the system prompt is the first turn' );
 	}
 
 	private function tool_calls_from_the_model_are_validated(): void {
@@ -367,30 +410,35 @@ final class DeepInfraAdapterTest extends TestCase {
 
 	// --------------------------------------------------------------- setup
 
-	private function fresh( bool $activated = false ): void {
+	/** @param array<string,mixed> $overrides */
+	private function fresh( bool $activated = false, array $overrides = [] ): void {
 		igbz_test_reset_settings();
 		$this->db = new AiLedgerDb();
 		$GLOBALS['wpdb'] = $this->db;
 
 		$logger = igbz()->get( 'logger' );
-		$this->adapter = new DeepInfraAdapter(
+		$record = ProviderDefinition::seed_defaults()[0]; // groq
+		if ( $activated ) {
+			$record['enabled'] = true;
+			$record['benchmark_passed'] = true;
+			$record['geo_eligible'] = true;
+		}
+		$record = array_merge( $record, $overrides );
+
+		$this->vault   = new KeyVault( igbz()->settings() );
+		$this->adapter = new OpenAiProtocolAdapter(
+			ProviderDefinition::from_array( $record ),
+			$this->vault,
 			new Http( $logger ),
 			new Db(),
 			$logger,
-			igbz()->settings(),
 			new AiToolbox()
 		);
-
-		if ( $activated ) {
-			igbz()->settings()->set( 'pado.deepinfra.enabled', 'yes' );
-			igbz()->settings()->set( 'pado.deepinfra.benchmark_passed', 'yes' );
-			igbz()->settings()->set( 'pado.deepinfra.geo_eligible', 'yes' );
-		}
 	}
 
 	private function request(
 		string $key = 'di-test-key',
-		string $model = 'deepseek-ai/DeepSeek-V3',
+		string $model = 'llama-3.3-70b-versatile',
 		array $tools = [ 'product_search', 'insight_read' ],
 		int $max_tokens = 256,
 		int $timeout = 60,

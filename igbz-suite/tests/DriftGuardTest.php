@@ -14,6 +14,7 @@ final class DriftGuardTest extends TestCase {
 	/** Registry members that are generated tokens, not admin-form password fields. */
 	private const REGISTRY_WITHOUT_FIELD = [
 		'pado.api_key', // rendered on the Pado page, not the shared settings form
+		'pado.ai.key_vault', // ADR-0005: the provider key vault, edited via the Pado wizard
 		'vip.media_hmac_secret', // generated token, no form field
 	];
 
@@ -79,9 +80,9 @@ final class DriftGuardTest extends TestCase {
 		$found  = preg_match( "/define\(\s*'IGBZ_DB_VERSION',\s*(\d+)/", $source, $matches );
 		$this->assert_same( 1, $found, 'IGBZ_DB_VERSION define not found in igbz-suite.php' );
 		$this->assert_same(
-			48,
+			49,
 			(int) ( $matches[1] ?? 0 ),
-			'IGBZ_DB_VERSION drifted from the pinned baseline (48 / PHASE-01-INVENTORY.json database.version)'
+			'IGBZ_DB_VERSION drifted from the pinned baseline (49 / PHASE-01-INVENTORY.json database.version)'
 		);
 	}
 
