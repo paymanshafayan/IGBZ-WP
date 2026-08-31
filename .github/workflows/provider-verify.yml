@@ -1,0 +1,45 @@
+# Reference workflow — live verification of Zernio + DeepInfra keys (PV-*)
+
+# Copy this file into `.github/workflows/provider-verify.yml` from the GitHub
+# UI (the sandbox token cannot push into `.github/workflows/`). Add the two
+# repository secrets first (see _devenv/PROVIDER-VERIFY.md), then trigger it
+# manually from the Actions tab.
+
+name: Provider key verification (Zernio + DeepInfra)
+
+on:
+  workflow_dispatch:
+    inputs:
+      zernio:
+        description: 'Zernio: run the central-key profile probe (create → verify → delete)'
+        type: boolean
+        default: true
+      deepinfra:
+        description: 'DeepInfra: run the key + model probe with a tiny Persian prompt'
+        type: boolean
+        default: true
+      deepinfra_models:
+        description: 'Comma-separated models to probe (empty = plugin pinned list)'
+        type: string
+        required: false
+        default: ''
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Probe providers
+        env:
+          ZERNIO_API_KEY: ${{ secrets.ZERNIO_API_KEY }}
+          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+          RUN_ZERNIO: ${{ inputs.zernio }}
+          RUN_DEEPINFRA: ${{ inputs.deepinfra }}
+          DEEPINFRA_MODELS: ${{ inputs.deepinfra_models }}
+        run: node _devenv/provider-verify.mjs
