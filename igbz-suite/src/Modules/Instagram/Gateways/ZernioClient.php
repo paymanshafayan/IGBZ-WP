@@ -32,8 +32,19 @@ final class ZernioClient implements ZernioAdapterInterface {
 	// ------------------------------------------------------- profile plane
 
 	public function is_configured(): bool {
-		return '' !== igbz()->settings()->string( 'zernio.central_api_key' )
+		return '' !== $this->central_key()
 			&& '' !== $this->base();
+	}
+
+	/** Runtime-only staging credential; production remains admin-configured. */
+	private function central_key(): string {
+		$stored = igbz()->settings()->string( 'zernio.central_api_key' );
+		if ( '' !== $stored ) {
+			return $stored;
+		}
+		return 'staging' === (string) getenv( 'WP_ENVIRONMENT_TYPE' )
+			? trim( (string) getenv( 'ZERNIO_API_KEY' ) )
+			: '';
 	}
 
 	public function create_profile( string $store_slug ): array {
@@ -459,7 +470,7 @@ final class ZernioClient implements ZernioAdapterInterface {
 		$scheme = igbz()->settings()->string( 'zernio.auth_scheme', 'Bearer' );
 
 		return [
-			'Authorization' => ( '' === $scheme ? '' : $scheme . ' ' ) . igbz()->settings()->string( 'zernio.central_api_key' ),
+			'Authorization' => ( '' === $scheme ? '' : $scheme . ' ' ) . $this->central_key(),
 			'Accept'        => 'application/json',
 		];
 	}

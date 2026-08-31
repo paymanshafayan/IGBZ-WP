@@ -27,9 +27,42 @@ normalize_apache_mpm
 # آن را در پس‌زمینه اجرا می‌کنیم تا فایل‌های وردپرس و wp-config.php ساخته شوند؛
 # سپس bootstrap را اجرا کرده و در پایان همان فرایند آپاچی را نگه می‌داریم.
 echo "igbz: initializing WordPress files and configuration"
+# Keep WordPress in maintenance mode while the first-boot bootstrap mutates the
+# database and activates plugins.  Railway may probe the public port as soon as
+# Apache binds; without this guard a probe can race the wp-cli bootstrap and lock
+# wp_options (notably during setup_theme/theme-root discovery).
+touch "$WEBROOT/.maintenance"
+# Railway requires a 2xx health response while the application is bootstrapping.
+# Serve a static, dependency-free probe so health checks do not enter WordPress.
+cat > "$WEBROOT/igbz-boot-health.json" <<'JSON'
+{"ok":true,"ready":false,"bootstrap":true}
+JSON
+cleanup_maintenance() {
+	rm -f "$WEBROOT/.maintenance"
+}
+# WordPress maintenance mode alone is not sufficient: theme discovery can still
+# touch wp_options before that check. Deny the document root at Apache level
+# until wp-cli has finished the first-boot mutations.
+cat > /etc/apache2/conf-available/igbz-bootstrap-deny.conf <<'APACHECONF'
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{QUERY_STRING} (^|&)igbz_health=1(&|$)
+    RewriteRule ^ /igbz-boot-health.json [END]
+    RewriteRule ^ - [R=503,L]
+</IfModule>
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-store"
+</IfModule>
+APACHECONF
+a2enmod rewrite >/dev/null
+a2enconf igbz-bootstrap-deny >/dev/null
+trap 'cleanup_maintenance; kill "${APACHE_PID:-}" 2>/dev/null || true' TERM INT EXIT
+
+# Keep Apache available for Railway's healthcheck, but make every request return
+# 503 until bootstrap is complete. This prevents PHP/WordPress requests from
+# racing wp-cli while still giving Railway the expected not-ready response.
 docker-entrypoint.sh apache2-foreground &
 APACHE_PID=$!
-trap 'kill "$APACHE_PID" 2>/dev/null || true' TERM INT
 
 until [ -f "$WEBROOT/wp-load.php" ] && [ -s "$WEBROOT/wp-config.php" ]; do
 	if ! kill -0 "$APACHE_PID" 2>/dev/null; then
@@ -118,7 +151,12 @@ bootstrap() {
 	echo "igbz: bootstrap done — $URL"
 }
 
-bootstrap &
+bootstrap
+printf '%s\n' '{"ok":true,"ready":true,"bootstrap":false}' > "$WEBROOT/igbz-boot-health.json"
+cleanup_maintenance
+# Only now expose WordPress to Railway probes and users.
+a2disconf igbz-bootstrap-deny >/dev/null 2>&1 || true
+apache2ctl graceful
 
 # فاز ۷۰ — گیت آمادگی: سلامت خودمان را می‌پرسیم تا زمانی که ۲۰۰ بدهد؛
 # نتیجه در لاگ استقرار دیده می‌شود و railway.json هم healthcheckPath دارد.

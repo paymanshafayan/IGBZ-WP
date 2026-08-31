@@ -59,6 +59,14 @@ final class Plugin {
 
 		add_action( 'plugins_loaded', [ $this, 'on_plugins_loaded' ], 5 );
 		add_action( 'init', [ $this, 'load_textdomain' ], 1 );
+		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_admin_assets' ] );
+	}
+
+	public function enqueue_admin_assets( string $hook ): void {
+		if ( ! is_admin() || ! \IGBZ\Suite\Support\Admin\Menu::is_igbz_screen() ) {
+			return;
+		}
+		wp_enqueue_style( 'igbz-admin', IGBZ_URL . 'assets/css/admin.css', [], IGBZ_VERSION );
 	}
 
 	public function load_textdomain(): void {

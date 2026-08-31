@@ -53,7 +53,14 @@ final class StoreDashboardPage {
 		$tenant_id = igbz()->tenancy()->id();
 		$tenant    = $tenant_id > 0 ? igbz()->tenancy()->repository()->find( $tenant_id ) : null;
 		if ( ! $tenant ) {
-			wp_die( esc_html__( 'No store is assigned to this account.', 'igbz-suite' ), 403 );
+			View::open(
+				__( 'Store dashboard', 'igbz-suite' ),
+				__( 'Manage your store from one place.', 'igbz-suite' )
+			);
+			View::notice( __( 'No store is assigned to this account yet. Ask a platform administrator to assign a store before using store operations.', 'igbz-suite' ), 'warning' );
+			echo '<div class="igbz-card" style="max-width:720px"><strong>' . esc_html__( 'Store access is waiting', 'igbz-suite' ) . '</strong><p>' . esc_html__( 'This page will show products and orders as soon as your account is assigned to a store.', 'igbz-suite' ) . '</p></div>';
+			View::close();
+			return;
 		}
 		$product_count = 0;
 		$order_count   = 0;

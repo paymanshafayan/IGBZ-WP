@@ -59,6 +59,10 @@ msgstr ""
 msgid "%1$s × %2$d"
 msgstr "%1$s × %2$d"
 
+#: src/Support/Admin/StatusPage.php:208
+msgid "%1$s: %2$s (threshold %3$s)"
+msgstr ""
+
 #: src/Modules/MultiTenant/Frontend/ShortCodes.php:471
 msgid "%d attempt left"
 msgid_plural "%d attempts left"
@@ -133,6 +137,14 @@ msgstr[1] ""
 #: src/Modules/Instagram/Vip/VipLandingPage.php:224
 msgid "%s likes"
 msgstr "%s پسند"
+
+#: src/Support/Admin/StatusPage.php:238
+msgid "%s min"
+msgstr "%s دقیقه"
+
+#: src/Support/Admin/StatusPage.php:243
+msgid "%s min ago"
+msgstr "%s دقیقه پیش"
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:96
 msgid "%s responded — connection OK."
@@ -311,11 +323,11 @@ msgstr ""
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:34
 msgid "AI content studio"
-msgstr ""
+msgstr "استودیوی محتوای هوش مصنوعی"
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:27
 msgid "AI studio"
-msgstr ""
+msgstr "استودیوی هوش مصنوعی"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:312
 msgid "API base"
@@ -334,7 +346,7 @@ msgstr ""
 msgid "API keys path (scoped key issue/revoke)"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:297
+#: src/Support/Admin/StatusPage.php:347
 msgid "AUTH_KEY / AUTH_SALT are used to derive the encryption key."
 msgstr ""
 
@@ -422,9 +434,9 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:265
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:323
-#: src/Support/Admin/StatusPage.php:233
+#: src/Support/Admin/StatusPage.php:283
 msgid "Action"
-msgstr ""
+msgstr "عملیات"
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:134
 msgid "Action failed; check the security log for details."
@@ -443,7 +455,7 @@ msgstr ""
 #: src/Modules/RestApi/Admin/DevicesPage.php:159
 #: src/Modules/RestApi/Admin/DevicesPage.php:298
 msgid "Actions"
-msgstr ""
+msgstr "عملیات"
 
 #: src/Modules/MultiTenant/Admin/BnplPage.php:213
 msgid "Activate"
@@ -466,7 +478,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/PlansPage.php:88
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:535
 msgid "Active"
-msgstr ""
+msgstr "فعال"
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:552
 msgid "Active (%s)"
@@ -535,7 +547,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:81
 msgid "Add tenant"
-msgstr ""
+msgstr "افزودن فروشگاه"
 
 #: src/Support/Admin/SettingsPage.php:508
 msgid "Added on top of the requested USD amount when charging with Rials. The wallet""only receives the requested amount; the fee is the operator's."
@@ -550,14 +562,14 @@ msgstr ""
 msgid "Adjust affiliate"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/WalletPage.php:255
+#: src/Modules/MultiTenant/Admin/WalletPage.php:263
 msgid "Adjustment posted. New balance: %s"
-msgstr ""
+msgstr "تعدیل ثبت شد. موجودی جدید: %s"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:179
 #: src/Support/Admin/SettingsPage.php:81
 msgid "Advanced"
-msgstr ""
+msgstr "پیشرفته"
 
 #: src/Modules/MultiTenant/Admin/SeoPage.php:95
 msgid "Advertorial (Triboon)"
@@ -567,7 +579,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:74
 #: src/Support/Admin/SettingsPage.php:49
 msgid "Affiliate"
-msgstr ""
+msgstr "همکاری در فروش"
 
 #: src/Modules/MultiTenant/Affiliate/AffiliateService.php:409
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:535
@@ -601,9 +613,9 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:23
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:43
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:73
-#: src/Support/Admin/StatusPage.php:115
+#: src/Support/Admin/StatusPage.php:116
 msgid "Affiliates"
-msgstr ""
+msgstr "همکاران فروش"
 
 #: src/Support/Admin/SettingsPage.php:475
 msgid "Aggregate refresh interval (seconds)"
@@ -617,29 +629,33 @@ msgstr ""
 msgid "Agreement accepted — master gateway active."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:268
+#: src/Support/Admin/StatusPage.php:318
 msgid "All %d tables present."
-msgstr ""
+msgstr "هر %d جدول موجود است."
+
+#: src/Support/Admin/StatusPage.php:218
+msgid "All SLOs green: jobs, queue latency and error rate are inside their""thresholds."
+msgstr "همهٔ SLOها سبز هستند: کارها، تأخیر صف و نرخ خطا در محدودهٔ مجازند."
 
 #: src/Modules/MultiTenant/Admin/LogisticsPage.php:91
 msgid "All routes"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:86
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:93
 msgid "All store actions are scoped to the current tenant on the server."
-msgstr ""
+msgstr "همهٔ عملیات فروشگاه در سمت سرور به فروشگاه فعلی محدود شده‌اند."
 
 #: src/Support/Admin/SettingsPage.php:144
 msgid "Allow customers to top up"
-msgstr ""
+msgstr "اجازهٔ شارژ کیف پول به مشتریان"
 
 #: src/Support/Admin/SettingsPage.php:139
 msgid "Allow negative balance"
-msgstr ""
+msgstr "اجازهٔ موجودی منفی"
 
 #: src/Support/Admin/SettingsPage.php:118
 msgid "Allow tenant self sign-up"
-msgstr ""
+msgstr "اجازهٔ ثبت‌نام خودکار فروشگاه"
 
 #: src/Modules/MultiTenant/Wallet/WalletGateway.php:54
 msgid "Allow the wallet to cover part of the order and charge the rest to another""gateway"
@@ -669,7 +685,7 @@ msgstr "نصب کرده‌اید؟ این پست در %s باز می‌شود"
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:257
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:409
 msgid "Amount"
-msgstr ""
+msgstr "مبلغ"
 
 #: src/Modules/MultiTenant/Admin/BnplPage.php:291
 msgid "Amount due"
@@ -728,7 +744,7 @@ msgstr ""
 #: src/Modules/Instagram/Admin/VipPage.php:180
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:87
 msgid "Any status"
-msgstr ""
+msgstr "هر وضعیتی"
 
 #: src/Support/Admin/SettingsPage.php:208
 msgid "Anyone can check a certificate at /certificate/IGBZ-XXXX. Change it and""re-save your permalinks; codes already printed will stop resolving."
@@ -807,11 +823,11 @@ msgstr "احراز هویت لازم است."
 
 #: src/Support/Admin/SettingsPage.php:192
 msgid "Auto approve commissions after (days)"
-msgstr ""
+msgstr "تأیید خودکار کمیسیون پس از (روز)"
 
 #: src/Support/Admin/SettingsPage.php:124
 msgid "Auto approve new tenants"
-msgstr ""
+msgstr "تأیید خودکار فروشگاه‌های جدید"
 
 #: src/Support/Admin/SettingsPage.php:517
 msgid "Auto falls back to the manual value when the URL is unreachable."
@@ -823,7 +839,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TranslatorPage.php:30
 msgid "Auto translator"
-msgstr ""
+msgstr "مترجم خودکار"
 
 #: src/Support/Admin/SettingsPage.php:362
 msgid "Auto-approve inbox replies"
@@ -907,24 +923,24 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:219
 msgid "Back to the tenant list"
-msgstr ""
+msgstr "بازگشت به فهرست فروشگاه‌ها"
 
-#: src/Support/Admin/StatusPage.php:200
+#: src/Support/Admin/StatusPage.php:250
 msgid "Background jobs"
-msgstr ""
+msgstr "کارهای پس‌زمینه"
 
 #: src/Modules/MultiTenant/Admin/JobsPage.php:35
 msgid "Backlog, age and dead letters of the durable queue."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/WalletPage.php:219
+#: src/Modules/MultiTenant/Admin/WalletPage.php:227
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:138
 msgid "Balance"
-msgstr ""
+msgstr "موجودی"
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:179
 msgid "Balance after"
-msgstr ""
+msgstr "موجودی پس از تراکنش"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:354
 msgid "Balance and ledger."
@@ -1089,15 +1105,15 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:107
 msgid "By ?tenant= query argument"
-msgstr ""
+msgstr "بر اساس پارامتر پرس‌وجوی tenant="
 
 #: src/Support/Admin/SettingsPage.php:106
 msgid "By URL path prefix"
-msgstr ""
+msgstr "بر اساس پیشوند مسیر نشانی"
 
 #: src/Support/Admin/SettingsPage.php:105
 msgid "By domain / subdomain"
-msgstr ""
+msgstr "بر اساس دامنه / زیردامنه"
 
 #: src/Support/Admin/SettingsPage.php:478
 msgid "CNAME target for custom domains"
@@ -1131,7 +1147,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/BnplPage.php:215
 #: src/Modules/MultiTenant/Admin/PlansPage.php:197
 msgid "Cancel"
-msgstr ""
+msgstr "لغو"
 
 #: src/Modules/Instagram/Admin/VipPage.php:250
 msgid "Cancelling"
@@ -1191,7 +1207,7 @@ msgstr "درخت دسته‌بندی فروشگاه فعلی."
 
 #: src/Support/Admin/SettingsPage.php:347
 msgid "Central Zernio API key"
-msgstr ""
+msgstr "کلید مرکزی API زرنیو"
 
 #: src/Modules/Instagram/InstagramModule.php:300
 msgid "Central key configured; profiles are provisioned from it. Store profiles""never see this key."
@@ -1211,7 +1227,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:206
 msgid "Certificate verification prefix"
-msgstr ""
+msgstr "پیشوند اعتبارسنجی گواهی"
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:337
 msgid "Certificate:"
@@ -1223,9 +1239,9 @@ msgstr "تغییر از برنامهٔ موبایل توسط %s."
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:342
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:375
-#: src/Support/Admin/StatusPage.php:339
+#: src/Support/Admin/StatusPage.php:389
 msgid "Channel"
-msgstr ""
+msgstr "کانال"
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:371
 msgid "Channel links"
@@ -1239,9 +1255,9 @@ msgstr ""
 msgid "Charge with Rials"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:316
+#: src/Support/Admin/StatusPage.php:366
 msgid "Check"
-msgstr ""
+msgstr "بررسی"
 
 #: src/Modules/Hub/Admin/HubPage.php:200
 msgid "Check DNS"
@@ -1255,9 +1271,9 @@ msgstr ""
 msgid "Checkout defaults to the store country for guests and new customers"
 msgstr "پیش‌فرضِ کشور تسویه‌حساب برای مهمان و مشتری تازه، کشور فروشگاه"
 
-#: src/Support/Admin/StatusPage.php:150
+#: src/Support/Admin/StatusPage.php:151
 msgid "Checks"
-msgstr ""
+msgstr "بررسی‌ها"
 
 #: src/Modules/Fx/Admin/FxPage.php:343
 msgid "Choose a due bill."
@@ -1277,7 +1293,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:181
 msgid "Choosing \"create a new user\" uses the e-mail and phone below to register""the owner account and assign the tenant owner role."
-msgstr ""
+msgstr "با انتخاب «ساخت کاربر جدید»، ایمیل و تلفن زیر برای ثبت حساب مالک و اختصاص نقش""مالک فروشگاه استفاده می‌شود."
 
 #: src/Modules/MultiTenant/Admin/LogisticsPage.php:68
 msgid "City"
@@ -1301,15 +1317,15 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:317
 msgid "Code length"
-msgstr ""
+msgstr "طول کد"
 
 #: src/Support/Admin/SettingsPage.php:318
 msgid "Code lifetime (seconds)"
-msgstr ""
+msgstr "عمر کد (ثانیه)"
 
 #: src/Support/Admin/SettingsPage.php:181
 msgid "Collect instalments from the wallet automatically"
-msgstr ""
+msgstr "دریافت خودکار اقساط از کیف پول"
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:323
 msgid "Comma separated 24h hours, e.g. 12,18,21. Empty = automatic (Zernio""best-time)."
@@ -1397,7 +1413,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/LmsPage.php:556
 #: src/Modules/MultiTenant/Lms/CertificatePage.php:107
 msgid "Completed"
-msgstr ""
+msgstr "تکمیل‌شده"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:162
 msgid "Completing an order containing this product enrolls the buyer."
@@ -1556,7 +1572,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:211
 msgid "Course page id"
-msgstr ""
+msgstr "شناسهٔ صفحهٔ دوره"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:634
 msgid "Course saved."
@@ -1566,7 +1582,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/LmsPage.php:45
 #: src/Modules/MultiTenant/Admin/PlansPage.php:237
 msgid "Courses"
-msgstr ""
+msgstr "دوره‌ها"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:193
 msgid "Cover image URL"
@@ -1574,7 +1590,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:120
 msgid "Create a new WordPress user and tenant from the sign-up shortcode."
-msgstr ""
+msgstr "با شورت‌کد ثبت‌نام، کاربر وردپرس و فروشگاه جدید بساز."
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:215
 msgid "Create course"
@@ -1611,7 +1627,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:207
 msgid "Create tenant"
-msgstr ""
+msgstr "ایجاد فروشگاه"
 
 #: src/Modules/Hub/Admin/HubPage.php:403
 msgid "Create user + store + subscription and return the payment redirect."
@@ -1623,7 +1639,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:179
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:284
 msgid "Created"
-msgstr ""
+msgstr "ایجادشده"
 
 #: src/Modules/MultiTenant/Payments/PspGateway.php:55
 msgid "Credentials"
@@ -1648,7 +1664,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:730
 msgid "Cross-store aggregation, store directory, VIP links and hub REST endpoints""for the mother site."
-msgstr ""
+msgstr "تجمیع فروشگاه‌ها، فهرست فروشگاه‌ها، پیوندهای VIP و نقاط اتصال REST هاب برای""سایت مادر."
 
 #: src/Modules/MultiTenant/Payments/NowPaymentsGateway.php:31
 msgid "Crypto (NOWPayments)"
@@ -1661,7 +1677,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/PlansPage.php:111
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:199
 msgid "Currency"
-msgstr ""
+msgstr "ارز"
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:123
 msgid "Current balance"
@@ -1709,13 +1725,13 @@ msgstr "مشتری پیدا نشد."
 msgid "Customers point their domain at %s. Verification is a real DNS lookup —""nothing is marked verified on request alone."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:242
+#: src/Support/Admin/StatusPage.php:292
 msgid "DISABLE_WP_CRON is set. Make sure a real system cron calls wp-cron.php,""otherwise scheduling and reminders will not run."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:118
+#: src/Support/Admin/StatusPage.php:119
 msgid "DM subscribers"
-msgstr ""
+msgstr "مشترک‌های پیام خصوصی"
 
 #: src/Modules/MultiTenant/Admin/DomainPage.php:46
 msgid "DNS"
@@ -1729,19 +1745,23 @@ msgstr ""
 msgid "Danger zone"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:258
+#: src/Support/Admin/StatusPage.php:308
 msgid "Database schema"
-msgstr ""
+msgstr "طرح پایگاه داده"
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:175
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:135
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:406
 msgid "Date"
-msgstr ""
+msgstr "تاریخ"
 
 #: src/Support/Admin/SettingsPage.php:171
 msgid "Days between instalments"
-msgstr ""
+msgstr "روزهای بین اقساط"
+
+#: src/Support/Admin/StatusPage.php:226
+msgid "Dead (24h)"
+msgstr "مرده (۲۴ ساعت)"
 
 #: src/Modules/MultiTenant/Admin/JobsPage.php:56
 msgid "Dead letters"
@@ -1777,19 +1797,19 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:175
 msgid "Default credit limit"
-msgstr ""
+msgstr "سقف اعتبار پیش‌فرض"
 
 #: src/Support/Admin/SettingsPage.php:97
 msgid "Default currency code"
-msgstr ""
+msgstr "کد ارز پیش‌فرض"
 
 #: src/Support/Admin/SettingsPage.php:224
 msgid "Default gateway"
-msgstr ""
+msgstr "درگاه پیش‌فرض"
 
 #: src/Support/Admin/SettingsPage.php:170
 msgid "Default instalment count"
-msgstr ""
+msgstr "تعداد پیش‌فرض اقساط"
 
 #: src/Support/Admin/SettingsPage.php:613
 msgid "Default language"
@@ -1812,7 +1832,7 @@ msgstr "پیوند عمیق تعویق‌شده: یافتن فروشگاه با 
 #: src/Modules/MultiTenant/Admin/PlansPage.php:77
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:313
 msgid "Delete"
-msgstr ""
+msgstr "حذف"
 
 #: src/Support/Admin/SettingsPage.php:640
 msgid "Delete all data on uninstall"
@@ -1886,13 +1906,13 @@ msgstr "تحویل تأیید نشد."
 #: src/Modules/MultiTenant/Payments/PspGateway.php:50
 #: src/Modules/MultiTenant/Wallet/WalletGateway.php:47
 msgid "Description"
-msgstr ""
+msgstr "توضیحات"
 
 #: src/Modules/MultiTenant/Admin/DomainPage.php:80
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:91
-#: src/Support/Admin/StatusPage.php:318
+#: src/Support/Admin/StatusPage.php:368
 msgid "Detail"
-msgstr ""
+msgstr "جزئیات"
 
 #: src/Modules/Hub/Admin/HubPage.php:309
 msgid "Detail images"
@@ -1961,7 +1981,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:753
 msgid "Disabling a module only stops it from running; its data and tables are kept."
-msgstr ""
+msgstr "غیرفعال‌کردن ماژول فقط اجرای آن را متوقف می‌کند؛ داده‌ها و جدول‌هایش حفظ""می‌شوند."
 
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:67
 msgid "Disputes"
@@ -1982,7 +2002,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:320
 #: src/Support/Admin/SettingsPage.php:75
 msgid "Domain"
-msgstr ""
+msgstr "دامنه"
 
 #: src/Modules/Hub/Admin/HubPage.php:462
 msgid "Domain added. Ask the customer to create the DNS record, then run the check."
@@ -2087,7 +2107,7 @@ msgstr ""
 #: src/Modules/Instagram/Admin/VipPage.php:291
 #: src/Modules/MultiTenant/Admin/PlansPage.php:74
 msgid "Edit"
-msgstr ""
+msgstr "ویرایش"
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:268
 msgid "Edit brand profile"
@@ -2107,7 +2127,7 @@ msgstr ""
 
 #: src/Modules/Instagram/Admin/VipPage.php:693
 msgid "Email"
-msgstr ""
+msgstr "ایمیل"
 
 #: src/Modules/MultiTenant/Marketplace/MarketplaceService.php:32
 msgid "Emalls"
@@ -2127,19 +2147,19 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:159
 msgid "Enable BNPL"
-msgstr ""
+msgstr "فعال‌سازی خرید اقساطی"
 
 #: src/Support/Admin/SettingsPage.php:199
 msgid "Enable LMS"
-msgstr ""
+msgstr "فعال‌سازی آموزش"
 
 #: src/Support/Admin/SettingsPage.php:306
 msgid "Enable OTP login"
-msgstr ""
+msgstr "فعال‌سازی ورود با کد یک‌بارمصرف"
 
 #: src/Support/Admin/SettingsPage.php:188
 msgid "Enable affiliate programme"
-msgstr ""
+msgstr "فعال‌سازی برنامهٔ همکاری در فروش"
 
 #: src/Modules/MultiTenant/Bnpl/BnplGateway.php:32
 msgid "Enable instalment payments"
@@ -2151,7 +2171,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:337
 msgid "Enable product feeds"
-msgstr ""
+msgstr "فعال‌سازی فید محصولات"
 
 #: src/Support/Admin/SettingsPage.php:490
 msgid "Enable push notifications"
@@ -2159,7 +2179,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:149
 msgid "Enable subscription plans"
-msgstr ""
+msgstr "فعال‌سازی طرح‌های اشتراک"
 
 #: src/Modules/Fx/Admin/FxPage.php:67
 msgid "Enable the Multi-Tenant Stores module to charge with the Iranian gateways."
@@ -2175,7 +2195,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:138
 msgid "Enable wallet"
-msgstr ""
+msgstr "فعال‌سازی کیف پول"
 
 #: src/Modules/MultiTenant/Wallet/WalletGateway.php:36
 msgid "Enable wallet payments"
@@ -2189,7 +2209,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:748
 msgid "Enabled"
-msgstr ""
+msgstr "فعال"
 
 #: src/Modules/RestApi/RestApiModule.php:390
 msgid "Enabled but the service account JSON is missing or invalid. Paste it under""Settings → Mobile API."
@@ -2199,9 +2219,9 @@ msgstr "فعال اما JSON حساب سرویس غایب یا نامعتبر ا
 msgid "Enamad active (verified)"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:288
+#: src/Support/Admin/StatusPage.php:338
 msgid "Encryption"
-msgstr ""
+msgstr "رمزنگاری"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:76
 msgid "Endpoints"
@@ -2251,9 +2271,9 @@ msgstr ""
 msgid "Enrolment not found."
 msgstr "ثبت‌نام پیدا نشد."
 
-#: src/Support/Admin/StatusPage.php:116
+#: src/Support/Admin/StatusPage.php:117
 msgid "Enrolments"
-msgstr ""
+msgstr "ثبت‌نام‌ها"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:383
 msgid "Enter a hostname."
@@ -2264,14 +2284,18 @@ msgstr ""
 msgid "Enter a positive USD amount."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:313
+#: src/Support/Admin/StatusPage.php:363
 msgid "Environment"
-msgstr ""
+msgstr "محیط"
 
 #: src/Modules/MultiTenant/Admin/MarketplacePage.php:77
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:178
 msgid "Error"
 msgstr ""
+
+#: src/Support/Admin/StatusPage.php:229
+msgid "Errors (24h)"
+msgstr "خطاها (۲۴ ساعت)"
 
 #: src/Modules/Instagram/Vip/VipLandingPage.php:269
 msgid "Every VIP post, this one included, for as long as your membership runs."
@@ -2281,11 +2305,11 @@ msgstr "همهٔ پست‌های ویژه، از جمله همین پست، تا
 msgid "Every attempt is persisted before the customer leaves the site, so an""interrupted callback can always be replayed."
 msgstr ""
 
-#: src/Support/Cron.php:81
+#: src/Support/Cron.php:89
 msgid "Every fifteen minutes (IGBZ)"
 msgstr ""
 
-#: src/Support/Cron.php:75
+#: src/Support/Cron.php:83
 msgid "Every five minutes (IGBZ)"
 msgstr ""
 
@@ -2295,11 +2319,11 @@ msgstr "هر توکن صادرشده ثبت می‌شود تا بتوان گوش
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:42
 msgid "Every movement is an immutable ledger row with the resulting balance. Debits""take a named lock, so two concurrent orders cannot overdraw the same wallet."
-msgstr ""
+msgstr "هر تراکنش یک ردیف تغییرناپذیر با موجودی نهایی است. برداشت‌ها قفل نام‌دار""دارند تا سفارش‌های هم‌زمان نتوانند کیف پول را بیش از موجودی منفی کنند."
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:75
 msgid "Every store hosted on this installation. Each row is isolated by tenant_id""across the wallet, orders, courses and Instagram data."
-msgstr ""
+msgstr "همهٔ فروشگاه‌های میزبانی‌شده در این نصب. هر ردیف بر اساس tenant_id از کیف""پول، سفارش‌ها، دوره‌ها و داده‌های اینستاگرام جداست."
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:214
 msgid "Everyone"
@@ -2396,7 +2420,11 @@ msgstr ""
 #: src/Modules/Fx/FxModule.php:41
 #: src/Support/Admin/SettingsPage.php:66
 msgid "FX payments"
-msgstr ""
+msgstr "پرداخت ارزی"
+
+#: src/Support/Admin/StatusPage.php:225
+msgid "Failed (24h)"
+msgstr "ناموفق (۲۴ ساعت)"
 
 #: src/Modules/MultiTenant/Admin/PlansPage.php:211
 msgid "Failed renewals"
@@ -2408,7 +2436,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:129
 msgid "Fallback tenant id"
-msgstr ""
+msgstr "شناسهٔ فروشگاه جایگزین"
 
 #: src/Modules/Hub/Admin/HubPage.php:307
 msgid "Feature bullets"
@@ -2456,7 +2484,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:102
 #: src/Modules/MultiTenant/Admin/WalletPage.php:90
 msgid "Filter"
-msgstr ""
+msgstr "فیلتر"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:325
 msgid "Firebase project"
@@ -2526,7 +2554,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/GamificationPage.php:31
 #: src/Support/Admin/SettingsPage.php:71
 msgid "Gamification"
-msgstr ""
+msgstr "بازی‌سازی"
 
 #: src/Modules/Fx/Admin/FxPage.php:88
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:172
@@ -2545,7 +2573,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:41
 msgid "General"
-msgstr ""
+msgstr "عمومی"
 
 #: src/Modules/Hub/Admin/HubPage.php:353
 msgid "Generate link"
@@ -2592,7 +2620,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:150
 msgid "Grace period after expiry (days)"
-msgstr ""
+msgstr "مهلت پس از انقضا (روز)"
 
 #: src/Modules/MultiTenant/Admin/LogisticsPage.php:90
 msgid "Group title"
@@ -2634,17 +2662,17 @@ msgstr ""
 msgid "HTTP PSP verify URL"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:307
+#: src/Support/Admin/StatusPage.php:357
 msgid "HTTPS"
-msgstr ""
+msgstr "HTTPS"
 
-#: src/Support/Admin/StatusPage.php:172
+#: src/Support/Admin/StatusPage.php:173
 msgid "Health check failed"
-msgstr ""
+msgstr "بررسی سلامت ناموفق بود"
 
 #: src/Support/Admin/StatusPage.php:76
 msgid "Health of every enabled module, its integrations and background jobs."
-msgstr ""
+msgstr "سلامت ماژول‌های فعال، اتصال‌ها و کارهای پس‌زمینه."
 
 #: src/Support/Admin/SettingsPage.php:552
 msgid "Heavy freight cost (IRT)"
@@ -2674,13 +2702,13 @@ msgstr ""
 msgid "Hold until"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:230
+#: src/Support/Admin/StatusPage.php:280
 msgid "Hook"
-msgstr ""
+msgstr "هوک"
 
 #: src/Support/Admin/SettingsPage.php:109
 msgid "How the storefront decides which tenant store the visitor is on."
-msgstr ""
+msgstr "فروشگاه بر اساس این گزینه تشخیص می‌دهد بازدیدکننده در کدام فروشگاه است."
 
 #: src/Modules/Instagram/Vip/VipLandingPage.php:258
 msgid "How to unlock it"
@@ -2688,7 +2716,7 @@ msgstr "چگونه گشوده شود"
 
 #: src/Support/Admin/SettingsPage.php:60
 msgid "Hub"
-msgstr ""
+msgstr "هاب"
 
 #: src/Modules/Hub/Admin/HubPage.php:78
 #: src/Modules/Hub/HubModule.php:182
@@ -2710,7 +2738,7 @@ msgstr ""
 #: src/Modules/Instagram/Admin/AccountsPage.php:246
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:125
 msgid "ID"
-msgstr ""
+msgstr "شناسه"
 
 #: src/Modules/MultiTenant/Payments/IdPayGateway.php:26
 msgid "IDPay"
@@ -2742,11 +2770,11 @@ msgstr ""
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:44
 msgid "IG Accounts"
-msgstr ""
+msgstr "حساب‌های اینستاگرام"
 
-#: src/Support/Admin/StatusPage.php:117
+#: src/Support/Admin/StatusPage.php:118
 msgid "IG content"
-msgstr ""
+msgstr "محتوای اینستاگرام"
 
 #: src/Support/Admin/Menu.php:29
 msgid "IGBZ"
@@ -2764,17 +2792,17 @@ msgstr ""
 msgid "IGBZ Suite"
 msgstr ""
 
-#: src/Support/Plugin.php:121
+#: src/Support/Plugin.php:132
 msgid "IGBZ Suite requires WooCommerce to be installed and active."
 msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:674
 msgid "IGBZ Suite settings"
-msgstr ""
+msgstr "تنظیمات سامانه IGBZ"
 
 #: src/Support/Admin/StatusPage.php:75
 msgid "IGBZ Suite status"
-msgstr ""
+msgstr "وضعیت سامانه IGBZ"
 
 #: src/Support/Activator.php:928
 msgid "IGBZ Tenant Owner"
@@ -2850,7 +2878,7 @@ msgstr ""
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:72
 msgid "Instagram accounts"
-msgstr ""
+msgstr "حساب‌های اینستاگرام"
 
 #: src/Modules/Hub/Services/ContentBlockService.php:144
 msgid "Instagram assistant"
@@ -2866,7 +2894,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:725
 msgid "Instagram commerce (single social provider: Zernio)"
-msgstr ""
+msgstr "تجارت اینستاگرام (ارائه‌دهندهٔ واحد: زرنیو)"
 
 #: src/Support/Admin/SettingsPage.php:352
 msgid "Instagram connect path (official OAuth)"
@@ -2921,7 +2949,7 @@ msgstr "طرح اقساطی تسویه شد"
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:72
 #: src/Modules/MultiTenant/Frontend/ShortCodes.php:669
 msgid "Instalments"
-msgstr ""
+msgstr "اقساط"
 
 #: src/Modules/MultiTenant/Admin/PlansPage.php:235
 msgid "Instalments (BNPL)"
@@ -2952,7 +2980,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:165
 msgid "Internal instalments (own credit book)"
-msgstr ""
+msgstr "اقساط داخلی (دفتر اعتباری خودمان)"
 
 #: src/Modules/MultiTenant/MasterPayment/MasterPaymentService.php:413
 msgid "Invalid amount."
@@ -3012,7 +3040,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:203
 msgid "Issue certificates on completion"
-msgstr ""
+msgstr "صدور گواهی هنگام تکمیل"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:295
 msgid "Issued"
@@ -3028,7 +3056,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:734
 msgid "JWT authentication with refresh and revocation, catalogue and account""endpoints, device registration and FCM push."
-msgstr ""
+msgstr "احراز هویت JWT با نوسازی و ابطال، نقاط اتصال کاتالوگ و حساب، ثبت دستگاه و پوش""FCM."
 
 #: src/Modules/RestApi/RestApiModule.php:66
 msgid "JWT authentication with refresh tokens, catalogue and account endpoints for""the mobile app, device registration and Firebase push notifications."
@@ -3043,18 +3071,22 @@ msgstr "کلید امضای JWT"
 msgid "Job %d is queued again."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:104
+#: src/Support/Admin/StatusPage.php:105
 msgid "Job %s executed."
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/JobsPage.php:25
 #: src/Modules/MultiTenant/Admin/JobsPage.php:34
 msgid "Job queue"
-msgstr ""
+msgstr "صف کارها"
 
 #: src/Modules/MultiTenant/Admin/JobsPage.php:41
 msgid "Jobs"
 msgstr ""
+
+#: src/Support/Admin/StatusPage.php:224
+msgid "Jobs done (24h)"
+msgstr "کارهای انجام‌شده (۲۴ ساعت)"
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:374
 msgid "Join now"
@@ -3106,15 +3138,19 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:78
 msgid "Languages"
-msgstr ""
+msgstr "زبان‌ها"
 
 #: src/Support/Admin/SettingsPage.php:612
 msgid "Languages (comma: fa,en,ar,tr,ckb)"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/WalletPage.php:214
+#: src/Modules/MultiTenant/Admin/WalletPage.php:222
 msgid "Largest balances"
-msgstr ""
+msgstr "بیشترین موجودی‌ها"
+
+#: src/Support/Admin/StatusPage.php:230
+msgid "Last backup"
+msgstr "آخرین پشتیبان‌گیری"
 
 #: src/Modules/Instagram/Admin/VipPage.php:592
 msgid "Last message"
@@ -3146,7 +3182,7 @@ msgstr "آخرین استفاده"
 
 #: src/Support/Admin/SettingsPage.php:173
 msgid "Late penalty % per day"
-msgstr ""
+msgstr "درصد جریمهٔ دیرکرد روزانه"
 
 #: src/Support/Admin/SettingsPage.php:500
 msgid "Latest app version"
@@ -3162,16 +3198,16 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:139
 msgid "Leave off: debits are serialised with a row lock and refused when funds are""short."
-msgstr ""
+msgstr "خاموش بماند: برداشت‌ها قفل می‌شوند و در صورت کمبود موجودی رد می‌گردند."
 
 #: src/Modules/Fx/Admin/FxPage.php:266
 #: src/Modules/MultiTenant/Admin/WalletPage.php:172
 msgid "Ledger"
-msgstr ""
+msgstr "دفترکل"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:158
 msgid "Left empty it is derived from the name. Changing it breaks existing path""based URLs."
-msgstr ""
+msgstr "اگر خالی باشد از نام ساخته می‌شود؛ تغییر آن نشانی‌های مبتنی بر مسیر را""می‌شکند."
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:252
 msgid "Legacy"
@@ -3200,7 +3236,7 @@ msgstr "سرویس توافق‌نامهٔ حقوقی در دسترس نیست."
 
 #: src/Support/Admin/SettingsPage.php:77
 msgid "Legal auth"
-msgstr ""
+msgstr "احراز قانونی"
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:304
 msgid "Legal waiver accepted for this store."
@@ -3245,9 +3281,9 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:124
 #: src/Modules/MultiTenant/Admin/LmsPage.php:174
-#: src/Support/Admin/StatusPage.php:338
+#: src/Support/Admin/StatusPage.php:388
 msgid "Level"
-msgstr ""
+msgstr "سطح"
 
 #: src/Modules/MultiTenant/Admin/PlansPage.php:119
 msgid "Lifetime"
@@ -3287,7 +3323,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:200
 msgid "Locale"
-msgstr ""
+msgstr "زبان و منطقه"
 
 #: src/Support/Admin/SettingsPage.php:627
 msgid "Log level"
@@ -3305,11 +3341,11 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/LogisticsPage.php:42
 #: src/Support/Admin/SettingsPage.php:69
 msgid "Logistics"
-msgstr ""
+msgstr "لجستیک"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:202
 msgid "Logo URL"
-msgstr ""
+msgstr "نشانی لوگو"
 
 #: src/Modules/Hub/Admin/HubPage.php:234
 msgid "Make this the primary domain"
@@ -3322,6 +3358,10 @@ msgstr ""
 msgid "Malformed webhook payload."
 msgstr ""
 
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:58
+msgid "Manage your store from one place."
+msgstr "فروشگاه خود را از یک محل مدیریت کنید."
+
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:278
 msgid "Manager"
 msgstr ""
@@ -3333,7 +3373,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/WalletPage.php:95
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:540
 msgid "Manual adjustment"
-msgstr ""
+msgstr "تعدیل دستی"
 
 #: src/Support/Admin/SettingsPage.php:542
 msgid "Manual buy amount (IRT)"
@@ -3370,7 +3410,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/MarketplacePage.php:49
 #: src/Support/Admin/SettingsPage.php:53
 msgid "Marketplace"
-msgstr ""
+msgstr "بازار"
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:57
 #: src/Modules/MultiTenant/Admin/PlansPage.php:240
@@ -3385,25 +3425,25 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:336
 msgid "Marketplace sync retries"
-msgstr ""
+msgstr "تلاش‌های همگام‌سازی بازار"
 
 #: src/Modules/MultiTenant/Admin/MarketplacePage.php:24
 #: src/Modules/MultiTenant/Admin/MarketplacePage.php:31
 msgid "Marketplaces"
-msgstr ""
+msgstr "بازارها"
 
 #: src/Modules/Hub/Admin/HubPage.php:31
 msgid "Master hub"
-msgstr ""
+msgstr "هاب مرکزی"
 
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:23
 #: src/Support/Admin/SettingsPage.php:76
 msgid "Master payment"
-msgstr ""
+msgstr "پرداخت مرکزی"
 
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:30
 msgid "Master payment (escrow)"
-msgstr ""
+msgstr "پرداخت مرکزی (امانی)"
 
 #: src/Support/Admin/SettingsPage.php:596
 msgid "Master payment (escrow) enabled"
@@ -3413,7 +3453,7 @@ msgstr ""
 #: src/Modules/Hub/HubModule.php:46
 #: src/Support/Admin/SettingsPage.php:729
 msgid "Master site hub"
-msgstr ""
+msgstr "هاب مرکزی سایت"
 
 #: src/Support/Admin/SettingsPage.php:541
 msgid "Max IRT per auto run (0 = uncapped)"
@@ -3442,15 +3482,15 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:201
 msgid "Maximum quiz attempts"
-msgstr ""
+msgstr "حداکثر تلاش آزمون"
 
 #: src/Support/Admin/SettingsPage.php:141
 msgid "Maximum single top-up"
-msgstr ""
+msgstr "بیشترین شارژ تکی"
 
 #: src/Support/Admin/SettingsPage.php:319
 msgid "Maximum verify attempts"
-msgstr ""
+msgstr "حداکثر تلاش‌های اعتبارسنجی"
 
 #: src/Modules/Instagram/Admin/VipPage.php:350
 msgid "Media URLs"
@@ -3546,9 +3586,9 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:378
 #: src/Modules/RestApi/Admin/DevicesPage.php:198
-#: src/Support/Admin/StatusPage.php:340
+#: src/Support/Admin/StatusPage.php:390
 msgid "Message"
-msgstr ""
+msgstr "پیام"
 
 #: src/Modules/Instagram/Admin/VipPage.php:880
 msgid "Message sent."
@@ -3556,7 +3596,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:322
 msgid "Message template"
-msgstr ""
+msgstr "قالب پیام"
 
 #: src/Modules/Instagram/Vip/VipMessageService.php:69
 msgid "Messaging is turned off."
@@ -3580,15 +3620,15 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:174
 msgid "Minimum order total"
-msgstr ""
+msgstr "حداقل مبلغ سفارش"
 
 #: src/Support/Admin/SettingsPage.php:193
 msgid "Minimum payout amount"
-msgstr ""
+msgstr "حداقل مبلغ تسویه"
 
 #: src/Support/Admin/SettingsPage.php:142
 msgid "Minimum single top-up"
-msgstr ""
+msgstr "کمترین شارژ تکی"
 
 #: src/Support/Admin/SettingsPage.php:501
 msgid "Minimum supported app version"
@@ -3615,7 +3655,7 @@ msgstr ""
 msgid "Missing settings"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:263
+#: src/Support/Admin/StatusPage.php:313
 msgid "Missing tables: %s. Deactivate and reactivate the plugin."
 msgstr ""
 
@@ -3625,11 +3665,11 @@ msgstr ""
 #: src/Modules/RestApi/RestApiModule.php:62
 #: src/Support/Admin/SettingsPage.php:63
 msgid "Mobile API"
-msgstr ""
+msgstr "API موبایل"
 
 #: src/Support/Admin/SettingsPage.php:733
 msgid "Mobile REST API"
-msgstr ""
+msgstr "API REST موبایل"
 
 #: src/Modules/Hub/Services/ContentBlockService.php:128
 msgid "Mobile app"
@@ -3643,14 +3683,14 @@ msgstr "شمارهٔ همراه"
 msgid "Model photo"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:148
+#: src/Support/Admin/StatusPage.php:149
 msgid "Module"
-msgstr ""
+msgstr "ماژول"
 
 #: src/Support/Admin/SettingsPage.php:42
-#: src/Support/Admin/StatusPage.php:143
+#: src/Support/Admin/StatusPage.php:144
 msgid "Modules"
-msgstr ""
+msgstr "ماژول‌ها"
 
 #: src/Support/Admin/SettingsPage.php:765
 msgid "Modules updated. Reload any open admin screen to see the new menus."
@@ -3676,7 +3716,7 @@ msgstr ""
 #: src/Modules/MultiTenant/MultiTenantModule.php:58
 #: src/Support/Admin/SettingsPage.php:721
 msgid "Multi-tenant stores"
-msgstr ""
+msgstr "فروشگاه‌های چندمستأجری"
 
 #: src/Support/Admin/SettingsPage.php:611
 msgid "Multilingual store"
@@ -3715,11 +3755,11 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/DomainPage.php:46
 #: src/Modules/MultiTenant/Admin/PlansPage.php:108
 msgid "Name"
-msgstr ""
+msgstr "نام"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:100
 msgid "Name or slug"
-msgstr ""
+msgstr "نام یا نامک"
 
 #: src/Modules/MultiTenant/Otp/NationalIdVerifier.php:126
 msgid "National id and phone do not match."
@@ -3751,11 +3791,11 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:184
 msgid "New owner e-mail"
-msgstr ""
+msgstr "ایمیل مالک جدید"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:185
 msgid "New owner phone"
-msgstr ""
+msgstr "تلفن مالک جدید"
 
 #: src/Modules/MultiTenant/Admin/PlansPage.php:102
 msgid "New plan"
@@ -3767,11 +3807,11 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:148
 msgid "New tenant"
-msgstr ""
+msgstr "فروشگاه جدید"
 
-#: src/Support/Admin/StatusPage.php:232
+#: src/Support/Admin/StatusPage.php:282
 msgid "Next run"
-msgstr ""
+msgstr "اجرای بعدی"
 
 #: src/Modules/MultiTenant/Payments/NextPayGateway.php:38
 msgid "NextPay"
@@ -3858,9 +3898,9 @@ msgstr ""
 msgid "No certificate with this code has been issued. Check for a typo — the code is""a group of letters and digits after IGBZ- — or ask the holder to re-send it."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:189
+#: src/Support/Admin/StatusPage.php:190
 msgid "No checks reported."
-msgstr ""
+msgstr "بررسی‌ای گزارش نشده است."
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:288
 msgid "No codes have been sent."
@@ -3964,7 +4004,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:186
 msgid "No movements recorded."
-msgstr ""
+msgstr "هنوز تراکنشی ثبت نشده است."
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:183
 msgid "No payment attempts yet."
@@ -4025,9 +4065,9 @@ msgstr ""
 msgid "No shipments yet."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:56
-msgid "No store is assigned to this account."
-msgstr ""
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:60
+msgid "No store is assigned to this account yet. Ask a platform administrator to""assign a store before using store operations."
+msgstr "هنوز فروشگاهی به این حساب اختصاص داده نشده است. پیش از استفاده، از مدیر""سامانه بخواهید فروشگاهی اختصاص دهد."
 
 #: src/Modules/RestApi/Controllers/ContentPublishController.php:100
 #: src/Modules/RestApi/Controllers/ContentPublishController.php:118
@@ -4078,7 +4118,7 @@ msgstr "هیچ مستأجری به این حساب متصل نیست."
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:135
 msgid "No tenants yet. Create the first store to get going."
-msgstr ""
+msgstr "هنوز فروشگاهی وجود ندارد. اولین فروشگاه را بسازید تا شروع شود."
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:142
 msgid "No wallet activity yet."
@@ -4140,18 +4180,18 @@ msgstr ""
 msgid "Not provisioned yet; the migration round creates the store profile once the""central key is live."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:164
+#: src/Support/Admin/StatusPage.php:165
 msgid "Not running."
-msgstr ""
+msgstr "در حال اجرا نیست."
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:116
 #: src/Modules/MultiTenant/Admin/WalletPage.php:182
 msgid "Note"
-msgstr ""
+msgstr "یادداشت"
 
 #: src/Support/Admin/View.php:158
 msgid "Nothing here yet."
-msgstr ""
+msgstr "هنوز چیزی اینجا نیست."
 
 #: src/Modules/MultiTenant/Admin/BnplPage.php:297
 msgid "Nothing is overdue."
@@ -4161,9 +4201,9 @@ msgstr ""
 msgid "Nothing is waiting for approval."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:344
+#: src/Support/Admin/StatusPage.php:394
 msgid "Nothing logged. That is the good outcome."
-msgstr ""
+msgstr "چیزی ثبت نشده است؛ این نتیجهٔ خوبی است."
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:341
 msgid "Nothing to migrate in this store yet; the hourly round journals each step as""it lands."
@@ -4175,7 +4215,7 @@ msgstr "اعلان ارسال شد."
 
 #: src/Support/Admin/SettingsPage.php:152
 msgid "Notify N days before renewal"
-msgstr ""
+msgstr "اطلاع‌رسانی چند روز پیش از تمدید"
 
 #: src/Support/Admin/SettingsPage.php:494
 msgid "Notify on order status changes"
@@ -4188,7 +4228,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:55
 #: src/Support/Admin/SettingsPage.php:52
 msgid "OTP"
-msgstr ""
+msgstr "کد یک‌بارمصرف"
 
 #: src/Support/Admin/SettingsPage.php:362
 msgid "Off by default (phase 51): every rule-matched reply waits for a human""approval before the provider is called. Turning this on sends matching""replies without a human in the loop."
@@ -4208,7 +4248,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:143
 msgid "Offer wallet at checkout"
-msgstr ""
+msgstr "ارائهٔ کیف پول هنگام تسویه"
 
 #: src/Support/Admin/SettingsPage.php:465
 msgid "Offered alongside the stores for people who cannot reach one."
@@ -4216,7 +4256,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:726
 msgid "Official OAuth connection per store, publishing, inbox and analytics through""the one social provider — plus the VIP channel and the AI media studio."
-msgstr ""
+msgstr "اتصال رسمی OAuth هر فروشگاه، انتشار، صندوق پیام و تحلیل از طریق یک""ارائه‌دهنده؛ به‌علاوهٔ کانال VIP و استودیوی رسانهٔ هوش مصنوعی."
 
 #: src/Support/Admin/SettingsPage.php:404
 msgid "Offline download link lifetime (seconds)"
@@ -4225,6 +4265,10 @@ msgstr ""
 #: src/Support/Admin/SettingsPage.php:501
 msgid "Older builds get a forced-update screen from /app/config."
 msgstr ""
+
+#: src/Support/Admin/StatusPage.php:228
+msgid "Oldest wait"
+msgstr "قدیمی‌ترین انتظار"
 
 #: src/Modules/MultiTenant/Admin/JobsPage.php:51
 msgid "Oldest waiting job"
@@ -4320,7 +4364,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:114
 msgid "Only used with path resolution, e.g. \"store\" gives /store/{slug}/."
-msgstr ""
+msgstr "فقط برای تشخیص مسیر استفاده می‌شود؛ مثلاً store/slug/."
 
 #: src/Modules/RestApi/Controllers/BaseController.php:156
 msgid "Opaque cursor from the previous page (keyset pagination; stable under""inserts)."
@@ -4379,7 +4423,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:140
 msgid "Order cashback %"
-msgstr ""
+msgstr "درصد بازگشت نقدی سفارش"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:352
 msgid "Order history."
@@ -4404,10 +4448,10 @@ msgid "Order volume"
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:168
-#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:84
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:91
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:393
 msgid "Orders"
-msgstr ""
+msgstr "سفارش‌ها"
 
 #: src/Support/Admin/SettingsPage.php:637
 msgid "Outbound HTTP timeout (seconds)"
@@ -4420,7 +4464,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:60
 msgid "Outstanding liability"
-msgstr ""
+msgstr "بدهی جاری"
 
 #: src/Modules/MultiTenant/Admin/BnplPage.php:286
 msgid "Overdue instalments"
@@ -4428,14 +4472,14 @@ msgstr ""
 
 #: src/Modules/Hub/Admin/HubPage.php:74
 msgid "Overview"
-msgstr ""
+msgstr "نمای کلی"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:127
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:171
 msgid "Owner"
-msgstr ""
+msgstr "مالک"
 
-#: src/Support/Admin/StatusPage.php:283
+#: src/Support/Admin/StatusPage.php:333
 msgid "PHP"
 msgstr ""
 
@@ -4469,7 +4513,7 @@ msgstr ""
 
 #: src/Modules/Pado/Admin/PadoPage.php:56
 msgid "Pado (AI Center)"
-msgstr ""
+msgstr "پادو (مرکز هوش مصنوعی)"
 
 #: src/Modules/Pado/Services/PadoGateway.php:30
 msgid "Pado endpoint must use HTTPS."
@@ -4489,7 +4533,7 @@ msgstr ""
 
 #: src/Modules/Pado/Admin/PadoPage.php:99
 msgid "Pado — AI Center"
-msgstr ""
+msgstr "پادو — مرکز هوش مصنوعی"
 
 #: src/Modules/Hub/Admin/HubPage.php:303
 msgid "Page key"
@@ -4608,7 +4652,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:202
 msgid "Pass score %"
-msgstr ""
+msgstr "درصد نمرهٔ قبولی"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:505
 msgid "Passed"
@@ -4628,7 +4672,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:113
 msgid "Path prefix base"
-msgstr ""
+msgstr "پیشوند مسیر پایه"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:357
 msgid "Pay an instalment from the wallet."
@@ -4636,7 +4680,7 @@ msgstr "پرداخت قسط از کیف پول."
 
 #: src/Support/Admin/SettingsPage.php:194
 msgid "Pay commissions into the wallet"
-msgstr ""
+msgstr "واریز کمیسیون به کیف پول"
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:282
 msgid "Pay from wallet"
@@ -4730,7 +4774,7 @@ msgstr "پرداخت موفق"
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:47
 #: src/Support/Admin/SettingsPage.php:51
 msgid "Payments"
-msgstr ""
+msgstr "پرداخت‌ها"
 
 #: src/Support/Admin/SettingsPage.php:523
 msgid "Payout adapter"
@@ -4756,7 +4800,11 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:533
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:394
 msgid "Pending"
-msgstr ""
+msgstr "در انتظار"
+
+#: src/Support/Admin/StatusPage.php:227
+msgid "Pending (due)"
+msgstr "در انتظار (سررسیدشده)"
 
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:251
 msgid "Pending commissions"
@@ -4774,9 +4822,9 @@ msgstr ""
 msgid "Period"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:300
+#: src/Support/Admin/StatusPage.php:350
 msgid "Permalinks"
-msgstr ""
+msgstr "پیوندهای یکتا"
 
 #: src/Support/Admin/SettingsPage.php:616
 msgid "Persian digits on the storefront"
@@ -4793,7 +4841,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/LogisticsPage.php:66
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:279
 msgid "Phone"
-msgstr ""
+msgstr "تلفن"
 
 #: src/Modules/Hub/Services/ContentBlockService.php:132
 msgid "Phone OTP login"
@@ -4803,9 +4851,9 @@ msgstr ""
 msgid "Photo"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/WalletPage.php:237
+#: src/Modules/MultiTenant/Admin/WalletPage.php:245
 msgid "Pick a user and a non-zero amount."
-msgstr ""
+msgstr "یک کاربر و مبلغ غیرصفر انتخاب کنید."
 
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:309
 #: src/Modules/MultiTenant/Admin/BnplPage.php:351
@@ -4820,7 +4868,7 @@ msgstr ""
 msgid "Pin"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:304
+#: src/Support/Admin/StatusPage.php:354
 msgid "Plain permalinks: webhook URLs fall back to ?rest_route=."
 msgstr ""
 
@@ -4829,7 +4877,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:129
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:187
 msgid "Plan"
-msgstr ""
+msgstr "طرح"
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:239
 msgid "Plan #%1$d — %2$s"
@@ -4859,7 +4907,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/PlansPage.php:21
 #: src/Support/Admin/SettingsPage.php:47
 msgid "Plans"
-msgstr ""
+msgstr "طرح‌ها"
 
 #: src/Modules/MultiTenant/Admin/PlansPage.php:39
 msgid "Plans price the storefront itself: what a tenant pays you, its quotas and""which features it unlocks."
@@ -4892,7 +4940,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:112
 msgid "Positive credits the wallet, negative debits it."
-msgstr ""
+msgstr "مقدار مثبت کیف پول را بستانکار و مقدار منفی آن را بدهکار می‌کند."
 
 #: src/Modules/Instagram/Admin/VipPage.php:227
 msgid "Post"
@@ -4900,7 +4948,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:126
 msgid "Post adjustment"
-msgstr ""
+msgstr "ثبت تعدیل"
 
 #: src/Modules/Instagram/Admin/VipPage.php:837
 msgid "Post created. Publish it when the teaser goes out on Instagram."
@@ -4962,7 +5010,7 @@ msgstr ""
 msgid "Posts per feed page"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:303
+#: src/Support/Admin/StatusPage.php:353
 msgid "Pretty permalinks are on, REST webhook URLs are clean."
 msgstr ""
 
@@ -5004,11 +5052,11 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:203
 msgid "Primary colour"
-msgstr ""
+msgstr "رنگ اصلی"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:131
 msgid "Primary domain"
-msgstr ""
+msgstr "دامنهٔ اصلی"
 
 #: src/Modules/MultiTenant/Admin/BnplPage.php:196
 msgid "Principal"
@@ -5053,9 +5101,9 @@ msgid "Product not found."
 msgstr "محصول پیدا نشد."
 
 #: src/Modules/Hub/Admin/HubPage.php:153
-#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:83
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:90
 msgid "Products"
-msgstr ""
+msgstr "محصولات"
 
 #: src/Support/Admin/SettingsPage.php:341
 msgid "Products per feed"
@@ -5082,7 +5130,7 @@ msgstr "تبلیغ"
 #: src/Modules/MultiTenant/Admin/BnplPage.php:194
 #: src/Support/Admin/SettingsPage.php:162
 msgid "Provider"
-msgstr ""
+msgstr "ارائه‌دهنده"
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:181
 msgid "Provider connection (Zernio)"
@@ -5092,7 +5140,7 @@ msgstr ""
 msgid "Provider ref"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:309
+#: src/Support/Admin/StatusPage.php:359
 msgid "Provider webhooks only call HTTPS callbacks, so the public site must serve""over HTTPS."
 msgstr ""
 
@@ -5120,7 +5168,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:427
 msgid "Purchase cashback"
-msgstr ""
+msgstr "بازگشت نقدی خرید"
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:294
 msgid "Purge expired codes"
@@ -5245,15 +5293,15 @@ msgstr "خواندن و به‌روزرسانی نمایه."
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:72
 #: src/Modules/MultiTenant/Admin/WalletPage.php:180
 msgid "Reason"
-msgstr ""
+msgstr "علت"
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:133
 msgid "Recent activity"
 msgstr "فعالیت اخیر"
 
-#: src/Support/Admin/StatusPage.php:334
+#: src/Support/Admin/StatusPage.php:384
 msgid "Recent warnings and errors"
-msgstr ""
+msgstr "هشدارها و خطاهای اخیر"
 
 #: src/Modules/MultiTenant/Admin/LogisticsPage.php:65
 msgid "Recipient"
@@ -5263,9 +5311,9 @@ msgstr ""
 msgid "Record lesson progress."
 msgstr "ثبت پیشرفت درس."
 
-#: src/Support/Admin/StatusPage.php:231
+#: src/Support/Admin/StatusPage.php:281
 msgid "Recurrence"
-msgstr ""
+msgstr "تناوب"
 
 #: src/Modules/Hub/Admin/HubPage.php:349
 msgid "Redirect path"
@@ -5292,15 +5340,15 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:176
 #: src/Modules/MultiTenant/Admin/WalletPage.php:181
 msgid "Reference"
-msgstr ""
+msgstr "مرجع"
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:120
 msgid "Reference code"
-msgstr ""
+msgstr "کد مرجع"
 
 #: src/Support/Admin/SettingsPage.php:191
 msgid "Referral cookie lifetime (days)"
-msgstr ""
+msgstr "عمر کوکی ارجاع (روز)"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:360
 msgid "Referral link, clicks and commissions."
@@ -5443,7 +5491,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:151
 msgid "Renewal retries before suspending"
-msgstr ""
+msgstr "تلاش‌های تمدید پیش از تعلیق"
 
 #: src/Modules/MultiTenant/Admin/JobsPage.php:61
 #: src/Modules/MultiTenant/Admin/JobsPage.php:71
@@ -5464,7 +5512,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:349
 msgid "Request timeout (seconds)"
-msgstr ""
+msgstr "مهلت درخواست (ثانیه)"
 
 #: src/Support/Admin/SettingsPage.php:489
 msgid "Requests per minute per store (all devices combined)"
@@ -5476,7 +5524,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:320
 msgid "Resend cool-down (seconds)"
-msgstr ""
+msgstr "فاصلهٔ ارسال دوباره (ثانیه)"
 
 #: src/Support/Admin/SettingsPage.php:360
 msgid "Reserved for the catalog voice flow (phase 53); live semantics are verified""in the PV-ZERNIO phase."
@@ -5497,7 +5545,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:122
 msgid "Reusing a reference for the same user and reason is a no-op: the ledger is""idempotent."
-msgstr ""
+msgstr "استفادهٔ دوباره از یک مرجع برای همان کاربر و علت اثری ندارد؛ دفترکل""همسان‌رفتار است."
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:546
 #: src/Modules/RestApi/Admin/DevicesPage.php:286
@@ -5506,7 +5554,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:210
 msgid "Revoke access when an order is refunded"
-msgstr ""
+msgstr "لغو دسترسی هنگام بازپرداخت سفارش"
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:221
 msgid "Revoke connection"
@@ -5542,9 +5590,9 @@ msgstr ""
 msgid "Run a real DNS check (super admin)."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:223
+#: src/Support/Admin/StatusPage.php:273
 msgid "Run now"
-msgstr ""
+msgstr "همین حالا اجرا کن"
 
 #: src/Modules/Instagram/Admin/VipPage.php:189
 msgid "Run scheduling and expiry now"
@@ -5553,15 +5601,19 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/SeoPage.php:47
 #: src/Support/Admin/SettingsPage.php:70
 msgid "SEO & ads"
-msgstr ""
+msgstr "سئو و تبلیغات"
 
 #: src/Modules/MultiTenant/Admin/SeoPage.php:54
 msgid "SEO & advertising"
-msgstr ""
+msgstr "سئو و تبلیغات"
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:67
 msgid "SKU code (watermark)"
 msgstr ""
+
+#: src/Support/Admin/StatusPage.php:213
+msgid "SLO breach — open RUNBOOK-SLO-ALERTS.md and follow the section(s) below:"
+msgstr "نقض SLO — RUNBOOK-SLO-ALERTS.md را باز کنید و بخش‌های زیر را دنبال کنید:"
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:584
 #: src/Support/Admin/SettingsPage.php:309
@@ -5647,7 +5699,7 @@ msgstr ""
 #: src/Modules/Instagram/Admin/VipPage.php:747
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:228
 msgid "Save"
-msgstr ""
+msgstr "ذخیره"
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:330
 msgid "Save account"
@@ -5659,7 +5711,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:690
 msgid "Save changes"
-msgstr ""
+msgstr "ذخیرهٔ تغییرات"
 
 #: src/Modules/MultiTenant/Admin/BnplPage.php:330
 msgid "Save credit limit"
@@ -5679,7 +5731,7 @@ msgstr ""
 
 #: src/Modules/Pado/Admin/PadoPage.php:169
 msgid "Save settings"
-msgstr ""
+msgstr "ذخیرهٔ تنظیمات"
 
 #: src/Modules/MultiTenant/Admin/BnplPage.php:245
 msgid "Schedule"
@@ -5689,9 +5741,9 @@ msgstr ""
 msgid "Scheduled"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:273
+#: src/Support/Admin/StatusPage.php:323
 msgid "Schema version"
-msgstr ""
+msgstr "نسخهٔ طرح"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:504
 msgid "Score"
@@ -5703,7 +5755,7 @@ msgstr "نمرهٔ %d%% — این بار قبول نشد."
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:79
 msgid "Search"
-msgstr ""
+msgstr "جست‌وجو"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:77
 msgid "Search courses"
@@ -5717,9 +5769,9 @@ msgstr ""
 msgid "Secret present. Tickets expire after %d seconds and are single use."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:295
+#: src/Support/Admin/StatusPage.php:345
 msgid "Secret salts"
-msgstr ""
+msgstr "نمک‌های محرمانه"
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:451
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:481
@@ -5824,7 +5876,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:172
 msgid "Service fee %"
-msgstr ""
+msgstr "درصد کارمزد خدمات"
 
 #: src/Modules/RestApi/Controllers/AuthController.php:247
 msgid "Session not found."
@@ -5860,11 +5912,11 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:33
 msgid "Settings"
-msgstr ""
+msgstr "تنظیمات"
 
 #: src/Support/Admin/SettingsPage.php:806
 msgid "Settings saved."
-msgstr ""
+msgstr "تنظیمات ذخیره شد."
 
 #: src/Modules/Fx/Admin/FxPage.php:239
 msgid "Settle manually"
@@ -5980,7 +6032,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:200
 msgid "Signed video link TTL (seconds)"
-msgstr ""
+msgstr "عمر پیوند امضاشدهٔ ویدئو (ثانیه)"
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:576
 msgid "Signed video links"
@@ -6007,13 +6059,13 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:153
 msgid "Six month discount %"
-msgstr ""
+msgstr "درصد تخفیف شش‌ماهه"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:157
 #: src/Modules/MultiTenant/Admin/PlansPage.php:109
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:158
 msgid "Slug"
-msgstr ""
+msgstr "نامک"
 
 #: src/Support/Admin/SettingsPage.php:446
 msgid "Smallest tip"
@@ -6107,9 +6159,9 @@ msgstr ""
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:356
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:282
-#: src/Support/Admin/StatusPage.php:149
+#: src/Support/Admin/StatusPage.php:150
 msgid "State"
-msgstr ""
+msgstr "وضعیت"
 
 #: src/Modules/Fx/Admin/FxPage.php:201
 #: src/Modules/Fx/Admin/FxPage.php:248
@@ -6142,11 +6194,11 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:160
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:258
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:410
-#: src/Support/Admin/StatusPage.php:317
 #: src/Support/Admin/StatusPage.php:34
 #: src/Support/Admin/StatusPage.php:35
+#: src/Support/Admin/StatusPage.php:367
 msgid "Status"
-msgstr ""
+msgstr "وضعیت"
 
 #: src/Modules/Instagram/InstagramModule.php:318
 msgid "Status: %s — finish the OAuth connect (IGBZ → IG Accounts)."
@@ -6162,7 +6214,11 @@ msgstr ""
 #: src/Modules/Hub/Admin/HubPage.php:339
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:126
 msgid "Store"
-msgstr ""
+msgstr "فروشگاه"
+
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:61
+msgid "Store access is waiting"
+msgstr "دسترسی به فروشگاه در انتظار اختصاص است"
 
 #: src/Modules/Hub/Admin/HubPage.php:402
 msgid "Store address availability."
@@ -6175,9 +6231,10 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:22
 #: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:28
 #: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:29
-#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:81
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:57
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:88
 msgid "Store dashboard"
-msgstr ""
+msgstr "داشبورد فروشگاه"
 
 #: src/Modules/Hub/Admin/HubPage.php:398
 msgid "Store directory."
@@ -6185,7 +6242,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:157
 msgid "Store name"
-msgstr ""
+msgstr "نام فروشگاه"
 
 #: src/Modules/Hub/Rest/HubController.php:122
 msgid "Store not found."
@@ -6202,7 +6259,7 @@ msgstr ""
 
 #: src/Support/Admin/View.php:114
 msgid "Stored encrypted. Leave the masked value untouched to keep the current""secret."
-msgstr ""
+msgstr "به‌صورت رمزنگاری‌شده ذخیره می‌شود؛ برای نگه‌داشتن راز فعلی مقدار ماسک‌شده را""تغییر ندهید."
 
 #: src/Modules/Hub/Admin/HubPage.php:103
 msgid "Stores"
@@ -6260,7 +6317,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/PlansPage.php:38
 msgid "Subscription plans"
-msgstr ""
+msgstr "طرح‌های اشتراک"
 
 #: src/Modules/MultiTenant/Plans/PlanService.php:297
 msgid "Subscription renewal: %s"
@@ -6272,9 +6329,9 @@ msgstr ""
 
 #: src/Modules/Hub/Admin/HubPage.php:108
 #: src/Modules/MultiTenant/Admin/PlansPage.php:202
-#: src/Support/Admin/StatusPage.php:114
+#: src/Support/Admin/StatusPage.php:115
 msgid "Subscriptions"
-msgstr ""
+msgstr "اشتراک‌ها"
 
 #: src/Modules/Fx/Admin/FxPage.php:175
 msgid "Subscriptions (USD)"
@@ -6358,9 +6415,9 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/JobsPage.php:61
 #: src/Modules/MultiTenant/Admin/PlansPage.php:205
 #: src/Modules/MultiTenant/Admin/WalletPage.php:177
-#: src/Modules/MultiTenant/Admin/WalletPage.php:218
+#: src/Modules/MultiTenant/Admin/WalletPage.php:226
 msgid "Tenant"
-msgstr ""
+msgstr "فروشگاه"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:484
 msgid "Tenant created."
@@ -6376,7 +6433,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/WalletPage.php:107
 #: src/Modules/MultiTenant/Admin/WalletPage.php:78
 msgid "Tenant id"
-msgstr ""
+msgstr "شناسهٔ فروشگاه"
 
 #: src/Modules/Hub/Rest/HubController.php:282
 #: src/Modules/Hub/Rest/HubController.php:297
@@ -6385,11 +6442,11 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:102
 msgid "Tenant resolution"
-msgstr ""
+msgstr "تشخیص فروشگاه"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:74
 msgid "Tenant stores"
-msgstr ""
+msgstr "فروشگاه‌های مستأجر"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:458
 msgid "Tenant updated."
@@ -6398,13 +6455,13 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/PlansPage.php:89
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:29
 #: src/Modules/MultiTenant/MultiTenantModule.php:558
-#: src/Support/Admin/StatusPage.php:113
+#: src/Support/Admin/StatusPage.php:114
 msgid "Tenants"
-msgstr ""
+msgstr "فروشگاه‌ها"
 
 #: src/Support/Admin/SettingsPage.php:722
 msgid "Tenants, wallet, subscription plans, BNPL, affiliate, LMS, payment gateways,""OTP and marketplace feeds."
-msgstr ""
+msgstr "فروشگاه‌ها، کیف پول، طرح‌های اشتراک، اقساط، همکاری در فروش، آموزش، درگاه‌های""پرداخت، کد یک‌بارمصرف و فید بازارها."
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:62
 msgid "Tenants, wallet, subscription plans, instalments (BNPL), affiliate marketing,""courses, payment gateways, phone OTP and marketplace feeds."
@@ -6618,9 +6675,9 @@ msgstr ""
 msgid "The action is not pending approval."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/WalletPage.php:262
+#: src/Modules/MultiTenant/Admin/WalletPage.php:270
 msgid "The adjustment was rejected."
-msgstr ""
+msgstr "تعدیل رد شد."
 
 #: src/Modules/MultiTenant/Payments/NextPayGateway.php:159
 msgid "The amount is below the NextPay minimum."
@@ -6969,7 +7026,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:201
 msgid "Theme slug"
-msgstr ""
+msgstr "نامک پوسته"
 
 #: src/Modules/MultiTenant/Frontend/ShortCodes.php:671
 msgid "Then"
@@ -7038,6 +7095,10 @@ msgstr ""
 #: src/Modules/RestApi/Controllers/StoreAdminController.php:475
 msgid "This order belongs to another store."
 msgstr "این سفارش متعلق به فروشگاه دیگری است."
+
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:61
+msgid "This page will show products and orders as soon as your account is assigned""to a store."
+msgstr "پس از اختصاص فروشگاه به حساب شما، محصولات و سفارش‌ها در این صفحه نمایش داده""می‌شوند."
 
 #: src/Modules/Instagram/Vip/VipPostService.php:641
 msgid "This post has expired and has been removed from the server."
@@ -7127,15 +7188,15 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:189
 msgid "Tier 1 commission %"
-msgstr ""
+msgstr "درصد کمیسیون سطح یک"
 
 #: src/Support/Admin/SettingsPage.php:190
 msgid "Tier 2 commission %"
-msgstr ""
+msgstr "درصد کمیسیون سطح دو"
 
-#: src/Support/Admin/StatusPage.php:337
+#: src/Support/Admin/StatusPage.php:387
 msgid "Time"
-msgstr ""
+msgstr "زمان"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:353
 msgid "Time limit"
@@ -7264,7 +7325,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/GamificationPage.php:51
 #: src/Modules/MultiTenant/Frontend/ShortCodes.php:672
 msgid "Total"
-msgstr ""
+msgstr "مجموع"
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:247
 msgid "Total %1$s · outstanding %2$s"
@@ -7272,11 +7333,11 @@ msgstr "مجموع %1$s · مانده %2$s"
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:50
 msgid "Total credited"
-msgstr ""
+msgstr "مجموع بستانکار"
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:55
 msgid "Total debited"
-msgstr ""
+msgstr "مجموع بدهکار"
 
 #: src/Modules/MultiTenant/Admin/BnplPage.php:155
 #: src/Modules/MultiTenant/Admin/BnplPage.php:199
@@ -7305,7 +7366,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:72
 msgid "Translation"
-msgstr ""
+msgstr "ترجمه"
 
 #: src/Support/Admin/SettingsPage.php:579
 msgid "Translation API base URL"
@@ -7325,7 +7386,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TranslatorPage.php:23
 msgid "Translator"
-msgstr ""
+msgstr "مترجم"
 
 #: src/Modules/Hub/Services/ContentBlockService.php:148
 msgid "Trend research and graphics"
@@ -7346,7 +7407,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:204
 msgid "Trial ends at"
-msgstr ""
+msgstr "پایان دورهٔ آزمایشی"
 
 #: src/Support/Admin/SettingsPage.php:563
 msgid "Triboon API key"
@@ -7371,7 +7432,7 @@ msgstr "دو راه گشودن آن"
 #: src/Modules/MultiTenant/Admin/DomainPage.php:46
 #: src/Modules/MultiTenant/Admin/JobsPage.php:61
 msgid "Type"
-msgstr ""
+msgstr "نوع"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:348
 msgid "Type-ahead suggestions."
@@ -7405,7 +7466,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:204
 msgid "UTC, format YYYY-MM-DD HH:MM:SS. Leave empty for no trial."
-msgstr ""
+msgstr "UTC، قالب YYYY-MM-DD HH:MM:SS؛ برای بدون دورهٔ آزمایشی خالی بگذارید."
 
 #: src/Support/Admin/SettingsPage.php:497
 msgid "Universal / App Link base URL"
@@ -7420,9 +7481,9 @@ msgstr ""
 msgid "Unknown gateway."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:98
+#: src/Support/Admin/StatusPage.php:99
 msgid "Unknown job."
-msgstr ""
+msgstr "کار ناشناخته است."
 
 #: src/Modules/RestApi/Controllers/StoreAdminController.php:485
 msgid "Unknown order status."
@@ -7464,9 +7525,9 @@ msgstr ""
 msgid "Update tenant"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/WalletPage.php:220
+#: src/Modules/MultiTenant/Admin/WalletPage.php:228
 msgid "Updated"
-msgstr ""
+msgstr "به‌روزرسانی‌شده"
 
 #: src/Modules/MultiTenant/Admin/DomainPage.php:64
 msgid "Use subdomain"
@@ -7490,7 +7551,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:98
 msgid "Used for wallet balances and BNPL amounts, e.g. IRT."
-msgstr ""
+msgstr "برای موجودی کیف پول و مبالغ اقساطی استفاده می‌شود؛ مانند IRT."
 
 #: src/Modules/Hub/Admin/HubPage.php:303
 msgid "Used in the hub URL: /wp-json/igbz-hub/v1/blocks/{page_key}."
@@ -7506,7 +7567,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:132
 msgid "Used when a request cannot be resolved to a store. 0 means no fallback."
-msgstr ""
+msgstr "وقتی درخواست به فروشگاهی نسبت داده نشود استفاده می‌شود؛ صفر یعنی بدون""جایگزین."
 
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:120
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:278
@@ -7516,14 +7577,14 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:262
 #: src/Modules/MultiTenant/Admin/WalletPage.php:101
 #: src/Modules/MultiTenant/Admin/WalletPage.php:176
-#: src/Modules/MultiTenant/Admin/WalletPage.php:217
+#: src/Modules/MultiTenant/Admin/WalletPage.php:225
 msgid "User"
-msgstr ""
+msgstr "کاربر"
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:248
 #: src/Modules/Instagram/Admin/AccountsPage.php:299
 msgid "Username"
-msgstr ""
+msgstr "نام کاربری"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:337
 msgid "Username and password sign-in."
@@ -7537,7 +7598,7 @@ msgstr "از اعتبارنامهٔ حساب فروشگاه استفاده می�
 #: src/Modules/Instagram/Admin/VipPage.php:86
 #: src/Support/Admin/SettingsPage.php:57
 msgid "VIP channel"
-msgstr ""
+msgstr "کانال VIP"
 
 #: src/Support/Admin/SettingsPage.php:473
 msgid "VIP link TTL (seconds)"
@@ -7610,7 +7671,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:214
 msgid "Video signing secret"
-msgstr ""
+msgstr "راز امضای ویدئو"
 
 #: src/Modules/MultiTenant/Frontend/ShortCodes.php:515
 msgid "View and verify"
@@ -7635,7 +7696,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Frontend/ShortCodes.php:717
 #: src/Support/Admin/SettingsPage.php:46
 msgid "Wallet"
-msgstr ""
+msgstr "کیف پول"
 
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:171
 #: src/Modules/MultiTenant/Wallet/WalletGateway.php:25
@@ -7648,9 +7709,9 @@ msgid "Wallet is busy, please retry."
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:130
-#: src/Support/Admin/StatusPage.php:137
+#: src/Support/Admin/StatusPage.php:138
 msgid "Wallet liability"
-msgstr ""
+msgstr "بدهی کیف پول"
 
 #: src/Modules/Instagram/Vip/VipBillingService.php:139
 #: src/Modules/Instagram/Vip/VipBillingService.php:366
@@ -7703,9 +7764,9 @@ msgstr ""
 msgid "Weight (kg)"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:81
+#: src/Modules/MultiTenant/Admin/StoreDashboardPage.php:88
 msgid "Welcome to %s."
-msgstr ""
+msgstr "به %s خوش آمدید."
 
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:505
 msgid "Welcome to the affiliate programme."
@@ -7757,7 +7818,7 @@ msgid "Without \"://\". Used to build igbz://products/42 style links."
 msgstr ""
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:549
-#: src/Support/Admin/StatusPage.php:278
+#: src/Support/Admin/StatusPage.php:328
 msgid "WooCommerce"
 msgstr ""
 
@@ -7791,7 +7852,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:154
 msgid "Yearly discount %"
-msgstr ""
+msgstr "درصد تخفیف سالانه"
 
 #: src/Modules/MultiTenant/Admin/SeoPage.php:89
 msgid "Yektanet XML feed"
@@ -7945,7 +8006,7 @@ msgid "Your session expired. Please try again."
 msgstr "نشست شما منقضی شد؛ دوباره تلاش کنید."
 
 #: src/Modules/MultiTenant/Otp/OtpService.php:226
-#: src/Support/Activator.php:1044
+#: src/Support/Activator.php:1047
 msgid "Your verification code: {code}"
 msgstr ""
 
@@ -7996,7 +8057,7 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:56
 msgid "Zernio"
-msgstr ""
+msgstr "زرنیو"
 
 #: src/Modules/Instagram/InstagramModule.php:297
 msgid "Zernio (central account)"
@@ -8031,20 +8092,20 @@ msgid "day"
 msgstr "روز"
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:331
-#: src/Support/Admin/StatusPage.php:160
+#: src/Support/Admin/StatusPage.php:161
 msgid "disabled"
-msgstr ""
+msgstr "غیرفعال"
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:331
-#: src/Support/Admin/StatusPage.php:160
+#: src/Support/Admin/StatusPage.php:161
 msgid "enabled"
-msgstr ""
+msgstr "فعال"
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:265
 msgid "expired"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:292
+#: src/Support/Admin/StatusPage.php:342
 msgid "ext-openssl missing: API keys cannot be encrypted at rest."
 msgstr ""
 
@@ -8081,9 +8142,9 @@ msgstr ""
 msgid "iPhone"
 msgstr "آیفون"
 
-#: src/Support/Admin/StatusPage.php:211
+#: src/Support/Admin/StatusPage.php:261
 msgid "in %s"
-msgstr ""
+msgstr "در %s"
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:261
 msgid "inactive"
@@ -8105,6 +8166,10 @@ msgstr ""
 msgid "month"
 msgstr "ماه"
 
+#: src/Support/Admin/StatusPage.php:241
+msgid "never"
+msgstr "هرگز"
+
 #: src/Modules/Fx/Admin/FxPage.php:120
 #: src/Modules/MultiTenant/Admin/PlansPage.php:190
 msgid "no"
@@ -8114,17 +8179,17 @@ msgstr ""
 msgid "none"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:280
+#: src/Support/Admin/StatusPage.php:330
 msgid "not active"
-msgstr ""
+msgstr "فعال نیست"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:328
 msgid "not configured"
 msgstr "پیکربندی نشده"
 
-#: src/Support/Admin/StatusPage.php:214
+#: src/Support/Admin/StatusPage.php:264
 msgid "not scheduled"
-msgstr ""
+msgstr "زمان‌بندی نشده"
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:139
 msgid "not signed in"
@@ -8138,7 +8203,7 @@ msgstr ""
 msgid "on"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:291
+#: src/Support/Admin/StatusPage.php:341
 msgid "openssl available, secrets are stored as AES-256-GCM."
 msgstr ""
 
@@ -8150,7 +8215,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/DomainPage.php:53
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:266
 msgid "pending"
-msgstr ""
+msgstr "در انتظار"
 
 #: src/Modules/Instagram/Admin/VipPage.php:506
 msgid "post #%d"
@@ -8207,6 +8272,14 @@ msgstr "سال"
 msgid "yes"
 msgstr ""
 
+#: src/Modules/MultiTenant/Admin/WalletPage.php:195
+msgid "بازگشت نقدی"
+msgstr ""
+
+#: src/Modules/MultiTenant/Admin/WalletPage.php:194
+msgid "بازگشت نقدی خرید"
+msgstr ""
+
 #: src/Modules/Pado/Admin/PadoPage.php:99
 msgid "دستیار هوشمند فروشگاه شما"
 msgstr ""
@@ -8226,16 +8299,16 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/WalletPage.php:84
 msgid "— any user —"
-msgstr ""
+msgstr "— هر کاربری —"
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:176
 msgid "— create a new user —"
-msgstr ""
+msgstr "— ساخت کاربر جدید —"
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:578
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:188
 msgid "— none —"
-msgstr ""
+msgstr "— هیچ‌کدام —"
 
 #: src/Modules/MultiTenant/Admin/SeoPage.php:63
 msgid "— preview only —"

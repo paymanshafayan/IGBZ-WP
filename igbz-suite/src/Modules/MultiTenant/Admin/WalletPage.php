@@ -163,9 +163,9 @@ final class WalletPage {
 					esc_html( View::money( $amount ) )
 				),
 				'balance'    => esc_html( View::money( (float) $row['balance_after'] ) ),
-				'reason'     => esc_html( (string) $row['reason'] ),
+				'reason'     => esc_html( $this->translate_ledger_value( (string) $row['reason'] ) ),
 				'reference'  => esc_html( (string) $row['reference_code'] ),
-				'note'       => esc_html( (string) $row['note'] ),
+				'note'       => esc_html( $this->translate_ledger_value( (string) $row['note'] ) ),
 			];
 		}
 
@@ -187,6 +187,14 @@ final class WalletPage {
 		);
 
 		View::pagination( $total, self::PER_PAGE, $paged, self::SLUG, [ 'tenant_id' => $tenant_id, 'user_id' => $user_id ] );
+	}
+
+	private function translate_ledger_value( string $value ): string {
+		return match ( $value ) {
+			'Purchase cashback' => __( 'بازگشت نقدی خرید', 'igbz-suite' ),
+			'cashback' => __( 'بازگشت نقدی', 'igbz-suite' ),
+			default => $value,
+		};
 	}
 
 	private function render_top_balances( int $tenant_id ): void {
