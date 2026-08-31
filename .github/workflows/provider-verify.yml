@@ -1,10 +1,5 @@
 # Reference workflow — live verification of Zernio + DeepInfra keys (PV-*)
 
-# Copy this file into `.github/workflows/provider-verify.yml` from the GitHub
-# UI (the sandbox token cannot push into `.github/workflows/`). Add the two
-# repository secrets first (see _devenv/PROVIDER-VERIFY.md), then trigger it
-# manually from the Actions tab.
-
 name: Provider key verification (Zernio + DeepInfra)
 
 on:
@@ -29,12 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Probe providers
         env:
           ZERNIO_API_KEY: ${{ secrets.ZERNIO_API_KEY }}
@@ -42,4 +31,90 @@ jobs:
           RUN_ZERNIO: ${{ inputs.zernio }}
           RUN_DEEPINFRA: ${{ inputs.deepinfra }}
           DEEPINFRA_MODELS: ${{ inputs.deepinfra_models }}
-        run: node _devenv/provider-verify.mjs
+        run: |
+          set -uo pipefail
+          FAILED=0
+          PASS() { echo "PASS  $1"; }
+          FAIL() { echo "FAIL  $1"; FAILED=$((FAILED+1)); }
+
+          # ---------------- DeepInfra (OpenAI-compatible chat/completions) ----------------
+          if [ "${RUN_DEEPINFRA:-true}" = "true" ]; then
+            if [ -z "${DEEPINFRA_API_KEY:-}" ]; then
+              FAIL "deepinfra  DEEPINFRA_API_KEY secret missing"
+            else
+              ENDPOINT="https://api.deepinfra.com/v1/openai/chat/completions"
+              PROMPT="در یک جمله کوتاه، مهم‌ترین مزیت یک فروشگاه اینستاگرامی را بنویس."
+              MODELS="${DEEPINFRA_MODELS:-deepseek-ai/DeepSeek-V3,moonshotai/Kimi-K2.7-Code,moonshotai/Kimi-K3}"
+              OLDIFS=$IFS; IFS=','; read -ra ML <<< "$MODELS"; IFS=$OLDIFS
+              for MODEL in "${ML[@]}"; do
+                MODEL="$(printf '%s' "$MODEL" | xargs)"
+                [ -z "$MODEL" ] && continue
+                BODY=$(jq -nc --arg m "$MODEL" --arg p "$PROMPT" \
+                  '{model:$m,messages:[{role:"user",content:$p}],max_tokens:128,temperature:0.2}')
+                HTTP="000"
+                HTTP=$(curl -sS -m 60 -o /tmp/di.json -w '%{http_code}' \
+                  -X POST "$ENDPOINT" \
+                  -H "Authorization: Bearer $DEEPINFRA_API_KEY" \
+                  -H "Content-Type: application/json" \
+                  -d "$BODY" 2>/dev/null) || HTTP="000"
+                if [ "$HTTP" = "000" ]; then
+                  FAIL "deepinfra:$MODEL  network/abort"
+                elif [ "$HTTP" = "401" ] || [ "$HTTP" = "403" ]; then
+                  FAIL "deepinfra:$MODEL  HTTP $HTTP — key rejected"
+                elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+                  FAIL "deepinfra:$MODEL  HTTP $HTTP"
+                else
+                  COST=$(jq -r '.usage.estimated_cost // "n/a"' /tmp/di.json 2>/dev/null)
+                  REPLY=$(jq -r '.choices[0].message.content // ""' /tmp/di.json 2>/dev/null | head -c 100)
+                  PASS "deepinfra:$MODEL  HTTP $HTTP estimated_cost=$COST reply=$REPLY"
+                fi
+              done
+            fi
+          else
+            PASS "deepinfra  skipped (RUN_DEEPINFRA=false)"
+          fi
+
+          # ---------------- Zernio (central key: create → verify → delete) ----------------
+          if [ "${RUN_ZERNIO:-true}" = "true" ]; then
+            if [ -z "${ZERNIO_API_KEY:-}" ]; then
+              FAIL "zernio  ZERNIO_API_KEY secret missing"
+            else
+              BASE="https://zernio.com/api/v1"
+              SLUG="igbz-ci-probe-$(date +%s)"
+              HTTP="000"
+              HTTP=$(curl -sS -m 60 -o /tmp/zp.json -w '%{http_code}' \
+                -X POST "$BASE/profiles" \
+                -H "Authorization: Bearer $ZERNIO_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"$SLUG\",\"description\":\"IGBZ CI probe (auto-deleted)\"}" 2>/dev/null) || HTTP="000"
+              if [ "$HTTP" = "000" ]; then
+                FAIL "zernio:create-profile  network/abort"
+              elif [ "$HTTP" = "401" ] || [ "$HTTP" = "403" ]; then
+                FAIL "zernio:create-profile  HTTP $HTTP — key rejected"
+              elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+                FAIL "zernio:create-profile  HTTP $HTTP"
+              else
+                PID=$(jq -r '.data.profile_id // .data.profileId // .data.id // .profile_id // .profileId // .id // empty' /tmp/zp.json 2>/dev/null)
+                if [ -z "$PID" ]; then
+                  FAIL "zernio:create-profile  HTTP $HTTP — no profile id in response"
+                else
+                  PASS "zernio:create-profile  HTTP $HTTP profile_id=$PID"
+                  DHTTP="000"
+                  DHTTP=$(curl -sS -m 60 -o /tmp/zd.json -w '%{http_code}' \
+                    -X DELETE "$BASE/profiles/$PID" \
+                    -H "Authorization: Bearer $ZERNIO_API_KEY" 2>/dev/null) || DHTTP="000"
+                  if [ "$DHTTP" -ge 200 ] && [ "$DHTTP" -lt 300 ]; then
+                    PASS "zernio:delete-profile (cleanup)  HTTP $DHTTP"
+                  else
+                    FAIL "zernio:delete-profile (cleanup)  HTTP $DHTTP"
+                  fi
+                fi
+              fi
+            fi
+          else
+            PASS "zernio  skipped (RUN_ZERNIO=false)"
+          fi
+
+          echo ""
+          echo "Failures: $FAILED"
+          [ "$FAILED" -eq 0 ] || exit 1
