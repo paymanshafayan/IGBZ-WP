@@ -23,6 +23,11 @@ on:
         type: string
         required: false
         default: ''
+      zernio_cleanup_ids:
+        description: 'Optional: comma-separated profile ids to delete first (e.g. leftover probes)'
+        type: string
+        required: false
+        default: ''
 
 jobs:
   verify:
@@ -36,6 +41,7 @@ jobs:
           RUN_ZERNIO: ${{ inputs.zernio }}
           RUN_DEEPINFRA: ${{ inputs.deepinfra }}
           DEEPINFRA_MODELS: ${{ inputs.deepinfra_models }}
+          ZERNIO_CLEANUP_IDS: ${{ inputs.zernio_cleanup_ids }}
         run: |
           set -uo pipefail
           FAILED=0
@@ -88,6 +94,22 @@ jobs:
               FAIL "zernio  ZERNIO_API_KEY secret missing"
             else
               BASE="https://zernio.com/api/v1"
+              # Optional cleanup of leftover probe profiles (e.g. from earlier runs).
+              CLEANUP_IDS="${ZERNIO_CLEANUP_IDS:-}"
+              if [ -n "$CLEANUP_IDS" ]; then
+                OLDIFS=$IFS; IFS=','; read -ra CIDS <<< "$CLEANUP_IDS"; IFS=$OLDIFS
+                for CID in "${CIDS[@]}"; do
+                  CID="$(printf '%s' "$CID" | xargs)"
+                  [ -z "$CID" ] && continue
+                  CH="000"
+                  CH=$(curl -sS -m 60 -o /tmp/zc.json -w '%{http_code}'                     -X DELETE "$BASE/profiles/$CID"                     -H "Authorization: Bearer $ZERNIO_API_KEY" 2>/dev/null) || CH="000"
+                  if [ "$CH" -ge 200 ] && [ "$CH" -lt 300 ]; then
+                    PASS "zernio:cleanup:$CID  HTTP $CH"
+                  else
+                    FAIL "zernio:cleanup:$CID  HTTP $CH"
+                  fi
+                done
+              fi
               SLUG="igbz-ci-probe-$(date +%s)"
               HTTP="000"
               HTTP=$(curl -sS -m 60 -o /tmp/zp.json -w '%{http_code}' \
@@ -105,7 +127,7 @@ jobs:
               elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
                 FAIL "zernio:create-profile  HTTP $HTTP"
               else
-                PID=$(jq -r '.data.profile_id // .data.profileId // .data.id // .data.profile.id // .profile_id // .profileId // .id // .profile.id // .result.id // .result.profile_id // empty' /tmp/zp.json 2>/dev/null)
+                PID=$(jq -r '.profile._id // .data.profile._id // .data.profile_id // .data.profileId // .data._id // .data.id // .profile_id // .profileId // ._id // .id // .profile.id // .result.id // .result._id // .result.profile_id // .result.profile._id // empty' /tmp/zp.json 2>/dev/null)
                 if [ -z "$PID" ]; then
                   FAIL "zernio:create-profile  HTTP $HTTP — no profile id in response (see body above)"
                 else
