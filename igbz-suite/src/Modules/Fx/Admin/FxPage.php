@@ -205,7 +205,7 @@ final class FxPage {
 				esc_html( (string) $account['provider'] ),
 				esc_html( (string) $account['provider_account_id'] ),
 				(int) $account['billing_day'],
-				esc_html( (string) $account['status'] )
+				esc_html__( (string) $account['status'], 'igbz-suite' )
 			);
 		}
 		echo '</tbody></table>';
@@ -251,7 +251,7 @@ final class FxPage {
 				'<tr><td>%1$s</td><td>%2$s</td><td>%3$s</td><td>%4$s</td><td>%5$s</td></tr>',
 				esc_html( (string) $row['period_start'] . ' — ' . (string) $row['period_end'] ),
 				esc_html( number_format( (float) $row['amount_usd'], 2 ) ),
-				esc_html( (string) $row['status'] ),
+				esc_html__( (string) $row['status'], 'igbz-suite' ),
 				esc_html( (string) ( $row['paid_at'] ?? '' ) ),
 				esc_html( (string) $row['payout_ref'] )
 			);

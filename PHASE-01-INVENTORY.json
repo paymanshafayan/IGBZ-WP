@@ -49,7 +49,7 @@
   },
   "code": {
     "source_php_count": 262,
-    "source_php_sha256": "e1aa1acf4cff2b120c80e6fe3f2621953aa77646cf06d4969a6ccf8deb4f9157",
+    "source_php_sha256": "da95abda245a2ab347b014bf4225eb6fa5a3796041639b8d0dbeb6df38c3e5ed",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",

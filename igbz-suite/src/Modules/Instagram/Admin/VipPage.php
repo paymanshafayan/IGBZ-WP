@@ -582,7 +582,7 @@ final class VipPage {
 				),
 				'preview' => esc_html( (string) $thread['preview'] ),
 				'last'    => esc_html( $this->local_time( $thread['last_at'] ?? null ) ),
-				'status'  => esc_html( (string) $thread['status'] ),
+				'status'  => esc_html__( (string) $thread['status'], 'igbz-suite' ),
 			];
 		}
 
@@ -681,7 +681,7 @@ final class VipPage {
 			$display[] = [
 				'member' => esc_html( $user ? $user->display_name : __( 'Deleted user', 'igbz-suite' ) ),
 				'email'  => esc_html( $user ? $user->user_email : '' ),
-				'status' => esc_html( (string) $row['status'] ) . ( null !== $row['cancelled_at'] ? ' <em>' . esc_html__( '(cancelling)', 'igbz-suite' ) . '</em>' : '' ),
+				'status' => esc_html__( (string) $row['status'], 'igbz-suite' ) . ( null !== $row['cancelled_at'] ? ' <em>' . esc_html__( '(cancelling)', 'igbz-suite' ) . '</em>' : '' ),
 				'until'  => esc_html( $this->local_time( $row['ends_at'] ?? null ) ),
 				'paid'   => esc_html( View::money( (float) $row['price_paid'] ) ),
 			];

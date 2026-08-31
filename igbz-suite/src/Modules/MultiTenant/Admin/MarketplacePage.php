@@ -50,7 +50,7 @@ final class MarketplacePage {
 		foreach ( $rows as $row ) {
 			printf(
 				'<tr><td>%1$s</td><td>%2$s</td><td><input type="text" name="remote[%3$d]" value="%4$s" class="regular-text" /></td></tr>',
-				esc_html( (string) $row['marketplace'] ),
+				esc_html__( (string) $row['marketplace'], 'igbz-suite' ),
 				esc_html( (string) $row['local_category'] ),
 				(int) $row['id'],
 				esc_attr( (string) $row['remote_category'] )
@@ -58,7 +58,7 @@ final class MarketplacePage {
 		}
 		echo '</tbody></table>';
 		echo '<p class="description">' . esc_html__( 'Add a new row:', 'igbz-suite' ) . '</p>';
-		echo '<p><select name="new_marketplace"><option value="digikala">Digikala</option><option value="divar">Divar</option></select> ';
+		echo '<p><select name="new_marketplace"><option value="digikala">' . esc_html__( 'Digikala', 'igbz-suite' ) . '</option><option value="divar">' . esc_html__( 'Divar', 'igbz-suite' ) . '</option></select> ';
 		printf( '<input type="text" name="new_local" placeholder="%s" /> ', esc_attr__( 'local category', 'igbz-suite' ) );
 		printf( '<input type="text" name="new_remote" placeholder="%s" /> ', esc_attr__( 'remote category id', 'igbz-suite' ) );
 		submit_button( __( 'Save mappings', 'igbz-suite' ), 'secondary', '', false );
@@ -81,7 +81,7 @@ final class MarketplacePage {
 				(int) $row['id'],
 				esc_html( (string) $row['product_id'] ),
 				esc_html( (string) $row['marketplace'] ),
-				esc_html( (string) $row['status'] ),
+				esc_html__( (string) $row['status'], 'igbz-suite' ),
 				(int) $row['attempts'],
 				esc_html( (string) $row['last_error'] )
 			);

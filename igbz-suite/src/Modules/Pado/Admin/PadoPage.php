@@ -264,7 +264,7 @@ final class PadoPage {
 		if ( ! $rows ) { return; }
 		echo '<h3>قالب‌های ثبت‌شده</h3><table class="widefat striped"><thead><tr><th>نام</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>';
 		foreach ( $rows as $row ) {
-			echo '<tr><td>' . esc_html( (string) $row['name'] ) . '</td><td>' . esc_html( (string) $row['status'] ) . '</td><td>';
+			echo '<tr><td>' . esc_html( (string) $row['name'] ) . '</td><td>' . esc_html__( (string) $row['status'], 'igbz-suite' ) . '</td><td>';
 			foreach ( [ 'preview' => 'پیش‌نمایش', 'live' => 'اعمال زنده' ] as $action => $label ) {
 				$url = wp_nonce_url( admin_url( 'admin-post.php?action=igbz_pado_theme_' . $action . '&theme_id=' . (int) $row['id'] ), self::NONCE_ACTION );
 				echo '<a class="button" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a> ';

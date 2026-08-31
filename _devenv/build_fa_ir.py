@@ -439,6 +439,16 @@ HEADER = (
 )
 
 
+def _merge_panel_translations() -> None:
+    """Merge the admin-panel translation set (kept in _panel_translations.py)."""
+    from _panel_translations import PANEL_TRANSLATIONS
+
+    TRANSLATIONS.update(PANEL_TRANSLATIONS)
+
+
+_merge_panel_translations()
+
+
 def main() -> int:
     if not POT.exists():
         print("POT missing — run: bash _devenv/makepot.sh", file=sys.stderr)
@@ -499,6 +509,18 @@ def main() -> int:
                 po_parts.append('msgstr ""\n')
 
     PO.write_text("".join(po_parts), encoding="utf-8")
+
+    # ---- runtime strings -----------------------------------------------------
+    # Some UI strings are looked up dynamically (e.g. a stored status enum value
+    # passed to __( $status, 'igbz-suite' )), so makepot cannot extract them as
+    # literals and they are not in the POT. Their translations are still valid
+    # for translate() at runtime, so they are injected into the MO only (the PO
+    # keeps its POT-backed references and is not polluted with reference-less
+    # entries). Orphan translations reported above are exactly this set plus
+    # genuinely stale keys, which are harmless (unused) in the MO.
+    for mid, tr in translated.items():
+        if mid and mid not in msgids and mid not in mo:
+            mo[mid] = tr
 
     # ---- compile the MO (little-endian GNU format, hash table omitted: size 0)
     keys = sorted(mo.keys())

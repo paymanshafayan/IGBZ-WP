@@ -130,17 +130,17 @@ final class FxModule implements ModuleInterface {
 
 		$rate = $rates->current();
 		if ( $rate > 0 ) {
-			$rows[] = [ 'label' => 'FX rate', 'status' => 'ok', 'detail' => sprintf( '%s IRT/USD', number_format( $rate, 0 ) ) ];
+			$rows[] = [ 'label' => __( 'FX rate', 'igbz-suite' ), 'status' => 'ok', 'detail' => sprintf( '%s IRT/USD', number_format( $rate, 0 ) ) ];
 		} else {
-			$rows[] = [ 'label' => 'FX rate', 'status' => 'warn', 'detail' => __( 'No rate configured — top-ups are refused.', 'igbz-suite' ) ];
+			$rows[] = [ 'label' => __( 'FX rate', 'igbz-suite' ), 'status' => 'warn', 'detail' => __( 'No rate configured — top-ups are refused.', 'igbz-suite' ) ];
 		}
 
 		$payouts = igbz()->get( 'fx.payouts' );
 		$active  = $payouts->active();
 		if ( $active && $active->is_configured() ) {
-			$rows[] = [ 'label' => 'FX payout', 'status' => 'ok', 'detail' => $active->title() ];
+			$rows[] = [ 'label' => __( 'FX payout', 'igbz-suite' ), 'status' => 'ok', 'detail' => $active->title() ];
 		} else {
-			$rows[] = [ 'label' => 'FX payout', 'status' => 'warn', 'detail' => __( 'No payout adapter configured — bills cannot be paid automatically yet.', 'igbz-suite' ) ];
+			$rows[] = [ 'label' => __( 'FX payout', 'igbz-suite' ), 'status' => 'warn', 'detail' => __( 'No payout adapter configured — bills cannot be paid automatically yet.', 'igbz-suite' ) ];
 		}
 
 		return $rows;

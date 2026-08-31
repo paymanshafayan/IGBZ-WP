@@ -46,9 +46,9 @@ final class PadoModule implements ModuleInterface {
 	public function health(): array {
 		return [
 			[
-				'label'  => 'Pado module',
+				'label'  => __( 'Pado module', 'igbz-suite' ),
 				'status' => 'ok',
-				'detail' => 'Approval queue, external Pado gateway and backend theme validator are loaded.',
+				'detail' => __( 'Approval queue, external Pado gateway and backend theme validator are loaded.', 'igbz-suite' ),
 			],
 		];
 	}

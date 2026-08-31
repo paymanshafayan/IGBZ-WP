@@ -56,7 +56,7 @@ final class MasterPaymentPage {
 					esc_html( (string) $row['order_id'] ),
 					esc_html( (string) $row['phase'] ),
 					esc_html( number_format( (float) $row['amount'], 0 ) ),
-					esc_html( (string) $row['status'] ),
+					esc_html__( (string) $row['status'], 'igbz-suite' ),
 					esc_html( (string) ( $row['hold_until'] ?? '' ) ),
 					esc_html( (string) ( $row['released_at'] ?? '' ) )
 				);
@@ -77,7 +77,7 @@ final class MasterPaymentPage {
 					esc_html( (string) $d['payment_id'] ),
 					esc_html( (string) $d['source'] ),
 					esc_html( (string) $d['reason'] ),
-					esc_html( (string) $d['status'] )
+					esc_html__( (string) $d['status'], 'igbz-suite' )
 				);
 			}
 			echo '</tbody></table>';
@@ -96,7 +96,7 @@ final class MasterPaymentPage {
 					esc_html( (string) $w['user_id'] ),
 					esc_html( number_format( (float) $w['amount'], 0 ) ),
 					esc_html( (string) $w['method'] ),
-					esc_html( (string) $w['status'] ),
+					esc_html__( (string) $w['status'], 'igbz-suite' ),
 					esc_html( (string) $w['detail'] )
 				);
 			}

@@ -113,7 +113,7 @@ final class TenantsPage {
 					esc_html( $tenant->slug )
 				),
 				'owner'  => $this->owner_label( $tenant->owner_user_id ),
-				'status' => View::status_pill( $this->status_severity( $tenant->status ) ) . ' ' . esc_html( $tenant->status ),
+				'status' => View::status_pill( $this->status_severity( $tenant->status ) ) . ' ' . esc_html__( (string) $tenant->status, 'igbz-suite' ),
 				'plan'   => $this->plan_label( $tenant->plan_id ),
 				'wallet' => esc_html( View::money( $this->tenant_balance( $tenant->id ) ) ),
 				'domain' => esc_html( $this->repo()->primary_domain( $tenant->id ) ),

@@ -48,7 +48,7 @@ final class TranslatorPage {
 		}
 		echo '</select></td></tr>';
 		echo '<tr><th><label for="lang">' . esc_html__( 'Language', 'igbz-suite' ) . '</label></th><td><select id="lang" name="lang">';
-		foreach ( [ 'en' => 'English', 'ar' => 'Arabic', 'tr' => 'Turkish', 'ckb' => 'Kurdish' ] as $code => $label ) {
+		foreach ( [ 'en' => __( 'English', 'igbz-suite' ), 'ar' => __( 'Arabic', 'igbz-suite' ), 'tr' => __( 'Turkish', 'igbz-suite' ), 'ckb' => __( 'Kurdish', 'igbz-suite' ) ] as $code => $label ) {
 			printf( '<option value="%1$s">%2$s</option>', esc_attr( $code ), esc_html( $label ) );
 		}
 		echo '</select></td></tr>';

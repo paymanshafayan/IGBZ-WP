@@ -184,7 +184,7 @@ final class PlansPage {
 						PlanService::STATUS_PAST_DUE => 'warn',
 						default => 'error',
 					}
-				) . ' ' . esc_html( (string) $row['status'] ),
+				) . ' ' . esc_html__( (string) $row['status'], 'igbz-suite' ),
 				'started' => esc_html( (string) $row['starts_at'] ),
 				'ends'    => esc_html( (string) ( $row['ends_at'] ?? '—' ) ),
 				'renew'   => esc_html( $row['auto_renew'] ? __( 'yes', 'igbz-suite' ) : __( 'no', 'igbz-suite' ) ),

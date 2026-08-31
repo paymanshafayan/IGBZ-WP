@@ -184,10 +184,17 @@ final class View {
 		];
 		$color = $colors[ $status ] ?? '#646970';
 
+		$labels = [
+			'ok'    => __( 'OK', 'igbz-suite' ),
+			'warn'  => __( 'Warning', 'igbz-suite' ),
+			'error' => __( 'Error', 'igbz-suite' ),
+		];
+		$label = $labels[ $status ] ?? strtoupper( $status );
+
 		return sprintf(
 			'<span style="display:inline-block;min-width:64px;text-align:center;padding:2px 8px;border-radius:9px;color:#fff;background:%1$s">%2$s</span>',
 			esc_attr( $color ),
-			esc_html( strtoupper( $status ) )
+			esc_html( $label )
 		);
 	}
 

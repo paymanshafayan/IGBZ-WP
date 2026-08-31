@@ -55,7 +55,7 @@ final class GamificationPage {
 					(int) $row['id'],
 					esc_html( (string) $row['user_id'] ),
 					esc_html( number_format( (float) $row['cart_total'], 0 ) ),
-					esc_html( (string) $row['status'] ),
+					esc_html__( (string) $row['status'], 'igbz-suite' ),
 					esc_html( (string) $row['coupon_code'] ),
 					esc_html( (string) ( $row['reminder_sent_at'] ?? '' ) )
 				);
