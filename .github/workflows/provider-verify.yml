@@ -1,11 +1,16 @@
-# Reference workflow — live verification of Zernio + DeepInfra keys (PV-*)
+# Reference workflow — live verification of Zernio + provider keys (ADR-0005, PV-*)
 
-# Copy this file into `.github/workflows/provider-verify.yml` from the GitHub
-# UI (the sandbox token cannot push into `.github/workflows/`). Add the two
-# repository secrets first (see _devenv/PROVIDER-VERIFY.md), then trigger it
-# manually from the Actions tab.
+# Self-contained: no dependency on repository files, so it works from any
+# branch. Copy this file into `.github/workflows/provider-verify.yml` on the
+# DEFAULT branch (`main`) — the "Run workflow" button only appears for
+# workflows present on the default branch.
+#
+# Providers (ADR-0005): OpenRouter, Groq and NaraRouter speak the `openai` dialect; Anthropic
+# speaks its own `anthropic` dialect (x-api-key + anthropic-version). Zernio keeps
+# the central-key profile probe (create → verify → delete) plus optional cleanup
+# of leftover probe profiles.
 
-name: Provider key verification (Zernio + DeepInfra)
+name: Provider key verification (Zernio + OpenRouter + Groq + NaraRouter + Anthropic)
 
 on:
   workflow_dispatch:
@@ -13,33 +18,249 @@ on:
       zernio:
         description: 'Zernio: run the central-key profile probe (create → verify → delete)'
         type: boolean
-        default: true
-      deepinfra:
-        description: 'DeepInfra: run the key + model probe with a tiny Persian prompt'
+        default: false
+      openrouter:
+        description: 'OpenRouter: probe the key + pinned models (openai dialect)'
         type: boolean
         default: true
-      deepinfra_models:
-        description: 'Comma-separated models to probe (empty = plugin pinned list)'
+      groq:
+        description: 'Groq: probe the key + pinned models (openai dialect)'
+        type: boolean
+        default: true
+      nararouter:
+        description: 'NaraRouter: probe the key + direct free model (openai dialect, test-only provider; enable after Telegram/relink gate)'
+        type: boolean
+        default: false
+      anthropic:
+        description: 'Anthropic: probe the key + pinned model (anthropic dialect, only if a key exists)'
+        type: boolean
+        default: false
+      openrouter_models:
+        description: 'Comma-separated OpenRouter models (empty = openrouter/free smoke router)'
         type: string
         required: false
         default: ''
+      groq_models:
+        description: 'Comma-separated Groq models (empty = qwen/qwen3.6-27b smoke model)'
+        type: string
+        required: false
+        default: ''
+      nararouter_models:
+        description: 'Comma-separated NaraRouter models (empty = agnes-2.5-flash)'
+        type: string
+        required: false
+        default: ''
+      anthropic_models:
+        description: 'Comma-separated Anthropic models (empty = plugin pinned list)'
+        type: string
+        required: false
+        default: ''
+      zernio_cleanup_ids:
+        description: 'Optional: comma-separated profile ids to delete first (e.g. leftover probes)'
+        type: string
+        required: false
+        default: '6a9488fe77555aae011b7a18'
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Probe providers
         env:
           ZERNIO_API_KEY: ${{ secrets.ZERNIO_API_KEY }}
-          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NARAROUTER_API_KEY: ${{ secrets.NARAROUTER_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           RUN_ZERNIO: ${{ inputs.zernio }}
-          RUN_DEEPINFRA: ${{ inputs.deepinfra }}
-          DEEPINFRA_MODELS: ${{ inputs.deepinfra_models }}
-        run: node _devenv/provider-verify.mjs
+          RUN_OPENROUTER: ${{ inputs.openrouter }}
+          RUN_GROQ: ${{ inputs.groq }}
+          RUN_NARAROUTER: ${{ inputs.nararouter }}
+          RUN_ANTHROPIC: ${{ inputs.anthropic }}
+          OPENROUTER_MODELS: ${{ inputs.openrouter_models }}
+          GROQ_MODELS: ${{ inputs.groq_models }}
+          NARAROUTER_MODELS: ${{ inputs.nararouter_models }}
+          ANTHROPIC_MODELS: ${{ inputs.anthropic_models }}
+          ZERNIO_CLEANUP_IDS: ${{ inputs.zernio_cleanup_ids }}
+        run: |
+          set -uo pipefail
+          FAILED=0
+          PASS() { echo "PASS  $1"; }
+          FAIL() { echo "FAIL  $1"; FAILED=$((FAILED+1)); }
+          WARN() { echo "WARN  $1"; }
+          PROMPT="در یک جمله کوتاه، مهم‌ترین مزیت یک فروشگاه اینستاگرامی را بنویس."
+
+          # ---------------- openai dialect (OpenRouter + Groq + NaraRouter): POST /chat/completions ----------------
+          openai_probe() {  # $1=label  $2=endpoint  $3=key  $4=models
+            local LABEL="$1" ENDPOINT="$2" KEY="$3" MODELS="$4"
+            if [ -z "$KEY" ]; then
+              FAIL "$LABEL  API key secret missing"
+              return
+            fi
+            OLDIFS=$IFS; IFS=','; read -ra ML <<< "$MODELS"; IFS=$OLDIFS
+            for MODEL in "${ML[@]}"; do
+              MODEL="$(printf '%s' "$MODEL" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+              [ -z "$MODEL" ] && continue
+              BODY=$(jq -nc --arg m "$MODEL" --arg p "$PROMPT" \
+                '{model:$m,messages:[{role:"user",content:$p}],max_tokens:128,temperature:0.2}')
+              HTTP="000"
+              HTTP=$(curl -sS -m 60 -o /tmp/op.json -w '%{http_code}' \
+                -X POST "$ENDPOINT" \
+                -H "Authorization: Bearer $KEY" \
+                -H "Content-Type: application/json" \
+                -d "$BODY" 2>/dev/null) || HTTP="000"
+              ERRMSG=$(jq -r '.error.message // .message // .error.type // ""' /tmp/op.json 2>/dev/null | head -c 160)
+              if [ "$HTTP" = "000" ]; then
+                FAIL "$LABEL:$MODEL  network/abort"
+              elif [ "$HTTP" = "401" ]; then
+                FAIL "$LABEL:$MODEL  HTTP $HTTP — key rejected"
+              elif [ "$HTTP" = "403" ]; then
+                FAIL "$LABEL:$MODEL  HTTP $HTTP — forbidden/model not entitled or account forbidden. ${ERRMSG}"
+              elif [ "$HTTP" = "402" ]; then
+                FAIL "$LABEL:$MODEL  HTTP 402 — account has no credits/payment. ${ERRMSG}"
+              elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+                FAIL "$LABEL:$MODEL  HTTP $HTTP — ${ERRMSG}"
+              else
+                COST=$(jq -r '.usage.estimated_cost // "n/a"' /tmp/op.json 2>/dev/null)
+                REPLY=$(jq -r '.choices[0].message.content // ""' /tmp/op.json 2>/dev/null | tr -d '\r' | python3 -c 'import re,sys; s=sys.stdin.read(); s=re.sub(r"<think>.*?</think>", "[reasoning omitted]", s, flags=re.I|re.S); s=re.sub(r"<think>.*", "[reasoning omitted]", s, flags=re.I|re.S); print(s[:120], end="")')
+                FINISH=$(jq -r '.choices[0].finish_reason // "n/a"' /tmp/op.json 2>/dev/null)
+                IN=$(jq -r '.usage.prompt_tokens // "?"' /tmp/op.json 2>/dev/null)
+                OUT=$(jq -r '.usage.completion_tokens // "?"' /tmp/op.json 2>/dev/null)
+                if [ -z "$(printf '%s' "$REPLY" | tr -d '[:space:]')" ]; then
+                  WARN "$LABEL:$MODEL  HTTP $HTTP — empty reply finish=$FINISH tokens=$IN+$OUT (smoke connectivity passed; benchmark not satisfied)"
+                else
+                  PASS "$LABEL:$MODEL  HTTP $HTTP estimated_cost=$COST tokens=$IN+$OUT reply=$REPLY"
+                fi
+              fi
+            done
+          }
+
+          if [ "${RUN_OPENROUTER:-true}" = "true" ]; then
+            openai_probe "openrouter" "https://openrouter.ai/api/v1/chat/completions" \
+              "${OPENROUTER_API_KEY:-}" \
+              "${OPENROUTER_MODELS:-openrouter/free}"
+          else
+            PASS "openrouter  skipped (RUN_OPENROUTER=false)"
+          fi
+
+          if [ "${RUN_GROQ:-true}" = "true" ]; then
+            openai_probe "groq" "https://api.groq.com/openai/v1/chat/completions" \
+              "${GROQ_API_KEY:-}" \
+              "${GROQ_MODELS:-qwen/qwen3.6-27b}"
+          else
+            PASS "groq  skipped (RUN_GROQ=false)"
+          fi
+
+          if [ "${RUN_NARAROUTER:-true}" = "true" ]; then
+            openai_probe "nararouter" "https://router.bynara.id/v1/chat/completions" \
+              "${NARAROUTER_API_KEY:-}" \
+              "${NARAROUTER_MODELS:-agnes-2.5-flash}"
+          else
+            PASS "nararouter  skipped (RUN_NARAROUTER=false)"
+          fi
+
+          # ---------------- anthropic dialect: POST /v1/messages (x-api-key + anthropic-version) ----------------
+          if [ "${RUN_ANTHROPIC:-false}" = "true" ]; then
+            if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+              FAIL "anthropic  ANTHROPIC_API_KEY secret missing"
+            else
+              OLDIFS=$IFS; IFS=','; read -ra ML <<< "${ANTHROPIC_MODELS:-claude-sonnet-4-20250514}"; IFS=$OLDIFS
+              for MODEL in "${ML[@]}"; do
+                MODEL="$(printf '%s' "$MODEL" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+                [ -z "$MODEL" ] && continue
+                BODY=$(jq -nc --arg m "$MODEL" --arg p "$PROMPT" \
+                  '{model:$m,max_tokens:128,messages:[{role:"user",content:$p}]}')
+                HTTP="000"
+                HTTP=$(curl -sS -m 60 -o /tmp/an.json -w '%{http_code}' \
+                  -X POST "https://api.anthropic.com/v1/messages" \
+                  -H "x-api-key: $ANTHROPIC_API_KEY" \
+                  -H "anthropic-version: 2023-06-01" \
+                  -H "Content-Type: application/json" \
+                  -d "$BODY" 2>/dev/null) || HTTP="000"
+                ERRMSG=$(jq -r '.error.message // ""' /tmp/an.json 2>/dev/null | head -c 160)
+                if [ "$HTTP" = "000" ]; then
+                  FAIL "anthropic:$MODEL  network/abort"
+                elif [ "$HTTP" = "401" ] || [ "$HTTP" = "403" ]; then
+                  FAIL "anthropic:$MODEL  HTTP $HTTP — key rejected"
+                elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+                  FAIL "anthropic:$MODEL  HTTP $HTTP — ${ERRMSG}"
+                else
+                  REPLY=$(jq -r '[.content[] | select(.type=="text") | .text] | join("")' /tmp/an.json 2>/dev/null | head -c 100)
+                  IN=$(jq -r '.usage.input_tokens // "?"' /tmp/an.json 2>/dev/null)
+                  OUT=$(jq -r '.usage.output_tokens // "?"' /tmp/an.json 2>/dev/null)
+                  PASS "anthropic:$MODEL  HTTP $HTTP tokens=$IN+$OUT reply=$REPLY"
+                fi
+              done
+            fi
+          else
+            PASS "anthropic  skipped (RUN_ANTHROPIC=false)"
+          fi
+
+          # ---------------- Zernio (central key: create → verify → delete) ----------------
+          if [ "${RUN_ZERNIO:-true}" = "true" ]; then
+            if [ -z "${ZERNIO_API_KEY:-}" ]; then
+              FAIL "zernio  ZERNIO_API_KEY secret missing"
+            else
+              BASE="https://zernio.com/api/v1"
+              # Optional cleanup of leftover probe profiles (e.g. from earlier runs).
+              CLEANUP_IDS="${ZERNIO_CLEANUP_IDS:-}"
+              if [ -n "$CLEANUP_IDS" ]; then
+                OLDIFS=$IFS; IFS=','; read -ra CIDS <<< "$CLEANUP_IDS"; IFS=$OLDIFS
+                for CID in "${CIDS[@]}"; do
+                  CID="$(printf '%s' "$CID" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+                  [ -z "$CID" ] && continue
+                  CH="000"
+                  CH=$(curl -sS -m 60 -o /tmp/zc.json -w '%{http_code}' \
+                    -X DELETE "$BASE/profiles/$CID" \
+                    -H "Authorization: Bearer $ZERNIO_API_KEY" 2>/dev/null) || CH="000"
+                  if [ "$CH" -ge 200 ] && [ "$CH" -lt 300 ]; then
+                    PASS "zernio:cleanup:$CID  HTTP $CH"
+                  elif [ "$CH" = "404" ]; then
+                    PASS "zernio:cleanup:$CID  HTTP 404 already absent"
+                  else
+                    FAIL "zernio:cleanup:$CID  HTTP $CH"
+                  fi
+                done
+              fi
+              SLUG="igbz-ci-probe-$(date +%s)"
+              HTTP="000"
+              HTTP=$(curl -sS -m 60 -o /tmp/zp.json -w '%{http_code}' \
+                -X POST "$BASE/profiles" \
+                -H "Authorization: Bearer $ZERNIO_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"$SLUG\",\"description\":\"IGBZ CI probe (auto-deleted)\"}" 2>/dev/null) || HTTP="000"
+              # Mask any field whose name looks like a key/token/secret, then show the shape.
+              SHAPE=$(jq -c 'walk(if type=="object" then with_entries(if (.key|ascii_downcase|test("key|token|secret")) then .value="***" else . end) else . end)' /tmp/zp.json 2>/dev/null | head -c 400)
+              echo "zernio:create-profile HTTP=$HTTP body=$SHAPE"
+              if [ "$HTTP" = "000" ]; then
+                FAIL "zernio:create-profile  network/abort"
+              elif [ "$HTTP" = "401" ] || [ "$HTTP" = "403" ]; then
+                FAIL "zernio:create-profile  HTTP $HTTP — key rejected"
+              elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+                FAIL "zernio:create-profile  HTTP $HTTP"
+              else
+                PID=$(jq -r '.profile._id // .data.profile._id // .data.profile_id // .data.profileId // .data._id // .data.id // .profile_id // .profileId // ._id // .id // .profile.id // .result.id // .result._id // .result.profile_id // .result.profile._id // empty' /tmp/zp.json 2>/dev/null)
+                if [ -z "$PID" ]; then
+                  FAIL "zernio:create-profile  HTTP $HTTP — no profile id in response (see body above)"
+                else
+                  PASS "zernio:create-profile  HTTP $HTTP profile_id=$PID"
+                  DHTTP="000"
+                  DHTTP=$(curl -sS -m 60 -o /tmp/zd.json -w '%{http_code}' \
+                    -X DELETE "$BASE/profiles/$PID" \
+                    -H "Authorization: Bearer $ZERNIO_API_KEY" 2>/dev/null) || DHTTP="000"
+                  if [ "$DHTTP" -ge 200 ] && [ "$DHTTP" -lt 300 ]; then
+                    PASS "zernio:delete-profile (cleanup)  HTTP $DHTTP"
+                  else
+                    FAIL "zernio:delete-profile (cleanup)  HTTP $DHTTP"
+                  fi
+                fi
+              fi
+            fi
+          else
+            PASS "zernio  skipped (RUN_ZERNIO=false)"
+          fi
+
+          echo ""
+          echo "Failures: $FAILED"
+          [ "$FAILED" -eq 0 ] || exit 1
