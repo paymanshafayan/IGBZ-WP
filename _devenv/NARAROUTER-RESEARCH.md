@@ -78,7 +78,7 @@ NARAROUTER_API_KEY
 اقدام اصلاحی: workflow و اسکریپت مستقل به no-credit smoke defaults تغییر کردند:
 
 ```text
-OPENROUTER_MODELS default = inclusionai/ling-3.0-flash-fin:free
+OPENROUTER_MODELS default = mistralai/mistral-nemo:free
 NARAROUTER_MODELS default = glm-5.3-flash-free
 ```
 
@@ -93,3 +93,24 @@ NARAROUTER_MODELS default = glm-5.3-flash-free
   `nararouter_models` به‌روز شد.
 - صفحهٔ مرکزی provider که پیش‌تر ساخته شد، برای ثبت دستی NaraRouter کافی است و به تغییر کد
   جدید برای تولید نیاز ندارد.
+
+
+## نتیجهٔ دومین اجرای زنده — ۱۴۰۵/۰۶/۱۱
+
+خروجی ارائه‌شده از GitHub Actions:
+
+```text
+PASS  openrouter:inclusionai/ling-3.0-flash-fin:free  HTTP 200 estimated_cost=n/a reply=
+FAIL  groq  API key secret missing
+FAIL  nararouter:glm-5.3-flash-free  HTTP 403 — telegram_required: Join the required Telegram group/channel and relink at /settings to continue.
+```
+
+برداشت:
+
+- OpenRouter از نظر کلید و قرارداد HTTP سبز است، اما پاسخ خالی برای benchmark فارسی کافی نیست.
+  پیش‌فرض smoke به مدل رایگان رسمی‌تر `mistralai/mistral-nemo:free` تغییر کرد و workflow از این
+  پس پاسخ خالی را failure می‌داند.
+- Groq هنوز سکرت را با نام مورد انتظار دریافت نکرده؛ نام لازم دقیقاً `GROQ_API_KEY` است.
+- NaraRouter تا انجام شرط بیرونی خودش (`telegram_required` و relink در `/settings`) قابل سنجش
+  نیست. بنابراین در workflow پیش‌فرض خاموش شد؛ پس از انجام آن شرط باید اجرای دستی با
+  `nararouter=true` انجام شود.

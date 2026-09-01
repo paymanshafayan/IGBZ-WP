@@ -37,11 +37,11 @@
 
 // Default probe lists. OpenRouter's plugin-pinned production models still need credits,
 // so the default here is a no-credit smoke model; pass OPENROUTER_MODELS explicitly
-// when running the production benchmark. NaraRouter is test-only and uses a direct
-// free-plan alias from /api/plans instead of auto/bynara, which returned 403 in the
-// first live run.
+// when running the production benchmark. NaraRouter is test-only, currently skipped
+// by default, and uses a direct free-plan alias from /api/plans when explicitly enabled
+// because auto/bynara returned 403 in the first live run.
 const PINNED = {
-  openrouter: ['inclusionai/ling-3.0-flash-fin:free'],
+  openrouter: ['mistralai/mistral-nemo:free'],
   groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'meta-llama/llama-4-scout-17b-16e-instruct', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
   nararouter: ['glm-5.3-flash-free'],
   anthropic: ['claude-sonnet-4-20250514'],
@@ -136,7 +136,15 @@ async function openaiDialect(name) {
         return { ok: false, detail: `HTTP ${r.status} — ${scrub(r.raw).slice(0, 160)}` };
       }
       const u = (r.parsed && r.parsed.usage) || {};
-      const content = (((r.parsed && r.parsed.choices && r.parsed.choices[0]) || {}).message || {}).content || '';
+      const choice = (r.parsed && r.parsed.choices && r.parsed.choices[0]) || {};
+      const content = ((choice.message || {}).content || '').trim();
+      const finish = choice.finish_reason || 'n/a';
+      if (!content) {
+        return {
+          ok: false,
+          detail: `HTTP ${r.status} in ${r.ms}ms · empty reply · finish=${finish} · model=${(r.parsed && r.parsed.model) || model} · tokens=${u.prompt_tokens ?? '?'}+${u.completion_tokens ?? '?'}`,
+        };
+      }
       return {
         ok: true,
         detail: `HTTP ${r.status} in ${r.ms}ms · model=${(r.parsed && r.parsed.model) || model} · estimated_cost=${u.estimated_cost ?? 'n/a'} · tokens=${u.prompt_tokens ?? '?'}+${u.completion_tokens ?? '?'} · reply=${scrub(content).slice(0, 120)}`,

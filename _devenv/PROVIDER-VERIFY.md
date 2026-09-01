@@ -78,7 +78,7 @@
   test بدون credit، مقدار پیش‌فرض workflow به مدل رایگان زیر تغییر کرد:
 
 ```text
-inclusionai/ling-3.0-flash-fin:free
+mistralai/mistral-nemo:free
 ```
 
 - Groq مقدار سکرت نگرفت. نام سکرت باید دقیقاً این باشد:
@@ -97,3 +97,14 @@ glm-5.3-flash-free
 برای اجرای بعدی، اگر هدف فقط smoke test است، ورودی‌های model را خالی بگذارید تا همین مقادیر
 پیش‌فرض استفاده شوند. اگر هدف benchmark تولیدی OpenRouter است، باید ابتدا credit شارژ شود و سپس
 `openrouter_models` با مدل‌های paid/pinned همان روز پر شود.
+
+
+### نتیجهٔ اجرای دوم و تنظیم جدید
+
+- OpenRouter با مدل رایگان `inclusionai/ling-3.0-flash-fin:free` از نظر HTTP سبز شد، اما پاسخ
+  خالی داد؛ از این پس workflow پاسخ خالی را failure می‌داند و مدل پیش‌فرض smoke به
+  `mistralai/mistral-nemo:free` تغییر کرد.
+- Groq هنوز مقدار نگرفت؛ secret باید دقیقاً `GROQ_API_KEY` باشد.
+- NaraRouter پاسخ `telegram_required` داد. تا وقتی در داشبورد NaraRouter عضویت تلگرام و relink
+  در `/settings` انجام نشود، `nararouter=false` بماند؛ بعد از رفع شرط بیرونی، با
+  `nararouter=true` اجرا شود.
