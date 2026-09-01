@@ -132,3 +132,33 @@ Groq: qwen/qwen3.6-27b
 
 این اصلاح فقط برای smoke test workflow است؛ تصمیم تغییر seed تولیدی providerها جداگانه و پس از
 عبور مدل‌ها از پروب و benchmark فارسی انجام می‌شود.
+
+
+## نتیجهٔ اجرای سبز OpenRouter/Groq — 2026-09-01
+
+پس از اعمال مدل‌های اعلام‌شده توسط کارفرما، اجرای دستی GitHub Actions روی `main` سبز شد:
+
+```text
+run_id = 33488428249
+job_id = 99793905903
+workflow = Provider key verification (Zernio + OpenRouter + Groq + NaraRouter + Anthropic)
+branch = main
+conclusion = success
+created_at = 2026-09-01T08:42:38Z
+url = https://github.com/paymanshafayan/IGBZ-WP/actions/runs/33488428249
+```
+
+خلاصهٔ رسمی GitHub نشان داد مرحلهٔ `Probe providers` موفق بوده است. دانلود لاگ خام از sandbox
+با `EOF` قطع شد، بنابراین متن replyها در مخزن ثبت نشد؛ معیار ثبت‌شده، نتیجهٔ رسمی run و
+خروجی سبز اعلام‌شده توسط کارفرماست.
+
+مدل‌های smoke تأییدشده برای این run:
+
+```text
+OpenRouter = openrouter/free
+Groq = qwen/qwen3.6-27b
+```
+
+NaraRouter در این run طبق تنظیم قبلی خاموش بوده است. پس از رفع شرط `telegram_required`، اجرای
+بعدی باید با `nararouter=true` و در صورت نیاز `openrouter=false` و `groq=false` برای تست متمرکز
+NaraRouter انجام شود.
