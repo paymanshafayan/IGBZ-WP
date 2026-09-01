@@ -201,3 +201,43 @@ PASS  zernio:delete-profile (cleanup)  HTTP 200
 ```text
 agnes-2.5-flash
 ```
+
+
+## نتیجهٔ اجرای کامل سبز همهٔ providerها — 2026-09-01
+
+پس از جایگزینی workflow اصلاح‌شده، اجرای دستی کامل روی `main` سبز شد:
+
+```text
+run_id = 33540909998
+job_id = 99966649314
+workflow = Provider key verification (Zernio + OpenRouter + Groq + NaraRouter + Anthropic)
+branch = main
+conclusion = success
+created_at = 2026-09-01T17:58:34Z
+url = https://github.com/paymanshafayan/IGBZ-WP/actions/runs/33540909998
+```
+
+خلاصهٔ لاگ ارائه‌شده توسط کارفرما:
+
+```text
+WARN  openrouter:openrouter/free  HTTP 200 — empty reply finish=length tokens=483+128 (smoke connectivity passed; benchmark not satisfied)
+PASS  groq:qwen/qwen3.6-27b  HTTP 200 estimated_cost=n/a tokens=31+128 reply=[reasoning omitted]
+PASS  nararouter:agnes-2.5-flash  HTTP 200 estimated_cost=n/a tokens=63+97 reply=«دسترسی مستقیم و کم‌هزینه به مخاطبان گسترده بدون نیاز به هزینه اجاره مکان فیزیکی.»
+PASS  anthropic  skipped (RUN_ANTHROPIC=false)
+PASS  zernio:cleanup:6a9488fe77555aae011b7a18  HTTP 404 already absent
+PASS  zernio:create-profile  HTTP 201 profile_id=6a97125a94b4c1ad7cd016ed
+PASS  zernio:delete-profile (cleanup)  HTTP 200
+Failures: 0
+```
+
+برداشت گیت:
+
+- اتصال/کلید OpenRouter برقرار است، اما `openrouter/free` در این اجرا پاسخ قابل benchmark نداد؛
+  بنابراین برای benchmark فارسی یا باید مدل خروجی‌دار دیگری انتخاب شود یا مدل paid پس از شارژ credit
+  آزموده شود.
+- Groq با `qwen/qwen3.6-27b` از نظر اتصال و قرارداد `openai` سبز است؛ preview لاگ به‌درستی بخش
+  reasoning را حذف کرده است.
+- NaraRouter با `agnes-2.5-flash` از نظر اتصال، قرارداد `openai` و پاسخ فارسی smoke سبز شد.
+- Zernio create/delete profile واقعی سبز شد؛ cleanup قدیمی ۴۰۴ بود و طبق اصلاح idempotent به‌درستی
+  «already absent» پذیرفته شد.
+- نتیجهٔ رسمی GitHub نیز job `verify` و step `Probe providers` را successful گزارش کرد.

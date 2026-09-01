@@ -9,7 +9,7 @@
 > به‌عنوان تنها provider اجتماعی؛ Manus، ChatPlace، ManyChat و Ayrshare حذف‌اند و پیشنهاد session اینستاگرام در Agent Reach رد شده است.
 > همیشه `git status` و انتهای همین سند را ملاک قرار بده؛ بخش‌های میانی تاریخچه‌اند.
 > **دستور دائمی workflow (۱۴۰۵/۰۶/۱۱):** هرگاه فایل workflow باید روی GitHub جایگزین/به‌روزرسانی شود، محتوای کامل فایل را در پاسخ چت داخل یک باکس کد قابل کپی بگذار؛ فقط ارجاع به مسیر مخزن کافی نیست.
-> **گیت provider زنده (2026-09-01):** پس از تغییر smoke defaults به `OpenRouter=openrouter/free` و `Groq=qwen/qwen3.6-27b`، اجرای دستی GitHub Actions با run `33488428249` روی `main` سبز شد. NaraRouter بعداً با `glm-5.3-flash-free` هم `HTTP 200` گرفت؛ اجرای بعدی برای مدل پیشنهادی کارفرما `agnes-2.5-flash` است. bot هنوز مجوز dispatch ندارد، پس اجرا از UI انجام می‌شود. workflow اصلاح شد تا `HTTP 200` با پاسخ خالی فقط `WARN` شود و cleanup زرنیو روی `404 already absent` قرمز نکند.
+> **گیت provider زنده (2026-09-01):** پس از تغییر smoke defaults به `OpenRouter=openrouter/free` و `Groq=qwen/qwen3.6-27b`، run `33488428249` روی `main` سبز شد. اجرای کامل بعدی با run `33540909998` هم سبز شد: OpenRouter اتصال `HTTP 200` داشت اما پاسخ خالی فقط `WARN` و benchmark-not-satisfied بود؛ Groq با `qwen/qwen3.6-27b` پاس شد؛ NaraRouter با `agnes-2.5-flash` پاس شد؛ Zernio cleanup `404 already absent` و create/delete واقعی پاس شد. bot هنوز مجوز dispatch ندارد، پس اجراهای دستی از UI انجام می‌شوند.
 
 > **🔴 تغییرنام رسمی (۱۴۰۶/۰۵/۳۱):**
 > - **هوشا → ویرا** (به دهخدا: هوشمند، یادگیرنده، آموزنده، مدرک — شاهد: «یکی مرد ویرا بباید نخست / که گوید نیوشیده‌ها را درست» ابوالعباس مروزی). نام فنی/پوشه/کلاس/فایل‌هایش: `vira/`، `Vira`، `vira`، ویرا.
