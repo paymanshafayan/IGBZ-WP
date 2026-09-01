@@ -73,7 +73,7 @@
 |---|---|---|---|
 | Zernio | حساب مرکزی IGBZ؛ سهم هر profile در اشتراک فروشگاه | secret store بک‌اند، با دسترسی محدود به profile | تنها provider اجتماعی هدف؛ تا آزمون دو profile و callback امن production نیست |
 | Groq / OpenRouter | همان مدیر/فروشگاه | `pado.ai.key_vault` (رمزشده، keyRef) + سکرت‌های تست `GROQ_API_KEY` / `OPENROUTER_API_KEY` | providerهای هدف inference طبق `ADR-0005`؛ فعال‌سازی مشروط به benchmark فارسی و گیت‌های `enabled`/`benchmark_passed`/`geo_eligible` |
-| NaraRouter / byNara Router | فعلاً فقط تست provider، نه تولید | سکرت GitHub Actions با نام `NARAROUTER_API_KEY`؛ در صورت ثبت دستی تولیدی: `pado.ai.key_vault` | OpenAI-compatible روی `https://router.bynara.id/v1`؛ تا قبل از smoke test، benchmark فارسی، ZDR/حریم خصوصی و گیت‌های `enabled`/`benchmark_passed`/`geo_eligible` نباید مسیر تولیدی بگیرد |
+| NaraRouter / byNara Router | فعلاً فقط تست provider، نه تولید | سکرت GitHub Actions با نام `NARAROUTER_API_KEY`؛ در صورت ثبت دستی تولیدی: `pado.ai.key_vault` | OpenAI-compatible روی `https://router.bynara.id/v1`؛ smoke test بعدی با `glm-5.3-flash-free` است چون `auto/bynara` در اجرای اول `HTTP 403` داد؛ تا قبل از benchmark فارسی، ZDR/حریم خصوصی و گیت‌های `enabled`/`benchmark_passed`/`geo_eligible` نباید مسیر تولیدی بگیرد |
 | PST.NET | عملیات مالی IGBZ مطابق قرارداد | secret store پلتفرم | آداپتور تسویهٔ ارزی موجود؛ آزمون قرارداد زنده لازم است |
 | RedotPay | عملیات مالی IGBZ مطابق قرارداد | secret store پلتفرم | گزینهٔ پایلوت تسویه؛ آزمون قرارداد زنده لازم است |
 | مترجم/دامنه/STT | طبق provider منتخب هر حوزه | تنظیم امن متناسب با مالک | هنوز به آزمون قرارداد و تصمیم همان حوزه وابسته است |

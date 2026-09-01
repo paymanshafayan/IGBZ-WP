@@ -60,6 +60,31 @@ NARAROUTER_API_KEY
 ۵. تا قبل از گذراندن گیت‌های ADR-0005 (`enabled` / `benchmark_passed` / `geo_eligible`) هیچ
    مسیریابی تولیدی به NaraRouter داده نشود.
 
+
+
+## نتیجهٔ نخستین اجرای زنده — ۱۴۰۵/۰۶/۱۱
+
+خروجی ارائه‌شده از GitHub Actions نشان داد:
+
+- OpenRouter به endpoint رسید، اما مدل‌های production/pinned فعلی پولی بودند و حساب credit نداشت؛
+  نتیجه `HTTP 402` برای Claude/GPT/Gemini. این key-rejection نیست؛ یعنی برای benchmark تولیدی
+  باید credit خریداری شود یا برای smoke test از مدل `:free` استفاده شود.
+- مدل قدیمی `meta-llama/llama-3.1-405b-instruct` روی OpenRouter دیگر endpoint نداشت و `HTTP 404`
+  داد؛ فهرست production باید قبل از گیت نهایی با catalog همان روز تازه شود.
+- Groq در workflow مقدار نگرفت: سکرت باید دقیقاً با نام `GROQ_API_KEY` در GitHub Actions ثبت شود.
+- NaraRouter با `auto/bynara` پاسخ `HTTP 403` داد؛ مطابق `/api/plans` مدل‌های free-plan مستقیم
+  موجودند. برای اجرای بعدی، smoke model پیش‌فرض به `glm-5.3-flash-free` تغییر کرد.
+
+اقدام اصلاحی: workflow و اسکریپت مستقل به no-credit smoke defaults تغییر کردند:
+
+```text
+OPENROUTER_MODELS default = inclusionai/ling-3.0-flash-fin:free
+NARAROUTER_MODELS default = glm-5.3-flash-free
+```
+
+اگر هدف benchmark تولیدی باشد، مقدار `openrouter_models` باید صریحاً با مدل‌های paid و بعد از
+شارژ credit وارد شود.
+
 ## وضعیت فعلی مخزن
 
 - اسکریپت مستقل `_devenv/provider-verify.mjs` با `RUN_NARAROUTER` و سکرت

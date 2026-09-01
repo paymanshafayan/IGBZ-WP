@@ -16,7 +16,7 @@
  *
  *   OPENROUTER_API_KEY      OpenRouter key (openai dialect)
  *   OPENROUTER_ENDPOINT     default https://openrouter.ai/api/v1/chat/completions
- *   OPENROUTER_MODELS       comma list; empty = plugin pinned list
+ *   OPENROUTER_MODELS       comma list; empty = no-credit smoke model
  *
  *   GROQ_API_KEY            Groq key (openai dialect)
  *   GROQ_ENDPOINT           default https://api.groq.com/openai/v1/chat/completions
@@ -24,7 +24,7 @@
  *
  *   NARAROUTER_API_KEY      NaraRouter key (openai dialect; optional test provider)
  *   NARAROUTER_ENDPOINT     default https://router.bynara.id/v1/chat/completions
- *   NARAROUTER_MODELS       comma list; empty = auto/bynara
+ *   NARAROUTER_MODELS       comma list; empty = direct free smoke model
  *
  *   ANTHROPIC_API_KEY       Anthropic key (anthropic dialect; optional)
  *   ANTHROPIC_ENDPOINT      default https://api.anthropic.com/v1/messages
@@ -35,12 +35,15 @@
  *                            'false'/'0' to skip
  */
 
-// Matches the plugin's seeded defaults (ProviderDefinition::seed_defaults). NaraRouter
-// is intentionally a test-only optional router for now, not a seeded/default provider.
+// Default probe lists. OpenRouter's plugin-pinned production models still need credits,
+// so the default here is a no-credit smoke model; pass OPENROUTER_MODELS explicitly
+// when running the production benchmark. NaraRouter is test-only and uses a direct
+// free-plan alias from /api/plans instead of auto/bynara, which returned 403 in the
+// first live run.
 const PINNED = {
-  openrouter: ['anthropic/claude-sonnet-4', 'openai/gpt-4o-mini', 'google/gemini-2.5-pro', 'meta-llama/llama-3.1-405b-instruct'],
+  openrouter: ['inclusionai/ling-3.0-flash-fin:free'],
   groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'meta-llama/llama-4-scout-17b-16e-instruct', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
-  nararouter: ['auto/bynara'],
+  nararouter: ['glm-5.3-flash-free'],
   anthropic: ['claude-sonnet-4-20250514'],
 };
 
@@ -120,8 +123,11 @@ async function openaiDialect(name) {
         json: { model, messages: [{ role: 'user', content: BENCH_PROMPT }], max_tokens: 128, temperature: 0.2 },
       });
       if (r.status === 0) return { ok: false, detail: `network/abort: ${r.error}` };
-      if (r.status === 401 || r.status === 403) {
+      if (r.status === 401) {
         return { ok: false, detail: `HTTP ${r.status} — key rejected. ${scrub(r.raw).slice(0, 160)}` };
+      }
+      if (r.status === 403) {
+        return { ok: false, detail: `HTTP ${r.status} — forbidden/model not entitled or account forbidden. ${scrub(r.raw).slice(0, 160)}` };
       }
       if (r.status === 402) {
         return { ok: false, detail: `HTTP 402 — account has no credits/payment. ${scrub(r.raw).slice(0, 160)}` };
@@ -153,8 +159,11 @@ async function anthropic() {
         json: { model, max_tokens: 128, messages: [{ role: 'user', content: BENCH_PROMPT }] },
       });
       if (r.status === 0) return { ok: false, detail: `network/abort: ${r.error}` };
-      if (r.status === 401 || r.status === 403) {
+      if (r.status === 401) {
         return { ok: false, detail: `HTTP ${r.status} — key rejected. ${scrub(r.raw).slice(0, 160)}` };
+      }
+      if (r.status === 403) {
+        return { ok: false, detail: `HTTP ${r.status} — forbidden/model not entitled or account forbidden. ${scrub(r.raw).slice(0, 160)}` };
       }
       if (r.status < 200 || r.status >= 300) {
         return { ok: false, detail: `HTTP ${r.status} — ${scrub(r.raw).slice(0, 160)}` };
