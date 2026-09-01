@@ -1,19 +1,24 @@
-# Railway Staging Verify — بستن گیت فاز ۷۰
+# Railway Staging Verify — بازرس پذیرش فاز ۷۰
 #
-# بازرس خودکار staging روی Railway: سه health سبز پیاپی با فاصلهٔ یک ساعت،
-# نسخهٔ MySQL (باید 8.4 باشد)، قرارداد API موبایل، و باز شدن ویترین.
-# در پایان یک خلاصهٔ شواهد (بدون هیچ رازی) چاپ می‌کند که برای ثبت نهایی به چت برگردد.
+# واقعیت موجود: سرویس Railway این پروژه از قبل برپا و زنده است و با هر push به شاخهٔ
+# متصل، استقرار خودکار انجام می‌شود؛ خطاهای استقرار پیش‌تر رفع و در
+# RUNBOOK-RAILWAY-DEPLOYMENT.md ثبت شده‌اند. سکرت RAILWAY_TOKEN هم از قبل در مخزن
+# موجود است (مصرف‌کنندهٔ فعلی: .github/workflows/railway-volume.yml).
+# این ورک‌فلو چیزی نصب یا ایجاد نمی‌کند؛ فقط «شواهد پذیرش» فاز ۷۰ را از سرویس زنده
+# جمع می‌کند: سه health سبز پیاپی با فاصلهٔ یک ساعت، نسخهٔ MySQL (باید 8.4 باشد)،
+# قرارداد API موبایل، و باز شدن ویترین. در پایان یک خلاصهٔ شواهد (بدون هیچ رازی)
+# چاپ می‌کند که برای ثبت نهایی در PHASE-70-RAILWAY-CLOSEOUT.md به چت برگردد.
 #
 # نسخهٔ مرجع: _devenv/github-workflow-railway-staging-verify.yml
 # نصب: کپی دستی توسط مالک مخزن به .github/workflows/railway-staging-verify.yml
 # (توکن ایجنت مجوز push به .github/workflows ندارد — HANDOFF §۷.۶-پ)
 #
-# پیش‌نیازها (یک‌بار، طبق RUNBOOK-RAILWAY-LTS.md):
-#   ۱. پروژهٔ Railway با سرویس وب از همین مخزن + سرویس MySQL 8.4 LTS
-#      + ولوم دائمی روی /var/www/html/wp-content + دامنهٔ عمومی.
-#   ۲. متغیرهای سرویس: WP_ADMIN_PASSWORD و IGBZ_SERVER_CRON=1 و متغیرهای دیتابیس.
-#   ۳. سکرت RAILWAY_TOKEN (توکن پروژهٔ Railway) در Settings → Secrets مخزن گیت‌هاب.
-#      توکن فقط متغیر محیطی رانر است؛ هرگز در چت/مخزن نوشته نمی‌شود.
+# پیش‌نیازها:
+#   ۱. سرویس وب + MySQL + ولوم‌ها + دامنهٔ عمومی از قبل برقرار است (وضعیت موجود).
+#   ۲. سکرت RAILWAY_TOKEN از قبل در Settings → Secrets مخزن موجود است.
+#   ۳. نصب این ورک‌فلو: کپی دستی توسط مالک مخزن به
+#      .github/workflows/railway-staging-verify.yml (توکن ایجنت مجوز push به
+#      .github/workflows ندارد — HANDOFF §۷.۶-پ).
 
 name: Railway Staging Verify
 
