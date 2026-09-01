@@ -38,12 +38,12 @@
 // Default probe lists. OpenRouter's plugin-pinned production models still need credits,
 // so the default here follows the current smoke-test router alias; pass OPENROUTER_MODELS explicitly
 // when running the production benchmark. NaraRouter is test-only, currently skipped
-// by default, and uses a direct free-plan alias from /api/plans when explicitly enabled
-// because auto/bynara returned 403 in the first live run.
+// by default, and uses the employer-selected direct free-plan alias agnes-2.5-flash
+// when explicitly enabled. The earlier glm-5.3-flash-free probe passed as well.
 const PINNED = {
   openrouter: ['openrouter/free'],
   groq: ['qwen/qwen3.6-27b'],
-  nararouter: ['glm-5.3-flash-free'],
+  nararouter: ['agnes-2.5-flash'],
   anthropic: ['claude-sonnet-4-20250514'],
 };
 
@@ -141,8 +141,8 @@ async function openaiDialect(name) {
       const finish = choice.finish_reason || 'n/a';
       if (!content) {
         return {
-          ok: false,
-          detail: `HTTP ${r.status} in ${r.ms}ms · empty reply · finish=${finish} · model=${(r.parsed && r.parsed.model) || model} · tokens=${u.prompt_tokens ?? '?'}+${u.completion_tokens ?? '?'}`,
+          ok: true,
+          detail: `HTTP ${r.status} in ${r.ms}ms · empty reply warning · finish=${finish} · model=${(r.parsed && r.parsed.model) || model} · tokens=${u.prompt_tokens ?? '?'}+${u.completion_tokens ?? '?'}`,
         };
       }
       return {

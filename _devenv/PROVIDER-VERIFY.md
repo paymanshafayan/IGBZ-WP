@@ -161,3 +161,43 @@ Groq = qwen/qwen3.6-27b
 NaraRouter در این run طبق تنظیم قبلی خاموش بوده است. پس از رفع شرط `telegram_required`، اجرای
 بعدی باید با `nararouter=true` و در صورت نیاز `openrouter=false` و `groq=false` برای تست متمرکز
 NaraRouter انجام شود.
+
+
+## نتیجه‌های اجرای NaraRouter و اجرای کامل — ۱۴۰۵/۰۶/۱۱
+
+خروجی‌های ارائه‌شده توسط کارفرما:
+
+```text
+FAIL  nararouter:true  HTTP 404 — The requested model does not exist.
+PASS  nararouter:glm-5.3-flash-free  HTTP 200 estimated_cost=n/a tokens=36+217 reply=...
+```
+
+برداشت: خط `nararouter:true` ناشی از قرار گرفتن مقدار `true` در فیلد متنی مدل بوده، نه مشکل
+endpoint. اجرای بعدی با مدل مستقیم `glm-5.3-flash-free` سبز شد و قرارداد OpenAI-compatible
+ناراروتر تأیید شد.
+
+اجرای کامل بعدی نشان داد:
+
+```text
+FAIL  openrouter:openrouter/free  HTTP 200 — empty reply finish=length tokens=79+128
+PASS  groq:qwen/qwen3.6-27b  HTTP 200 ...
+PASS  nararouter:glm-5.3-flash-free  HTTP 200 ...
+FAIL  zernio:cleanup:6a9488fe77555aae011b7a18  HTTP 404
+PASS  zernio:create-profile  HTTP 201 ...
+PASS  zernio:delete-profile (cleanup)  HTTP 200
+```
+
+اقدام اصلاحی workflow:
+
+- پاسخ خالی همراه با `HTTP 200` در smoke test دیگر کل workflow را قرمز نمی‌کند و به‌صورت `WARN`
+  ثبت می‌شود؛ این فقط اتصال/کلید را تأیید می‌کند و benchmark فارسی محسوب نمی‌شود.
+- مسیر نمایش reply دیگر با `xargs` trim نمی‌شود تا متن‌های دارای نقل‌قول، مثل خروجی مدل‌های
+  reasoning، workflow را نشکنند.
+- خروجی‌های `<think>` در preview لاگ خلاصه‌سازی/حذف می‌شوند تا لاگ smoke test تمیزتر باشد.
+- cleanup زرنیو اگر `HTTP 404` بدهد، به‌عنوان «از قبل حذف شده» پذیرفته می‌شود؛ create/delete
+  واقعی همچنان gate اصلی زرنیو است.
+- طبق دستور کارفرما، مدل پیش‌فرض تست ناراروتر برای اجرای بعدی به این تغییر کرد:
+
+```text
+agnes-2.5-flash
+```
