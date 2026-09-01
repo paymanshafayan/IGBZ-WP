@@ -2001,6 +2001,8 @@ staging همسان، مهاجرت آزموده از MySQL 8.0 به نسخهٔ LT
 متغیر + چک‌لیست پذیرش). **مانده:** اجرای کارفرما (استقرار staging + تمرین
 مهاجرت) و تأیید نسخهٔ LTS مقصد.
 
+**یادداشت ۱۴۰۵/۰۶/۱۱:** workflow زندهٔ providerها روی GitHub Actions با run `33540909998` سبز شد: OpenRouter اتصال `HTTP 200` داشت ولی benchmark فارسی را با پاسخ خالی پاس نکرد؛ Groq با `qwen/qwen3.6-27b` پاس شد؛ NaraRouter با `agnes-2.5-flash` پاس شد؛ Zernio create/delete profile پاس شد. این گیت provider بسته است، اما «اجرای ابری staging + سه سبز health» فاز ۷۰ را جایگزین نمی‌کند.
+
 #### فاز ۷۱ — worker، cron و مشاهده‌پذیری — ✅ تمام‌شده ۱۴۰۶/۰۶/۱۰
 
 server cron، worker، log ساختاریافته، trace/tenant id، داشبورد، SLO و هشدار دارای Runbook.
