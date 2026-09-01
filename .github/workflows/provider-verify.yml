@@ -28,7 +28,7 @@ on:
         type: boolean
         default: true
       nararouter:
-        description: 'NaraRouter: probe the key + auto/bynara (openai dialect, test-only provider)'
+        description: 'NaraRouter: probe the key + direct free model (openai dialect, test-only provider)'
         type: boolean
         default: true
       anthropic:
@@ -36,7 +36,7 @@ on:
         type: boolean
         default: false
       openrouter_models:
-        description: 'Comma-separated OpenRouter models (empty = plugin pinned list)'
+        description: 'Comma-separated OpenRouter models (empty = no-credit smoke model)'
         type: string
         required: false
         default: ''
@@ -46,7 +46,7 @@ on:
         required: false
         default: ''
       nararouter_models:
-        description: 'Comma-separated NaraRouter models (empty = auto/bynara)'
+        description: 'Comma-separated NaraRouter models (empty = glm-5.3-flash-free)'
         type: string
         required: false
         default: ''
@@ -109,11 +109,13 @@ jobs:
                 -H "Authorization: Bearer $KEY" \
                 -H "Content-Type: application/json" \
                 -d "$BODY" 2>/dev/null) || HTTP="000"
-              ERRMSG=$(jq -r '.error // .message // ""' /tmp/op.json 2>/dev/null | head -c 160)
+              ERRMSG=$(jq -r '.error.message // .message // .error.type // ""' /tmp/op.json 2>/dev/null | head -c 160)
               if [ "$HTTP" = "000" ]; then
                 FAIL "$LABEL:$MODEL  network/abort"
-              elif [ "$HTTP" = "401" ] || [ "$HTTP" = "403" ]; then
+              elif [ "$HTTP" = "401" ]; then
                 FAIL "$LABEL:$MODEL  HTTP $HTTP — key rejected"
+              elif [ "$HTTP" = "403" ]; then
+                FAIL "$LABEL:$MODEL  HTTP $HTTP — forbidden/model not entitled or account forbidden. ${ERRMSG}"
               elif [ "$HTTP" = "402" ]; then
                 FAIL "$LABEL:$MODEL  HTTP 402 — account has no credits/payment. ${ERRMSG}"
               elif [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
@@ -129,7 +131,7 @@ jobs:
           if [ "${RUN_OPENROUTER:-true}" = "true" ]; then
             openai_probe "openrouter" "https://openrouter.ai/api/v1/chat/completions" \
               "${OPENROUTER_API_KEY:-}" \
-              "${OPENROUTER_MODELS:-anthropic/claude-sonnet-4,openai/gpt-4o-mini,google/gemini-2.5-pro,meta-llama/llama-3.1-405b-instruct}"
+              "${OPENROUTER_MODELS:-inclusionai/ling-3.0-flash-fin:free}"
           else
             PASS "openrouter  skipped (RUN_OPENROUTER=false)"
           fi
@@ -145,7 +147,7 @@ jobs:
           if [ "${RUN_NARAROUTER:-true}" = "true" ]; then
             openai_probe "nararouter" "https://router.bynara.id/v1/chat/completions" \
               "${NARAROUTER_API_KEY:-}" \
-              "${NARAROUTER_MODELS:-auto/bynara}"
+              "${NARAROUTER_MODELS:-glm-5.3-flash-free}"
           else
             PASS "nararouter  skipped (RUN_NARAROUTER=false)"
           fi
