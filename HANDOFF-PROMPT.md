@@ -9,6 +9,7 @@
 > به‌عنوان تنها provider اجتماعی؛ Manus، ChatPlace، ManyChat و Ayrshare حذف‌اند و پیشنهاد session اینستاگرام در Agent Reach رد شده است.
 > همیشه `git status` و انتهای همین سند را ملاک قرار بده؛ بخش‌های میانی تاریخچه‌اند.
 > **دستور دائمی workflow (۱۴۰۵/۰۶/۱۱):** هرگاه فایل workflow باید روی GitHub جایگزین/به‌روزرسانی شود، محتوای کامل فایل را در پاسخ چت داخل یک باکس کد قابل کپی بگذار؛ فقط ارجاع به مسیر مخزن کافی نیست.
+> **فاز ۷۰ / Railway (2026-09-01):** شروع شد؛ PR #16 پس از merge کردن تاریخچهٔ `main` در شاخهٔ arena از conflict خارج شد: `mergeable=MERGEABLE`, `mergeStateStatus=CLEAN`, preview run `33550929190` سبز. قدم بعدی: merge PR به `main` توسط کارفرما/maintainer و سپس deploy staging Railway از `main` طبق `PHASE-70-RAILWAY-CLOSEOUT.md`.
 > **گیت provider زنده (2026-09-01):** پس از تغییر smoke defaults به `OpenRouter=openrouter/free` و `Groq=qwen/qwen3.6-27b`، run `33488428249` روی `main` سبز شد. اجرای کامل بعدی با run `33540909998` هم سبز شد: OpenRouter اتصال `HTTP 200` داشت اما پاسخ خالی فقط `WARN` و benchmark-not-satisfied بود؛ Groq با `qwen/qwen3.6-27b` پاس شد؛ NaraRouter با `agnes-2.5-flash` پاس شد؛ Zernio cleanup `404 already absent` و create/delete واقعی پاس شد. bot هنوز مجوز dispatch ندارد، پس اجراهای دستی از UI انجام می‌شوند. این گیت provider بسته است، اما جایگزین سه سبز Railway فاز ۷۰ نیست.
 
 > **🔴 تغییرنام رسمی (۱۴۰۶/۰۵/۳۱):**

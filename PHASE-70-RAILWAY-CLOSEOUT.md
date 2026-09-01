@@ -2,6 +2,23 @@
 
 تاریخ شروع اجرای بستن گیت: 2026-09-01
 
+
+## پیش‌نیاز GitHub/PR — انجام‌شده 2026-09-01
+
+شاخهٔ `arena/01a057be-igbz-wp` با `main` هم‌ریشه شد و PR از حالت conflict خارج شد.
+
+```text
+PR = https://github.com/paymanshafayan/IGBZ-WP/pull/16
+mergeable = MERGEABLE
+mergeStateStatus = CLEAN
+preview_run = 33550929190
+preview_job = 99999877598
+preview_conclusion = SUCCESS
+branch_head = 5b29796
+```
+
+قدم بعدی برای بستن فاز ۷۰: merge PR به `main`، سپس ساخت/به‌روزرسانی staging Railway از `main`.
+
 ## وضعیت گیت‌ها
 
 | گیت | وضعیت |
