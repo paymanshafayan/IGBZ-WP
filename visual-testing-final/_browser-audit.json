@@ -1,302 +1,404 @@
 [
   {
-    "menu": "Status",
+    "name": "01-status",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz",
-    "title": "IGBZ Suite ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "وضعیت سامانه IGBZ"
+    "title": "سامانه IGBZ ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "وضعیت سامانه IGBZ",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 0,
-    "submitControls": 0,
-    "links": 3,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g",
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=64&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Store dashboard",
+    "name": "02-store-dashboard",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-store-dashboard",
     "title": "داشبورد فروشگاه ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "داشبورد فروشگاه"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "داشبورد فروشگاه",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 0,
-    "submitControls": 0,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Settings",
+    "name": "03-settings",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-settings",
     "title": "تنظیمات ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "تنظیمات سامانه IGBZ"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "تنظیمات سامانه IGBZ",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 24,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ],
+    "settingsTabs": [
+      "عمومی",
+      "ماژول‌ها",
+      "کیف پول",
+      "طرح‌ها",
+      "خرید اقساطی",
+      "همکاری در فروش",
+      "آموزش",
+      "پرداخت‌ها",
+      "کد یک‌بارمصرف",
+      "بازار",
+      "زرنیو",
+      "کانال VIP",
+      "هاب",
+      "API موبایل",
+      "پرداخت ارزی",
+      "لجستیک",
+      "سئو و تبلیغات",
+      "بازی‌سازی",
+      "ترجمه",
+      "دامنه",
+      "پرداخت مرکزی",
+      "احراز قانونی",
+      "زبان‌ها",
+      "پیشرفته"
+    ]
   },
   {
-    "menu": "Tenants",
+    "name": "04-tenants",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-tenants",
     "title": "فروشگاه‌ها ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "فروشگاه‌های مستأجر"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "فروشگاه‌های مستأجر",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 1,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Wallet",
+    "name": "05-wallet",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-wallet",
     "title": "کیف پول ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "کیف پول"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "کیف پول",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 2,
-    "submitControls": 2,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Plans",
+    "name": "06-plans",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-plans",
     "title": "طرح‌ها ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "طرح‌های اشتراک"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "طرح‌های اشتراک",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Instalments",
+    "name": "07-instalments",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-bnpl",
     "title": "اقساط ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "اقساط"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "اقساط",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 2,
-    "submitControls": 2,
-    "links": 2,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Affiliates",
+    "name": "08-affiliates",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-affiliate",
     "title": "همکاران فروش ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "همکاران فروش"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "همکاران فروش",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 1,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Courses",
+    "name": "09-courses",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-courses",
     "title": "دوره‌ها ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "دوره‌ها"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "دوره‌ها",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 1,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Payments",
+    "name": "10-payments",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-payments",
     "title": "پرداخت‌ها ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "پرداخت‌ها"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "پرداخت‌ها",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 5,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "FX payments",
+    "name": "11-fx-payments",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-fx",
     "title": "پرداخت ارزی ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "پرداخت ارزی"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "پرداخت ارزی",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 2,
-    "submitControls": 2,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Logistics",
+    "name": "12-logistics",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-logistics",
     "title": "لجستیک ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "لجستیک"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "لجستیک",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 2,
-    "submitControls": 2,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Marketplaces",
+    "name": "13-marketplaces",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-marketplaces",
     "title": "بازارها ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "بازارها"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "بازارها",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "SEO & ads",
+    "name": "14-seo-ads",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-seo",
     "title": "سئو و تبلیغات ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "سئو و تبلیغات"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "سئو و تبلیغات",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 2,
-    "submitControls": 2,
-    "links": 2,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Gamification",
+    "name": "15-gamification",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-gamification",
     "title": "بازی‌سازی ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "بازی‌سازی"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "بازی‌سازی",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Translator",
+    "name": "16-translator",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-translator",
     "title": "مترجم ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "مترجم خودکار"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "مترجم خودکار",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Master payment",
+    "name": "17-master-payment",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-master-payment",
     "title": "پرداخت مرکزی ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "پرداخت مرکزی (امانی)"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "پرداخت مرکزی (امانی)",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Domain",
+    "name": "18-domain",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-domains",
     "title": "دامنه ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "دامنه"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "دامنه",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 2,
-    "submitControls": 2,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Job queue",
+    "name": "19-job-queue",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-jobs",
     "title": "صف کارها ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "صف کارها"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "صف کارها",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 0,
-    "submitControls": 0,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "AI studio",
+    "name": "20-ai-studio",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ai-studio",
     "title": "استودیوی هوش مصنوعی ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "استودیوی محتوای هوش مصنوعی"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "استودیوی محتوای هوش مصنوعی",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "IG Accounts",
+    "name": "21-ig-accounts",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-ig-accounts",
     "title": "حساب‌های اینستاگرام ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "حساب‌های اینستاگرام"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "حساب‌های اینستاگرام",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 0,
-    "submitControls": 0,
-    "links": 0,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "VIP channel",
+    "name": "22-vip-channel",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-vip",
     "title": "کانال VIP ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "کانال VIP"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "کانال VIP",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 1,
-    "submitControls": 1,
-    "links": 7,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Master hub",
+    "name": "23-master-hub",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-hub",
     "title": "هاب مرکزی ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "هاب مرکزی سایت"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "هاب سایت مادر",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 0,
-    "submitControls": 0,
-    "links": 6,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Pado (AI Center)",
+    "name": "24-pado-ai-center",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-pado",
     "title": "پادو (مرکز هوش مصنوعی) ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "پادو — مرکز هوش مصنوعی"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "پادو — مرکز هوش مصنوعی",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 2,
-    "submitControls": 2,
-    "links": 4,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   },
   {
-    "menu": "Mobile API",
+    "name": "25-mobile-api",
     "url": "http://127.0.0.1:9400/wp-admin/admin.php?page=igbz-mobile-api",
     "title": "API موبایل ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
-    "h1": [
-      "API موبایل"
+    "dir": "rtl",
+    "lang": "fa-IR",
+    "h1": "API موبایل",
+    "hOverflow": 0,
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_CLOSED"
     ],
-    "forms": 0,
-    "submitControls": 0,
-    "links": 4,
-    "pageErrors": []
+    "brokenImgs": [
+      "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g"
+    ]
   }
 ]

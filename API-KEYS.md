@@ -1,13 +1,15 @@
 # API-KEYS — کلیدهای موردنیاز ادمین فروشگاه
 
-**آخرین به‌روزرسانی:** ۱۴۰۵/۰۶/۰۶ (2026-08-28)
+**آخرین به‌روزرسانی:** ۱۴۰۵/۰۶/۱۱ (2026-09-01)
 
 مرجع کلیدها و توکن‌های راه‌اندازی IGBZ Suite است. تصمیم جاری ADR-0004 سه اصل مهم دارد:
 
 - کلید مرکزی Zernio راز عملیاتی IGBZ است، فقط در secret store بک‌اند نگهداری می‌شود و هرگز
   در پنل فروشگاه، پادو، لاگ یا مرورگر قرار نمی‌گیرد؛
-- حساب و کلید DeepInfra متعلق به همان فروشگاه و بیرون از IGBZ است؛ IGBZ آن را دریافت یا
-  ذخیره نمی‌کند. حساب پادو/connector فروشگاه مستقیماً هزینهٔ inference خود را می‌پردازد؛
+- کلیدهای استنتاج پادو (Groq، OpenRouter، NaraRouter و هر ارائه‌دهندهٔ دیگر) طبق `ADR-0005` در
+  **مخزن کلید پنل** (`pado.ai.key_vault`) رمزشده ذخیره می‌شوند و لایهٔ ارائه‌دهنده فقط
+  `keyRef` می‌گیرد؛ مقدار واقعی فقط لبهٔ connector در لحظهٔ فراخوانی و یک‌بار حل می‌شود.
+  کلیدِ حساب مستقل فروشگاه همچنان runtime می‌آید و در IGBZ ذخیره نمی‌شود؛
 - فیلدهای فعلی Manus، ManyChat و ChatPlace legacy هستند و تا migration نباید با کلید واقعی
   پر شوند. کانال Instagram مبتنی بر session در Agent Reach نیز از معماری هدف حذف شده است.
 
@@ -29,7 +31,7 @@
 | # | کلید تنظیمات | سرویس | الزامی؟ |
 |---|---|---|---|
 | هدف-۱ | نام تنظیم نهایی نشده؛ secret store مرکزی | Zernio | ✅ برای social plane؛ یک کلید مرکزی محدود با profile جدا، نه کلید پنل فروشگاه |
-| هدف-۲ | در IGBZ ذخیره نمی‌شود | DeepInfra | ✅ برای inference پادو؛ credential مستقل و پرداخت مستقیم همان فروشگاه |
+| هدف-۲ | `pado.ai.key_vault` (رمزشده در پنل، نه گزینهٔ ساده) | Groq / OpenRouter (و هر ارائه‌دهندهٔ `api_provider`) | ✅ برای inference پادو؛ کلید پنل فقط `keyRef`؛ کلید حساب مستقل فروشگاه runtime و بیرون از IGBZ |
 | ۱ | `manus.api_key` | Manus | ❌ legacy؛ ورود کلید تازه ممنوع و حذف در migration |
 | ۲ | `manychat.api_key` | ManyChat | ❌ legacy؛ ورود کلید تازه ممنوع و حذف در migration |
 | ۳ | `payments.zarinpal.merchant_id` | زرین‌پال (ایرانی) | ⚠️ حداقل یکی از درگاه‌ها |
@@ -70,7 +72,9 @@
 | سرویس | مالک حساب/هزینه | محل credential | کاربرد و وضعیت |
 |---|---|---|---|
 | Zernio | حساب مرکزی IGBZ؛ سهم هر profile در اشتراک فروشگاه | secret store بک‌اند، با دسترسی محدود به profile | تنها provider اجتماعی هدف؛ تا آزمون دو profile و callback امن production نیست |
-| DeepInfra | همان مدیر/فروشگاه | بیرون از IGBZ، در حساب مستقل پادو/connector | provider هدف inference؛ فعال‌سازی مشروط به benchmark فارسی و صلاحیت جغرافیایی/قراردادی |
+| Groq / OpenRouter | همان مدیر/فروشگاه | `pado.ai.key_vault` (رمزشده، keyRef) + سکرت‌های تست `GROQ_API_KEY` / `OPENROUTER_API_KEY` | providerهای هدف inference طبق `ADR-0005`؛ فعال‌سازی مشروط به benchmark فارسی و گیت‌های `enabled`/`benchmark_passed`/`geo_eligible` |
+| Smoke test فعلی OpenRouter/Groq | فقط تست زندهٔ workflow | همان سکرت‌های بالا | طبق خروجی اجرای سوم: OpenRouter با `openrouter/free` و Groq با `qwen/qwen3.6-27b` سنجیده شود؛ تغییر seed تولیدی جداگانه و پس از benchmark فارسی است |
+| NaraRouter / byNara Router | فعلاً فقط تست provider، نه تولید | سکرت GitHub Actions با نام `NARAROUTER_API_KEY`؛ در صورت ثبت دستی تولیدی: `pado.ai.key_vault` | OpenAI-compatible روی `https://router.bynara.id/v1`؛ smoke test ناراروتر با `glm-5.3-flash-free` و سپس `agnes-2.5-flash` سبز شده است؛ تا قبل از benchmark فارسی، ZDR/حریم خصوصی و گیت‌های `enabled`/`benchmark_passed`/`geo_eligible` نباید مسیر تولیدی بگیرد |
 | PST.NET | عملیات مالی IGBZ مطابق قرارداد | secret store پلتفرم | آداپتور تسویهٔ ارزی موجود؛ آزمون قرارداد زنده لازم است |
 | RedotPay | عملیات مالی IGBZ مطابق قرارداد | secret store پلتفرم | گزینهٔ پایلوت تسویه؛ آزمون قرارداد زنده لازم است |
 | مترجم/دامنه/STT | طبق provider منتخب هر حوزه | تنظیم امن متناسب با مالک | هنوز به آزمون قرارداد و تصمیم همان حوزه وابسته است |
@@ -121,15 +125,21 @@ blog_id / tenant_id ↔ zernio_profile_id ↔ instagram_account_reference
 
 ## ۴.۵ credential مستقل inference پادو
 
-طبق `ADR/ADR-0004-PADO-ZERNIO-SOCIAL-ARCHITECTURE.md` هر فروشگاه حساب و صورتحساب مستقل
-DeepInfra دارد. IGBZ نباید API key آن را درخواست، ذخیره یا proxy کند. credential فقط در
-محیط مستقل پادو/connector همان فروشگاه نگهداری و همان‌جا قابل ابطال است. بک‌اند IGBZ فقط
-شناسهٔ اجرای Playbook، بودجهٔ مجاز، usage/cost report بدون secret و نتیجهٔ schemaدار را
-ثبت می‌کند.
+طبق `ADR-0005` (جانشین `ADR-0004 §۴`) هر فروشگاه حساب و صورتحساب مستقل با ارائه‌دهندهٔ
+انتخابی خود (پیش‌فرض Groq/OpenRouter؛ NaraRouter فعلاً فقط گزینهٔ تستی) دارد. دو مسیر کلید از هم جدا هستند:
 
-`pado.api_key` موجود در کد، قرارداد legacy اتصال PadoGateway است و credential DeepInfra
-نیست. تعیین migration/حذف آن و جایگزینی با احراز connector کوتاه‌عمر نیازمند فاز کد مصوب
-است. n8n و ویرا هیچ‌یک این credential را مصرف نمی‌کنند.
+- **کلید پنل** (ورودی ادمین در صفحهٔ «ثبت کلیدها») فقط رمزشده در مخزن `pado.ai.key_vault`
+  می‌نشیند؛ لایهٔ ارائه‌دهنده فقط `keyRef` می‌گیرد و مقدار واقعی را لبهٔ connector در لحظهٔ
+  فراخوانی و یک‌بار حل می‌کند — هرگز در لاگ، DOM یا گزینهٔ ساده.
+- **کلید حساب مستقل فروشگاه** runtime در `AiRequest` می‌آید و در IGBZ ذخیره یا proxy نمی‌شود.
+
+بک‌اند IGBZ فقط شناسهٔ اجرای Playbook، بودجهٔ مجاز، usage/cost report بدون secret و نتیجهٔ
+schemaدار را ثبت می‌کند. افزودن/حذف/جابه‌جایی ارائه‌دهنده فقط یک رکورد `api_provider`
+(فیلد `protocol`) است، نه کد جدید.
+
+`pado.api_key` موجود در کد، قرارداد legacy اتصال PadoGateway است و credential هیچ
+ارائه‌دهندهٔ استنتاجی نیست. تعیین migration/حذف آن و جایگزینی با احراز connector کوتاه‌عمر
+نیازمند فاز کد مصوب است. n8n و ویرا هیچ‌یک این credential را مصرف نمی‌کنند.
 
 ---
 

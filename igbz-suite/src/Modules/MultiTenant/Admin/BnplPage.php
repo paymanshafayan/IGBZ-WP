@@ -96,7 +96,7 @@ final class BnplPage {
 				BnplService::STATUS_CANCELLED,
 			] as $value
 		) {
-			printf( '<option value="%1$s" %2$s>%1$s</option>', esc_attr( $value ), selected( $status, $value, false ) );
+			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $status, $value, false ), esc_html__( (string) $value, 'igbz-suite' ) );
 		}
 		echo '</select> ';
 		submit_button( __( 'Filter', 'igbz-suite' ), 'secondary', '', false );
@@ -140,7 +140,7 @@ final class BnplPage {
 				'provider' => esc_html( (string) $row['provider'] ),
 				'total'    => esc_html( View::money( (float) $row['total_payable'] ) ),
 				'plan'     => esc_html( sprintf( '%1$d × %2$d', (int) $row['installment_count'], (int) $row['interval_days'] ) ),
-				'status'   => View::status_pill( $this->severity( (string) $row['status'] ) ) . ' ' . esc_html( (string) $row['status'] ),
+				'status'   => View::status_pill( $this->severity( (string) $row['status'] ) ) . ' ' . esc_html__( (string) $row['status'], 'igbz-suite' ),
 				'created'  => esc_html( (string) $row['created_at'] ),
 			];
 		}
@@ -190,7 +190,7 @@ final class BnplPage {
 		echo '<table class="widefat striped" style="max-width:640px"><tbody>';
 		foreach (
 			[
-				__( 'Status', 'igbz-suite' )       => (string) $contract['status'],
+				__( 'Status', 'igbz-suite' )       => esc_html__( (string) $contract['status'], 'igbz-suite' ),
 				__( 'Provider', 'igbz-suite' )     => (string) $contract['provider'],
 				__( 'Provider ref', 'igbz-suite' ) => (string) $contract['provider_ref'],
 				__( 'Principal', 'igbz-suite' )    => View::money( (float) $contract['principal'] ),
@@ -229,7 +229,7 @@ final class BnplPage {
 						BnplService::INSTALLMENT_OVERDUE => 'error',
 						default => 'warn',
 					}
-				) . ' ' . esc_html( (string) $inst['status'] ),
+				) . ' ' . esc_html__( (string) $inst['status'], 'igbz-suite' ),
 				'paid_at' => esc_html( (string) ( $inst['paid_at'] ?? '—' ) ),
 				'ref'     => esc_html( (string) $inst['payment_ref'] ),
 				'actions' => $paid ? '' : sprintf(

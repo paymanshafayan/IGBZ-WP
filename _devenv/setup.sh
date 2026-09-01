@@ -312,6 +312,19 @@ cat > "$WORK/mu/030-default-theme.php" <<'PHP'
  *
  * 1406/05/31: Elementor + Hello Elementor removed (~108 MB saved).
  */
+// Force fa_IR for the whole sandbox (admin + storefront). The WPLANG option is
+// ignored by WordPress when no fa_IR core pack is installed, which is exactly
+// the sandbox's case (wordpress.org is unreachable) — the `locale` filter is
+// the reliable path and is what load_plugin_textdomain() keys off.
+add_filter( 'locale', static fn () => 'fa_IR' );
+
+// Force RTL. Without the fa_IR core pack, WP_Locale resolves text direction
+// from _x('ltr','text direction') = 'ltr', so is_rtl() is false and the admin
+// body never gets the .rtl class. Setting $GLOBALS['text_direction'] here
+// (mu-plugins load before WP_Locale is instantiated) makes is_rtl() true,
+// which mirrors the admin chrome and applies the panel's .rtl CSS.
+$GLOBALS['text_direction'] = 'rtl';
+
 add_action( 'setup_theme', function () {
 	$candidates = [ 'twentytwentyfive', 'twentytwentyfour', 'twentytwentythree' ];
 	$target     = null;
@@ -330,8 +343,11 @@ add_action( 'setup_theme', function () {
 }, 0 );
 
 add_action( 'wp_loaded', function () {
-	// v6: Elementor removed; RTL + Persian + WC defaults still applied.
-	$ver = 'v6';
+	// v7: WPLANG/timezone moved OUT of the WooCommerce guard — on the very first
+	// request WooCommerce is not loaded yet at this hook, so the guard used to
+	// skip the fa_IR locale and then the version stamp made every later request
+	// early-return. The admin panel stayed en_US (found 1406/06/10).
+	$ver = 'v7';
 	$prev = get_option( 'igbz_dev_shop_defaults' );
 	if ( $prev === $ver ) { return; }
 	if ( ! function_exists( 'switch_theme' ) ) { require_once ABSPATH . 'wp-includes/theme.php'; }
@@ -349,6 +365,12 @@ add_action( 'wp_loaded', function () {
 	// Site identity.
 	if ( get_option( 'blogname' ) !== 'شاپ بیوتی — فروشگاه نمونه آرایشی' ) {
 		update_option( 'blogname', 'شاپ بیوتی — فروشگاه نمونه آرایشی' );
+	}
+
+	// Timezone + locale always apply (independent of WooCommerce readiness).
+	update_option( 'timezone_string', 'Asia/Tehran' );
+	if ( get_option( 'WPLANG' ) !== 'fa_IR' ) {
+		update_option( 'WPLANG', 'fa_IR' );
 	}
 
 	// WooCommerce basics.
@@ -408,9 +430,6 @@ add_action( 'wp_loaded', function () {
 			update_option( 'show_on_front', 'page' );
 			update_option( 'page_on_front', $shop_id );
 		}
-		// Reading / time locale
-		update_option( 'timezone_string', 'Asia/Tehran' );
-		update_option( 'WPLANG', 'fa_IR' );
 	}
 
 	// RTL + Persian-friendly defaults for the demo storefront (regardless of

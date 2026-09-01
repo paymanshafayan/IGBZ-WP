@@ -6,9 +6,10 @@ defined( 'ABSPATH' ) || exit;
 /**
  * One inference request (phase 56). Built by a Playbook, consumed by an adapter.
  *
- * The store's DeepInfra key rides here as a runtime-only value: it is supplied per run
+ * The store's provider key rides here as a runtime-only value: it is supplied per run
  * from the store's own custody, never read from IGBZ options and never persisted by the
- * adapter (ADR-0004 §4, DESIGN-PADO §22 decision 2).
+ * adapter (ADR-0004 §4, ADR-0005 §key-storage). When the store has no key of its own,
+ * the adapter resolves the panel's key from the key vault exactly once, at call time.
  *
  * Planes:
  *   - command plane: $system (Playbook instructions) + $tools (allowlisted tool names);

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: IGBZ Suite 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/paymanshafayan/IGBZ-WP/issues\n"
-"POT-Creation-Date: 2026-08-31 11:40+0000\n"
+"POT-Creation-Date: 2026-09-01 06:36+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -317,12 +317,17 @@ msgstr ""
 msgid "A valid phone number is required."
 msgstr ""
 
-#: src/Modules/Pado/PadoModule.php:38
+#: src/Modules/Pado/PadoModule.php:39
 msgid "AI assistant center: theme design wizard, unified approval queue for sensitive actions, and integration with the Vira API gateway."
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:34
 msgid "AI content studio"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:50
+#: src/Modules/Pado/Admin/AiProvidersPage.php:79
+msgid "AI providers"
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:27
@@ -346,7 +351,7 @@ msgstr ""
 msgid "API keys path (scoped key issue/revoke)"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:347
+#: src/Support/Admin/StatusPage.php:384
 msgid "AUTH_KEY / AUTH_SALT are used to derive the encryption key."
 msgstr ""
 
@@ -434,7 +439,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:265
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:323
-#: src/Support/Admin/StatusPage.php:283
+#: src/Support/Admin/StatusPage.php:294
 msgid "Action"
 msgstr ""
 
@@ -629,7 +634,7 @@ msgstr ""
 msgid "Agreement accepted — master gateway active."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:318
+#: src/Support/Admin/StatusPage.php:355
 msgid "All %d tables present."
 msgstr ""
 
@@ -637,7 +642,7 @@ msgstr ""
 msgid "All SLOs green: jobs, queue latency and error rate are inside their thresholds."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:91
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:103
 msgid "All routes"
 msgstr ""
 
@@ -754,11 +759,20 @@ msgstr ""
 msgid "App deep-link scheme"
 msgstr ""
 
+#: src/Modules/Pado/PadoModule.php:55
+msgid "Approval queue, external Pado gateway and backend theme validator are loaded."
+msgstr ""
+
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:267
 msgid "Approve and pay matured commissions"
 msgstr ""
 
+#: src/Modules/MultiTenant/Admin/TranslatorPage.php:51
+msgid "Arabic"
+msgstr ""
+
 #: src/Modules/MultiTenant/Payments/AsanPardakhtGateway.php:30
+#: src/Support/Admin/SettingsPage.php:234
 msgid "Asan Pardakht"
 msgstr ""
 
@@ -1169,7 +1183,7 @@ msgstr ""
 msgid "Carousel"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:122
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:134
 msgid "Carrier"
 msgstr ""
 
@@ -1239,7 +1253,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:342
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:375
-#: src/Support/Admin/StatusPage.php:389
+#: src/Support/Admin/StatusPage.php:426
 msgid "Channel"
 msgstr ""
 
@@ -1255,7 +1269,7 @@ msgstr ""
 msgid "Charge with Rials"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:366
+#: src/Support/Admin/StatusPage.php:403
 msgid "Check"
 msgstr ""
 
@@ -1427,7 +1441,7 @@ msgstr ""
 msgid "Config-driven gateway for banks not in the fixed set."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:189
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:201
 msgid "Configure a shipping carrier (Settings → Logistics)."
 msgstr ""
 
@@ -1507,11 +1521,11 @@ msgstr ""
 msgid "Copied!"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:212
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:224
 msgid "Could not confirm delivery."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:180
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:192
 msgid "Could not create shipment."
 msgstr ""
 
@@ -1596,7 +1610,7 @@ msgstr ""
 msgid "Create course"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:92
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:104
 msgid "Create group & print"
 msgstr ""
 
@@ -1617,7 +1631,7 @@ msgid "Create post"
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/LogisticsPage.php:59
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:78
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:90
 msgid "Create shipment"
 msgstr ""
 
@@ -1667,6 +1681,7 @@ msgid "Cross-store aggregation, store directory, VIP links and hub REST endpoint
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/NowPaymentsGateway.php:31
+#: src/Support/Admin/SettingsPage.php:232
 msgid "Crypto (NOWPayments)"
 msgstr ""
 
@@ -1725,7 +1740,7 @@ msgstr ""
 msgid "Customers point their domain at %s. Verification is a real DNS lookup — nothing is marked verified on request alone."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:292
+#: src/Support/Admin/StatusPage.php:303
 msgid "DISABLE_WP_CRON is set. Make sure a real system cron calls wp-cron.php, otherwise scheduling and reminders will not run."
 msgstr ""
 
@@ -1741,11 +1756,19 @@ msgstr ""
 msgid "DNS lookups are disabled on this server; verify the record manually."
 msgstr ""
 
+#: src/Support/Admin/StatusPage.php:262
+msgid "Daily"
+msgstr ""
+
+#: src/Support/Admin/StatusPage.php:255
+msgid "Daily beat"
+msgstr ""
+
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:340
 msgid "Danger zone"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:308
+#: src/Support/Admin/StatusPage.php:345
 msgid "Database schema"
 msgstr ""
 
@@ -1910,7 +1933,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/DomainPage.php:80
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:91
-#: src/Support/Admin/StatusPage.php:368
+#: src/Support/Admin/StatusPage.php:405
 msgid "Detail"
 msgstr ""
 
@@ -1933,6 +1956,10 @@ msgstr ""
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:363
 msgid "Devices and app"
+msgstr ""
+
+#: src/Modules/MultiTenant/Admin/MarketplacePage.php:61
+msgid "Digikala"
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/MarketplacePage.php:32
@@ -1985,6 +2012,10 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:67
 msgid "Disputes"
+msgstr ""
+
+#: src/Modules/MultiTenant/Admin/MarketplacePage.php:61
+msgid "Divar"
 msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:335
@@ -2219,7 +2250,7 @@ msgstr ""
 msgid "Enamad active (verified)"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:338
+#: src/Support/Admin/StatusPage.php:375
 msgid "Encryption"
 msgstr ""
 
@@ -2233,6 +2264,10 @@ msgstr ""
 
 #: src/Modules/Instagram/Admin/VipPage.php:230
 msgid "Engagement"
+msgstr ""
+
+#: src/Modules/MultiTenant/Admin/TranslatorPage.php:51
+msgid "English"
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:55
@@ -2284,12 +2319,13 @@ msgstr ""
 msgid "Enter a positive USD amount."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:363
+#: src/Support/Admin/StatusPage.php:400
 msgid "Environment"
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/MarketplacePage.php:77
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:178
+#: src/Support/Admin/View.php:190
 msgid "Error"
 msgstr ""
 
@@ -2305,8 +2341,16 @@ msgstr ""
 msgid "Every attempt is persisted before the customer leaves the site, so an interrupted callback can always be replayed."
 msgstr ""
 
+#: src/Support/Admin/StatusPage.php:259
+msgid "Every fifteen minutes"
+msgstr ""
+
 #: src/Support/Cron.php:89
 msgid "Every fifteen minutes (IGBZ)"
+msgstr ""
+
+#: src/Support/Admin/StatusPage.php:258
+msgid "Every five minutes"
 msgstr ""
 
 #: src/Support/Cron.php:83
@@ -2422,6 +2466,16 @@ msgstr ""
 msgid "FX payments"
 msgstr ""
 
+#: src/Modules/Fx/FxModule.php:141
+#: src/Modules/Fx/FxModule.php:143
+msgid "FX payout"
+msgstr ""
+
+#: src/Modules/Fx/FxModule.php:133
+#: src/Modules/Fx/FxModule.php:135
+msgid "FX rate"
+msgstr ""
+
 #: src/Support/Admin/StatusPage.php:225
 msgid "Failed (24h)"
 msgstr ""
@@ -2500,6 +2554,10 @@ msgstr ""
 
 #: src/Modules/RestApi/Admin/DevicesPage.php:487
 msgid "Firebase rejected the send."
+msgstr ""
+
+#: src/Support/Admin/StatusPage.php:253
+msgid "Five-minute beat"
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:207
@@ -2622,7 +2680,7 @@ msgstr ""
 msgid "Grace period after expiry (days)"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:90
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:102
 msgid "Group title"
 msgstr ""
 
@@ -2636,6 +2694,10 @@ msgstr ""
 
 #: src/Modules/Instagram/AiStudio/HttpAiStudioProvider.php:27
 msgid "HTTP AI studio (configurable)"
+msgstr ""
+
+#: src/Support/Admin/SettingsPage.php:231
+msgid "HTTP PSP"
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/HttpPspGateway.php:28
@@ -2662,7 +2724,7 @@ msgstr ""
 msgid "HTTP PSP verify URL"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:357
+#: src/Support/Admin/StatusPage.php:394
 msgid "HTTPS"
 msgstr ""
 
@@ -2702,8 +2764,16 @@ msgstr ""
 msgid "Hold until"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:280
+#: src/Support/Admin/StatusPage.php:291
 msgid "Hook"
+msgstr ""
+
+#: src/Support/Admin/StatusPage.php:260
+msgid "Hourly"
+msgstr ""
+
+#: src/Support/Admin/StatusPage.php:254
+msgid "Hourly beat"
 msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:109
@@ -2741,6 +2811,7 @@ msgid "ID"
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/IdPayGateway.php:26
+#: src/Support/Admin/SettingsPage.php:228
 msgid "IDPay"
 msgstr ""
 
@@ -2784,7 +2855,7 @@ msgstr ""
 msgid "IGBZ Instalments (BNPL)"
 msgstr ""
 
-#: src/Support/Activator.php:954
+#: src/Support/Activator.php:980
 msgid "IGBZ Instructor"
 msgstr ""
 
@@ -2804,11 +2875,11 @@ msgstr ""
 msgid "IGBZ Suite status"
 msgstr ""
 
-#: src/Support/Activator.php:928
+#: src/Support/Activator.php:954
 msgid "IGBZ Tenant Owner"
 msgstr ""
 
-#: src/Support/Activator.php:948
+#: src/Support/Activator.php:974
 msgid "IGBZ Tenant Staff"
 msgstr ""
 
@@ -2999,6 +3070,7 @@ msgid "Invalid webhook token."
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/IranKishGateway.php:30
+#: src/Support/Admin/SettingsPage.php:236
 msgid "Iran Kish"
 msgstr ""
 
@@ -3100,6 +3172,10 @@ msgstr ""
 msgid "Just this post"
 msgstr ""
 
+#: src/Support/Admin/SettingsPage.php:313
+msgid "Kavenegar"
+msgstr ""
+
 #: src/Support/Admin/SettingsPage.php:323
 msgid "Kavenegar API key"
 msgstr ""
@@ -3112,15 +3188,19 @@ msgstr ""
 msgid "Kavenegar verify template"
 msgstr ""
 
+#: src/Modules/MultiTenant/Admin/TranslatorPage.php:51
+msgid "Kurdish"
+msgstr ""
+
 #: src/Support/Admin/SettingsPage.php:50
 msgid "LMS"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:205
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:217
 msgid "Label group created."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:86
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:98
 msgid "Label printing"
 msgstr ""
 
@@ -3281,7 +3361,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:124
 #: src/Modules/MultiTenant/Admin/LmsPage.php:174
-#: src/Support/Admin/StatusPage.php:388
+#: src/Support/Admin/StatusPage.php:425
 msgid "Level"
 msgstr ""
 
@@ -3391,7 +3471,7 @@ msgstr ""
 msgid "Mark as defaulted after (days overdue)"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:148
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:160
 msgid "Mark delivered"
 msgstr ""
 
@@ -3500,6 +3580,10 @@ msgstr ""
 msgid "Media link lifetime (seconds)"
 msgstr ""
 
+#: src/Support/Admin/SettingsPage.php:237
+msgid "Mellat"
+msgstr ""
+
 #: src/Modules/MultiTenant/Payments/MellatGateway.php:31
 msgid "Mellat (Behpardakht)"
 msgstr ""
@@ -3586,7 +3670,7 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:378
 #: src/Modules/RestApi/Admin/DevicesPage.php:198
-#: src/Support/Admin/StatusPage.php:390
+#: src/Support/Admin/StatusPage.php:427
 msgid "Message"
 msgstr ""
 
@@ -3655,7 +3739,7 @@ msgstr ""
 msgid "Missing settings"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:313
+#: src/Support/Admin/StatusPage.php:350
 msgid "Missing tables: %s. Deactivate and reactivate the plugin."
 msgstr ""
 
@@ -3809,11 +3893,12 @@ msgstr ""
 msgid "New tenant"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:282
+#: src/Support/Admin/StatusPage.php:293
 msgid "Next run"
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/NextPayGateway.php:38
+#: src/Support/Admin/SettingsPage.php:229
 msgid "NextPay"
 msgstr ""
 
@@ -4057,11 +4142,11 @@ msgstr ""
 msgid "No shipments in this group."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:205
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:217
 msgid "No shipments matched."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:118
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:130
 msgid "No shipments yet."
 msgstr ""
 
@@ -4201,7 +4286,7 @@ msgstr ""
 msgid "Nothing is waiting for approval."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:394
+#: src/Support/Admin/StatusPage.php:431
 msgid "Nothing logged. That is the good outcome."
 msgstr ""
 
@@ -4223,6 +4308,10 @@ msgstr ""
 
 #: src/Modules/MultiTenant/Bnpl/BnplGateway.php:67
 msgid "Number of instalments"
+msgstr ""
+
+#: src/Support/Admin/View.php:188
+msgid "OK"
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:55
@@ -4403,7 +4492,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:195
 #: src/Modules/MultiTenant/Admin/AffiliatePage.php:255
 #: src/Modules/MultiTenant/Admin/BnplPage.php:153
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:122
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:134
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:51
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:407
 msgid "Order"
@@ -4479,11 +4568,11 @@ msgstr ""
 msgid "Owner"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:333
+#: src/Support/Admin/StatusPage.php:370
 msgid "PHP"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:122
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:134
 msgid "PIN"
 msgstr ""
 
@@ -4507,11 +4596,11 @@ msgstr ""
 msgid "PST.NET card id"
 msgstr ""
 
-#: src/Modules/Pado/PadoModule.php:34
+#: src/Modules/Pado/PadoModule.php:35
 msgid "Pado (AI Assistant)"
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:56
+#: src/Modules/Pado/Admin/PadoPage.php:57
 msgid "Pado (AI Center)"
 msgstr ""
 
@@ -4523,6 +4612,10 @@ msgstr ""
 msgid "Pado guides the admin through obtaining Enamad; bank gateways unlock only with a verified domain + this flag."
 msgstr ""
 
+#: src/Modules/Pado/PadoModule.php:53
+msgid "Pado module"
+msgstr ""
+
 #: src/Modules/Pado/Services/PadoGateway.php:26
 msgid "Pado service is not configured."
 msgstr ""
@@ -4531,7 +4624,7 @@ msgstr ""
 msgid "Pado service returned an invalid response."
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:99
+#: src/Modules/Pado/Admin/PadoPage.php:100
 msgid "Pado — AI Center"
 msgstr ""
 
@@ -4581,6 +4674,7 @@ msgid "Parent affiliate id"
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/ParsianGateway.php:31
+#: src/Support/Admin/SettingsPage.php:235
 msgid "Parsian"
 msgstr ""
 
@@ -4609,6 +4703,7 @@ msgid "Partial payments"
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/PasargadGateway.php:28
+#: src/Support/Admin/SettingsPage.php:239
 msgid "Pasargad"
 msgstr ""
 
@@ -4698,6 +4793,7 @@ msgid "Pay using your store wallet credit."
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/PayirGateway.php:34
+#: src/Support/Admin/SettingsPage.php:230
 msgid "Pay.ir"
 msgstr ""
 
@@ -4822,7 +4918,7 @@ msgstr ""
 msgid "Period"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:350
+#: src/Support/Admin/StatusPage.php:387
 msgid "Permalinks"
 msgstr ""
 
@@ -4868,7 +4964,7 @@ msgstr ""
 msgid "Pin"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:354
+#: src/Support/Admin/StatusPage.php:391
 msgid "Plain permalinks: webhook URLs fall back to ?rest_route=."
 msgstr ""
 
@@ -5010,7 +5106,7 @@ msgstr ""
 msgid "Posts per feed page"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:353
+#: src/Support/Admin/StatusPage.php:390
 msgid "Pretty permalinks are on, REST webhook URLs are clean."
 msgstr ""
 
@@ -5062,7 +5158,7 @@ msgstr ""
 msgid "Principal"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:104
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:116
 msgid "Print"
 msgstr ""
 
@@ -5140,7 +5236,7 @@ msgstr ""
 msgid "Provider ref"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:359
+#: src/Support/Admin/StatusPage.php:396
 msgid "Provider webhooks only call HTTPS callbacks, so the public site must serve over HTTPS."
 msgstr ""
 
@@ -5299,7 +5395,7 @@ msgstr ""
 msgid "Recent activity"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:384
+#: src/Support/Admin/StatusPage.php:421
 msgid "Recent warnings and errors"
 msgstr ""
 
@@ -5311,7 +5407,7 @@ msgstr ""
 msgid "Record lesson progress."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:281
+#: src/Support/Admin/StatusPage.php:292
 msgid "Recurrence"
 msgstr ""
 
@@ -5390,7 +5486,7 @@ msgstr ""
 msgid "Refunds (USD)"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:140
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:152
 msgid "Register"
 msgstr ""
 
@@ -5577,9 +5673,13 @@ msgid "Rotate the token pair."
 msgstr ""
 
 #: src/Modules/Hub/Admin/HubPage.php:421
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:122
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:134
 #: src/Modules/RestApi/Admin/DevicesPage.php:386
 msgid "Route"
+msgstr ""
+
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:81
+msgid "Route preview — express: %1$s (%2$s IRT); heavy: %3$s (%4$s IRT)."
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:69
@@ -5590,7 +5690,7 @@ msgstr ""
 msgid "Run a real DNS check (super admin)."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:273
+#: src/Support/Admin/StatusPage.php:284
 msgid "Run now"
 msgstr ""
 
@@ -5620,6 +5720,10 @@ msgstr ""
 msgid "SMS provider"
 msgstr ""
 
+#: src/Support/Admin/SettingsPage.php:314
+msgid "SMS.ir"
+msgstr ""
+
 #: src/Support/Admin/SettingsPage.php:326
 msgid "SMS.ir API key"
 msgstr ""
@@ -5629,6 +5733,7 @@ msgid "SMS.ir template id"
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/SadadGateway.php:32
+#: src/Support/Admin/SettingsPage.php:233
 msgid "Sadad (Melli)"
 msgstr ""
 
@@ -5658,6 +5763,10 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:269
 msgid "Sadad terminal id"
+msgstr ""
+
+#: src/Support/Admin/SettingsPage.php:238
+msgid "Saman"
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/SamanGateway.php:32
@@ -5729,7 +5838,7 @@ msgstr ""
 msgid "Save prices"
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:169
+#: src/Modules/Pado/Admin/PadoPage.php:178
 msgid "Save settings"
 msgstr ""
 
@@ -5741,7 +5850,7 @@ msgstr ""
 msgid "Scheduled"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:323
+#: src/Support/Admin/StatusPage.php:360
 msgid "Schema version"
 msgstr ""
 
@@ -5769,7 +5878,7 @@ msgstr ""
 msgid "Secret present. Tickets expire after %d seconds and are single use."
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:345
+#: src/Support/Admin/StatusPage.php:382
 msgid "Secret salts"
 msgstr ""
 
@@ -5839,6 +5948,10 @@ msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:652
 msgid "Senior administrator user id"
+msgstr ""
+
+#: src/Support/Admin/SettingsPage.php:240
+msgid "Sepehr"
 msgstr ""
 
 #: src/Modules/MultiTenant/Payments/SepehrGateway.php:30
@@ -5954,11 +6067,11 @@ msgstr ""
 msgid "Shared secret the payout providers send to /igbz/v1/fx/payout-webhook/{provider}."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:180
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:192
 msgid "Shipment created."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:212
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:224
 msgid "Shipment delivered."
 msgstr ""
 
@@ -5974,7 +6087,7 @@ msgstr ""
 msgid "Shipment not found."
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:115
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:127
 msgid "Shipments"
 msgstr ""
 
@@ -6072,6 +6185,7 @@ msgid "Smallest tip"
 msgstr ""
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:200
+#: src/Support/Admin/SettingsPage.php:166
 msgid "SnappPay"
 msgstr ""
 
@@ -6180,8 +6294,8 @@ msgstr ""
 #: src/Modules/MultiTenant/Admin/DomainPage.php:80
 #: src/Modules/MultiTenant/Admin/GamificationPage.php:51
 #: src/Modules/MultiTenant/Admin/JobsPage.php:41
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:122
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:96
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:108
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:134
 #: src/Modules/MultiTenant/Admin/MarketplacePage.php:77
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:51
 #: src/Modules/MultiTenant/Admin/MasterPaymentPage.php:72
@@ -6196,7 +6310,7 @@ msgstr ""
 #: src/Modules/MultiTenant/Frontend/AccountEndpoints.php:410
 #: src/Support/Admin/StatusPage.php:34
 #: src/Support/Admin/StatusPage.php:35
-#: src/Support/Admin/StatusPage.php:367
+#: src/Support/Admin/StatusPage.php:404
 msgid "Status"
 msgstr ""
 
@@ -6400,6 +6514,7 @@ msgid "Tapsell JSON feed"
 msgstr ""
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:201
+#: src/Support/Admin/SettingsPage.php:167
 msgid "Tara"
 msgstr ""
 
@@ -7194,7 +7309,7 @@ msgstr ""
 msgid "Tier 2 commission %"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:387
+#: src/Support/Admin/StatusPage.php:424
 msgid "Time"
 msgstr ""
 
@@ -7221,7 +7336,7 @@ msgstr ""
 #: src/Modules/Hub/Admin/HubPage.php:305
 #: src/Modules/MultiTenant/Admin/LmsPage.php:156
 #: src/Modules/MultiTenant/Admin/LmsPage.php:254
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:96
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:108
 #: src/Modules/MultiTenant/Admin/SeoPage.php:100
 #: src/Modules/MultiTenant/Bnpl/BnplGateway.php:36
 #: src/Modules/MultiTenant/Payments/PspGateway.php:45
@@ -7344,7 +7459,7 @@ msgstr ""
 msgid "Total payable"
 msgstr ""
 
-#: src/Modules/MultiTenant/Admin/LogisticsPage.php:122
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:134
 msgid "Tracking"
 msgstr ""
 
@@ -7423,6 +7538,14 @@ msgstr ""
 
 #: src/Modules/Hub/Services/ContentBlockService.php:152
 msgid "Try the assistant"
+msgstr ""
+
+#: src/Modules/MultiTenant/Admin/TranslatorPage.php:51
+msgid "Turkish"
+msgstr ""
+
+#: src/Support/Admin/StatusPage.php:261
+msgid "Twice daily"
 msgstr ""
 
 #: src/Modules/Instagram/Vip/VipLandingPage.php:256
@@ -7743,6 +7866,10 @@ msgstr ""
 msgid "Want to keep it? Tap the save icon on the post in the app and your own copy stays in the app."
 msgstr ""
 
+#: src/Support/Admin/View.php:189
+msgid "Warning"
+msgstr ""
+
 #: src/Modules/MultiTenant/Lms/CertificatePage.php:144
 msgid "We cannot verify this code"
 msgstr ""
@@ -7818,7 +7945,7 @@ msgid "Without \"://\". Used to build igbz://products/42 style links."
 msgstr ""
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:549
-#: src/Support/Admin/StatusPage.php:328
+#: src/Support/Admin/StatusPage.php:365
 msgid "WooCommerce"
 msgstr ""
 
@@ -8006,7 +8133,7 @@ msgid "Your session expired. Please try again."
 msgstr ""
 
 #: src/Modules/MultiTenant/Otp/OtpService.php:226
-#: src/Support/Activator.php:1047
+#: src/Support/Activator.php:1073
 msgid "Your verification code: {code}"
 msgstr ""
 
@@ -8025,6 +8152,10 @@ msgstr ""
 
 #: src/Modules/RestApi/Push/NotificationService.php:141
 msgid "Your wallet was topped up"
+msgstr ""
+
+#: src/Support/Admin/SettingsPage.php:227
+msgid "ZarinPal"
 msgstr ""
 
 #: src/Support/Admin/SettingsPage.php:243
@@ -8091,6 +8222,10 @@ msgstr ""
 msgid "day"
 msgstr ""
 
+#: src/Support/Admin/SettingsPage.php:630
+msgid "debug"
+msgstr ""
+
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:331
 #: src/Support/Admin/StatusPage.php:161
 msgid "disabled"
@@ -8101,17 +8236,29 @@ msgstr ""
 msgid "enabled"
 msgstr ""
 
+#: src/Support/Admin/SettingsPage.php:633
+msgid "error"
+msgstr ""
+
 #: src/Modules/MultiTenant/Admin/PaymentsPage.php:265
 msgid "expired"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:342
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:103
+msgid "express"
+msgstr ""
+
+#: src/Support/Admin/StatusPage.php:379
 msgid "ext-openssl missing: API keys cannot be encrypted at rest."
 msgstr ""
 
 #: src/Modules/MultiTenant/Admin/LmsPage.php:235
 #: src/Modules/MultiTenant/Admin/TenantsPage.php:556
 msgid "free"
+msgstr ""
+
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:103
+msgid "heavy"
 msgstr ""
 
 #: src/Modules/Hub/HubModule.php:210
@@ -8142,12 +8289,34 @@ msgstr ""
 msgid "iPhone"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:261
-msgid "in %s"
+#: src/Support/Admin/StatusPage.php:330
+msgid "in %d day"
+msgid_plural "in %d days"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Support/Admin/StatusPage.php:325
+msgid "in %d hour"
+msgid_plural "in %d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Support/Admin/StatusPage.php:320
+msgid "in %d minute"
+msgid_plural "in %d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#: src/Support/Admin/StatusPage.php:315
+msgid "in a few seconds"
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:261
 msgid "inactive"
+msgstr ""
+
+#: src/Support/Admin/SettingsPage.php:631
+msgid "info"
 msgstr ""
 
 #: src/Modules/MultiTenant/MultiTenantModule.php:580
@@ -8166,6 +8335,10 @@ msgstr ""
 msgid "month"
 msgstr ""
 
+#: src/Modules/MultiTenant/Admin/LogisticsPage.php:103
+msgid "national"
+msgstr ""
+
 #: src/Support/Admin/StatusPage.php:241
 msgid "never"
 msgstr ""
@@ -8179,7 +8352,7 @@ msgstr ""
 msgid "none"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:330
+#: src/Support/Admin/StatusPage.php:367
 msgid "not active"
 msgstr ""
 
@@ -8187,7 +8360,7 @@ msgstr ""
 msgid "not configured"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:264
+#: src/Support/Admin/StatusPage.php:275
 msgid "not scheduled"
 msgstr ""
 
@@ -8203,7 +8376,7 @@ msgstr ""
 msgid "on"
 msgstr ""
 
-#: src/Support/Admin/StatusPage.php:341
+#: src/Support/Admin/StatusPage.php:378
 msgid "openssl available, secrets are stored as AES-256-GCM."
 msgstr ""
 
@@ -8257,6 +8430,10 @@ msgstr ""
 msgid "verified"
 msgstr ""
 
+#: src/Support/Admin/SettingsPage.php:632
+msgid "warning"
+msgstr ""
+
 #: src/Modules/MultiTenant/Frontend/ShortCodes.php:635
 msgid "week"
 msgstr ""
@@ -8272,6 +8449,42 @@ msgstr ""
 msgid "yes"
 msgstr ""
 
+#: src/Modules/Pado/Admin/PadoPage.php:143
+msgid "اتصال سرویس پادو (دروازهٔ ویرا)"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:207
+msgid "ارائه‌دهنده:"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:250
+msgid "ارائه‌دهنده‌های ثبت‌شده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:192
+msgid "استفاده از یک ارائه‌دهنده برای هر دو بخش"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:396
+msgid "افزودن ارائه‌دهنده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:247
+msgid "افزودن/ویرایش ارائه‌دهنده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:241
+msgid "انصراف"
+msgstr ""
+
+#: src/Modules/Pado/Admin/PadoPage.php:145
+msgid "این بخش مربوط به سرویس طراحی قالب پادو است و ربطی به ارائه‌دهنده‌های هوش مصنوعی بالا ندارد."
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:348
+msgid "این فیلدها فقط برای گویش custom خوانده می‌شوند؛ برای openai و anthropic بی‌اثرند. مقدار خالی یعنی پیش‌فرض (POST بدون مسیر؛ پاسخ choices.0.message.content؛ مصرف usage.*_tokens)."
+msgstr ""
+
 #: src/Modules/MultiTenant/Admin/WalletPage.php:195
 msgid "بازگشت نقدی"
 msgstr ""
@@ -8280,12 +8493,74 @@ msgstr ""
 msgid "بازگشت نقدی خرید"
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:99
+#: src/Modules/Pado/Admin/AiProvidersPage.php:157
+#: src/Modules/Pado/Admin/AiProvidersPage.php:185
+msgid "تغییر ارائه‌دهنده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:127
+#: src/Modules/Pado/Admin/AiProvidersPage.php:156
+msgid "ثبت کلیدها"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:423
+msgid "حذف"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:416
+msgid "خاموش"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:420
+msgid "در حال استفاده — قابل حذف نیست"
+msgstr ""
+
+#: src/Modules/Pado/Admin/PadoPage.php:100
 msgid "دستیار هوشمند فروشگاه شما"
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:136
-msgid "مدل/سرویس پادو توسط تیم توسعه انتخاب می‌شود. شما در این صفحه فقط کلید API مدلی را که ما اعلام می‌کنیم وارد می‌کنید."
+#: src/Modules/Pado/Admin/AiProvidersPage.php:240
+msgid "ذخیره"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:396
+msgid "ذخیرهٔ ویرایش"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:416
+msgid "فعال"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:219
+msgid "مدل:"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:346
+msgid "نگاشت گویش custom"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:407
+msgid "هیچ ارائه‌دهنده‌ای ثبت نشده است."
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:418
+msgid "ویرایش"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:224
+msgid "پیش‌فرض ارائه‌دهنده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:148
+msgid "کلید ذخیره‌شده است؛ برای تعویض، کلید جدید را وارد کنید."
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:129
+msgid "کلید هر ارائه‌دهنده فقط به‌صورت رمزنگاری‌شده در مخزن کلید پنل نگه‌داری می‌شود و هرگز نمایش داده یا ثبت لاگ نمی‌شود. راستی‌آزمایی اتصال از طریق همین صفحه یا ورک‌فلوی GitHub انجام می‌شود."
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:149
+msgid "کلیدی برای این ارائه‌دهنده ثبت نشده است."
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:264

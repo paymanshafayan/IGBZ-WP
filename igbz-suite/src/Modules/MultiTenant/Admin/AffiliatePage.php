@@ -109,7 +109,7 @@ final class AffiliatePage {
 				'earned'  => esc_html( View::money( (float) $row['total_earned'] ) ),
 				'paid'    => esc_html( View::money( (float) $row['total_paid'] ) ),
 				'status'  => View::status_pill( AffiliateService::STATUS_APPROVED === (string) $row['status'] ? 'ok' : 'warn' )
-					. ' ' . esc_html( (string) $row['status'] ),
+					. ' ' . esc_html__( (string) $row['status'], 'igbz-suite' ),
 			];
 		}
 
@@ -184,7 +184,7 @@ final class AffiliatePage {
 				'base'     => esc_html( View::money( (float) $row['base_amount'] ) ),
 				'rate'     => esc_html( number_format_i18n( (float) $row['rate'] * 100, 2 ) . '%' ),
 				'amount'   => esc_html( View::money( (float) $row['amount'] ) ),
-				'status'   => esc_html( (string) $row['status'] ),
+				'status'   => esc_html__( (string) $row['status'], 'igbz-suite' ),
 				'created'  => esc_html( (string) $row['created_at'] ),
 			];
 		}
@@ -221,7 +221,7 @@ final class AffiliatePage {
 		foreach (
 			[ AffiliateService::STATUS_PENDING, AffiliateService::STATUS_APPROVED, AffiliateService::STATUS_REJECTED ] as $value
 		) {
-			printf( '<option value="%1$s" %2$s>%1$s</option>', esc_attr( $value ), selected( (string) $affiliate['status'], $value, false ) );
+			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( (string) $affiliate['status'], $value, false ), esc_html__( (string) $value, 'igbz-suite' ) );
 		}
 		echo '</select></td></tr>';
 		echo '</tbody></table>';

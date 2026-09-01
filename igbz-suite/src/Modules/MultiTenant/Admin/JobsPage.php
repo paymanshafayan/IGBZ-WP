@@ -42,7 +42,7 @@ final class JobsPage {
 		foreach ( [ 'pending', 'claimed', 'done', 'dead', 'cancelled' ] as $status ) {
 			printf(
 				'<tr><td>%s</td><td>%d</td></tr>',
-				esc_html( $status ),
+				esc_html__( $status, 'igbz-suite' ),
 				(int) $stats[ $status ]
 			);
 		}

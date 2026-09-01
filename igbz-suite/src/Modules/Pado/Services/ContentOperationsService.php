@@ -39,11 +39,18 @@ class ContentOperationsService {
 	public const KIND_CAMPAIGN_SEND     = 'campaign_send';
 	public const KIND_POLICY_CHANGE     = 'policy_change';
 
-	/** The AI-policy keys a policy change may touch — closed list, backend-enforced. */
-	public const POLICY_KEYS = [
-		'pado.deepinfra.enabled'           => 'bool',
-		'pado.deepinfra.daily_token_budget' => 'int',
-	];
+	/**
+	 * The AI-policy keys a policy change may touch — closed list, backend-enforced.
+	 *
+	 * ADR-0005 moved provider management (the provider records, the section routing
+	 * `pado.ai.routing.*`, the shared switch and `pado.ai.default_provider`) into the
+	 * central IGBZ control panel, owned by the senior administrator (MANAGE_SUITE) and
+	 * edited directly there. A tenant therefore has no requestable AI-policy key: the
+	 * provider/wiring surface is closed to the approval queue, and the old
+	 * `pado.deepinfra.*` keys were dropped by the v49 migration. The list is empty on
+	 * purpose — re-opening any key is a deliberate, reviewed change.
+	 */
+	public const POLICY_KEYS = [];
 
 	private const CATEGORIES = [
 		'viral'     => self::KIND_PUBLISH_VIRAL,
@@ -160,6 +167,8 @@ class ContentOperationsService {
 
 		if ( 'bool' === $type ) {
 			$new_value = (bool) $new_value;
+		} elseif ( 'string' === $type ) {
+			$new_value = sanitize_text_field( (string) $new_value );
 		} else {
 			$new_value = (int) $new_value;
 			if ( str_contains( $key, 'budget' ) && ( $new_value < 0 || $new_value > 1000000 ) ) {
@@ -356,6 +365,9 @@ class ContentOperationsService {
 	}
 
 	private function policy_differs( mixed $a, mixed $b ): bool {
+		if ( is_string( $a ) || is_string( $b ) ) {
+			return (string) $a !== (string) $b;
+		}
 		if ( is_bool( $a ) || is_bool( $b ) ) {
 			return (bool) $a !== (bool) $b;
 		}
@@ -395,9 +407,11 @@ class ContentOperationsService {
 	}
 
 	protected function get_policy( string $key ): mixed {
-		return 'bool' === ( self::POLICY_KEYS[ $key ] ?? 'bool' )
-			? $this->settings->bool( $key, false )
-			: $this->settings->int( $key, 0 );
+		return match ( self::POLICY_KEYS[ $key ] ?? 'string' ) {
+			'bool' => $this->settings->bool( $key, false ),
+			'int'  => $this->settings->int( $key, 0 ),
+			default => $this->settings->string( $key, '' ),
+		};
 	}
 
 	protected function set_policy( string $key, mixed $value ): void {

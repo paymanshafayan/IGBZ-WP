@@ -6,6 +6,7 @@ use IGBZ\Suite\Modules\Pado\Services\ThemeService;
 use IGBZ\Suite\Support\Admin\Menu;
 use IGBZ\Suite\Support\Admin\View;
 use IGBZ\Suite\Support\Capabilities;
+use IGBZ\Suite\Support\Crypto;
 use IGBZ\Suite\Support\Db;
 use IGBZ\Suite\Support\Settings;
 
@@ -128,12 +129,20 @@ final class PadoPage {
 	// ---------------------------------------------------------------- tabs
 
 	private function render_tab_settings(): void {
-		$api_key     = $this->settings->string( 'pado.api_key', '' );
+		$this->render_gateway_form();
+	}
+
+	// --------------------------------------------------- دروازهٔ ویرا (قدیمی)
+
+	private function render_gateway_form(): void {
 		$endpoint    = $this->settings->string( 'pado.endpoint', '' );
 		$model_label = $this->settings->string( 'pado.model_label', '' );
+		$api_key     = $this->settings->masked( 'pado.api_key' );
 		?>
-		<p>
-			<?php esc_html_e( 'مدل/سرویس پادو توسط تیم توسعه انتخاب می‌شود. شما در این صفحه فقط کلید API مدلی را که ما اعلام می‌کنیم وارد می‌کنید.', 'igbz-suite' ); ?>
+		<hr style="margin:24px 0;">
+		<h2><?php esc_html_e( 'اتصال سرویس پادو (دروازهٔ ویرا)', 'igbz-suite' ); ?></h2>
+		<p class="description">
+			<?php esc_html_e( 'این بخش مربوط به سرویس طراحی قالب پادو است و ربطی به ارائه‌دهنده‌های هوش مصنوعی بالا ندارد.', 'igbz-suite' ); ?>
 		</p>
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<?php wp_nonce_field( self::NONCE_ACTION ); ?>
@@ -153,7 +162,7 @@ final class PadoPage {
 					<td>
 						<input type="password" id="pado_api_key" name="pado[api_key]"
 							value="<?php echo esc_attr( $api_key ); ?>" class="regular-text" autocomplete="off">
-						<p class="description">کلید در پایگاه داده به‌صورت رمزنگاری‌شده ذخیره می‌شود.</p>
+						<p class="description">کلید به‌صورت رمزنگاری‌شده ذخیره می‌شود؛ ماسک موجود را دست‌نخورده بگذارید تا کلید فعلی حفظ شود.</p>
 					</td>
 				</tr>
 				<tr>
@@ -166,7 +175,7 @@ final class PadoPage {
 					</td>
 				</tr>
 			</table>
-			<?php submit_button( __( 'Save settings', 'igbz-suite' ) ); ?>
+			<p class="submit"><button type="submit" class="button button-primary"><?php esc_html_e( 'Save settings', 'igbz-suite' ); ?></button></p>
 		</form>
 		<?php
 	}
@@ -264,7 +273,7 @@ final class PadoPage {
 		if ( ! $rows ) { return; }
 		echo '<h3>قالب‌های ثبت‌شده</h3><table class="widefat striped"><thead><tr><th>نام</th><th>وضعیت</th><th>عملیات</th></tr></thead><tbody>';
 		foreach ( $rows as $row ) {
-			echo '<tr><td>' . esc_html( (string) $row['name'] ) . '</td><td>' . esc_html( (string) $row['status'] ) . '</td><td>';
+			echo '<tr><td>' . esc_html( (string) $row['name'] ) . '</td><td>' . esc_html__( (string) $row['status'], 'igbz-suite' ) . '</td><td>';
 			foreach ( [ 'preview' => 'پیش‌نمایش', 'live' => 'اعمال زنده' ] as $action => $label ) {
 				$url = wp_nonce_url( admin_url( 'admin-post.php?action=igbz_pado_theme_' . $action . '&theme_id=' . (int) $row['id'] ), self::NONCE_ACTION );
 				echo '<a class="button" href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a> ';
@@ -439,7 +448,10 @@ final class PadoPage {
 		Capabilities::require( Capabilities::MANAGE_PADO );
 		check_admin_referer( self::NONCE_ACTION );
 		$raw = isset( $_POST['pado'] ) && is_array( $_POST['pado'] ) ? wp_unslash( $_POST['pado'] ) : [];
-		$this->settings->set( 'pado.api_key', sanitize_text_field( (string) ( $raw['api_key'] ?? '' ) ) );
+		$api_key = sanitize_text_field( (string) ( $raw['api_key'] ?? '' ) );
+		if ( '' !== $api_key && Crypto::MASK !== $api_key ) {
+			$this->settings->set( 'pado.api_key', $api_key );
+		}
 		$this->settings->set( 'pado.endpoint', esc_url_raw( (string) ( $raw['endpoint'] ?? '' ) ) );
 		$this->settings->set( 'pado.model_label', sanitize_text_field( (string) ( $raw['model_label'] ?? '' ) ) );
 		wp_safe_redirect( Menu::url( self::SLUG, [ 'tab' => self::TAB_SETTINGS, 'msg' => 'saved' ] ) );

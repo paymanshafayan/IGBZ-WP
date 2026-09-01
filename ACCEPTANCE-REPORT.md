@@ -39,9 +39,26 @@
 - ابزار WP-CLI: `wp igbz jobs …` · `wp igbz backup …` · `wp igbz release verify`.
 - اهرم‌های حادثه: `flags.queue_paused`؛ آستانه‌های `slo.*`.
 
+## ۳.۵) گیت زندهٔ Provider / Zernio — بسته‌شده ۱۴۰۵/۰۶/۱۱
+
+راستی‌آزمایی زندهٔ کلیدها و قرارداد providerها روی GitHub Actions انجام و سبز شد:
+
+```text
+run_id = 33540909998
+OpenRouter = HTTP 200 smoke connectivity با openrouter/free؛ پاسخ خالی، پس benchmark فارسی هنوز نه
+Groq = PASS با qwen/qwen3.6-27b
+NaraRouter = PASS با agnes-2.5-flash
+Zernio = PASS create/delete profile؛ cleanup 404 به‌درستی already absent
+Failures = 0
+```
+
+این گیت، بخش «راز/قرارداد/اتصال زندهٔ providerها» را می‌بندد؛ اما جایگزین گیت استقرار
+Railway فاز ۷۰ نیست. سه سبز پیاپی health روی staging همچنان فقط با اجرای ابری Railway
+طبق `RUNBOOK-RAILWAY-LTS.md` بسته می‌شود.
+
 ## ۴) بازِ صادقانه (هیچ‌کدام مسدودِ پذیرش کد نیست؛ همه اجرایی/محیطی‌اند)
 
-1. **اجرای ابری staging + مهاجرت آزمودهٔ MySQL 8.4 + سه سبز پیاپی** — با
+1. **اجرای ابری staging + تأیید/مهاجرت آزمودهٔ MySQL 8.4 + سه سبز پیاپی** — با
    توکن کارفرما طبق ران‌بوک (بازِ فاز ۷۰؛ تنها گیت تعیین‌کنندهٔ «تولید»).
 2. **smoke روی URL عمومی تولید** — پس از همان استقرار؛ در سندباکس فقط
    loopback پلی‌گراند را داریم.
@@ -52,8 +69,17 @@
 5. **ممیزیهای انسانی تولید**: NVDA/VoiceOver (فاز ۶۹) و تمرین بازیابی فصلی
    (فاز ۷۲ §۶).
 
+## ۴.۵) وضعیت تحویل به شاخهٔ اصلی
+
+```text
+PR = https://github.com/paymanshafayan/IGBZ-WP/pull/16
+mergeable = MERGEABLE
+mergeStateStatus = CLEAN
+latest_checked_preview = 33551049368
+next = merge PR to main, then continue phase 70 Railway closeout from main in a new chat
+```
+
 ## ۵) امضا
 
-- عامل: Arena.ai Agent Mode روی شاخهٔ `arena/01a04e8d-igbz-wp`؛ همهٔ
-  کامیت‌ها پوش‌شده؛ درخت کاری پاک.
+- عامل: Arena.ai Agent Mode روی شاخهٔ `arena/01a057be-igbz-wp`؛ PR شمارهٔ ۱۶ آمادهٔ merge به `main` است؛ همهٔ کامیت‌های این نوبت پوش شده‌اند.
 - تصمیم پذیرش (تأیید staging تولید / ادامه با اقلام §۴): با کارفرماست.

@@ -251,7 +251,7 @@ final class AdversarialPadoTest extends TestCase {
 	}
 
 	private function seed_active(): void {
-		$r = $this->pb->create_version( 1, 'gather', 'گردآوری', [ 'body' => $this->body(), 'model' => 'deepinfra/test-model' ] );
+		$r = $this->pb->create_version( 1, 'gather', 'گردآوری', [ 'body' => $this->body(), 'model' => 'groq/llama-3.3-70b-versatile' ] );
 		$this->pb->activate( 1, 'gather', $r['version'] );
 	}
 }

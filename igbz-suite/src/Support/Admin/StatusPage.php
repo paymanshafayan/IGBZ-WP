@@ -249,19 +249,30 @@ final class StatusPage {
 	private function render_cron(): void {
 		echo '<h2>' . esc_html__( 'Background jobs', 'igbz-suite' ) . '</h2>';
 
+		$hook_labels = [
+			Cron::HOOK_FIVE_MINUTES => __( 'Five-minute beat', 'igbz-suite' ),
+			Cron::HOOK_HOURLY       => __( 'Hourly beat', 'igbz-suite' ),
+			Cron::HOOK_DAILY        => __( 'Daily beat', 'igbz-suite' ),
+		];
+		$recurrence_labels = [
+			'igbz_five_minutes'    => __( 'Every five minutes', 'igbz-suite' ),
+			'igbz_fifteen_minutes' => __( 'Every fifteen minutes', 'igbz-suite' ),
+			'hourly'               => __( 'Hourly', 'igbz-suite' ),
+			'twicedaily'           => __( 'Twice daily', 'igbz-suite' ),
+			'daily'                => __( 'Daily', 'igbz-suite' ),
+		];
+
 		$rows = [];
 		foreach ( Cron::events() as $hook => $recurrence ) {
 			$next    = wp_next_scheduled( $hook );
 			$rows[] = [
-				'hook'       => $hook,
-				'recurrence' => $recurrence,
-				'next'       => $next
-					? sprintf(
-						/* translators: %s: human readable time difference. */
-						__( 'in %s', 'igbz-suite' ),
-						human_time_diff( time(), (int) $next )
-					)
-					: __( 'not scheduled', 'igbz-suite' ),
+				'hook'       => sprintf(
+					'<strong>%1$s</strong><br /><span class="description" dir="ltr">%2$s</span>',
+					esc_html( $hook_labels[ $hook ] ?? $hook ),
+					esc_html( $hook )
+				),
+				'recurrence' => $recurrence_labels[ $recurrence ] ?? $recurrence,
+				'next'       => $next ? $this->relative_time( (int) $next ) : __( 'not scheduled', 'igbz-suite' ),
 				'action'     => sprintf(
 					'<a class="button button-small" href="%1$s">%2$s</a>',
 					esc_url(
@@ -283,14 +294,40 @@ final class StatusPage {
 				'action'     => __( 'Action', 'igbz-suite' ),
 			],
 			$rows,
-			static fn ( array $row, string $key ): string => 'action' === $key
-				? (string) $row['action']
+			static fn ( array $row, string $key ): string => in_array( $key, [ 'action', 'hook' ], true )
+				? (string) $row[ $key ]
 				: esc_html( (string) $row[ $key ] )
 		);
 
 		if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) {
 			View::notice( __( 'DISABLE_WP_CRON is set. Make sure a real system cron calls wp-cron.php, otherwise scheduling and reminders will not run.', 'igbz-suite' ), 'warning' );
 		}
+	}
+
+	/**
+	 * Translatable relative time until a future timestamp, so the cron table is
+	 * not left half-English by WP core's untranslated human_time_diff().
+	 */
+	private function relative_time( int $future ): string {
+		$diff = max( 0, $future - time() );
+
+		if ( $diff < MINUTE_IN_SECONDS ) {
+			return __( 'in a few seconds', 'igbz-suite' );
+		}
+		if ( $diff < HOUR_IN_SECONDS ) {
+			$m = (int) ceil( $diff / MINUTE_IN_SECONDS );
+			/* translators: %d: number of minutes. */
+			return sprintf( _n( 'in %d minute', 'in %d minutes', $m, 'igbz-suite' ), $m );
+		}
+		if ( $diff < DAY_IN_SECONDS ) {
+			$h = (int) ceil( $diff / HOUR_IN_SECONDS );
+			/* translators: %d: number of hours. */
+			return sprintf( _n( 'in %d hour', 'in %d hours', $h, 'igbz-suite' ), $h );
+		}
+
+		$d = (int) ceil( $diff / DAY_IN_SECONDS );
+		/* translators: %d: number of days. */
+		return sprintf( _n( 'in %d day', 'in %d days', $d, 'igbz-suite' ), $d );
 	}
 
 	private function render_environment(): void {

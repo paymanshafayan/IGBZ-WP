@@ -1,0 +1,960 @@
+{
+  "01-key-screen": {
+    "h1": "پادو — مرکز هوش مصنوعی",
+    "inputs": [
+      {
+        "type": "button",
+        "id": "collapse-button",
+        "name": "",
+        "text": "Collapse Menu"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_keys"
+      },
+      {
+        "type": "input",
+        "id": "igbz-key-groq",
+        "name": "keys[groq]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-key-openrouter",
+        "name": "keys[openrouter]",
+        "text": ""
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ثبت کلیدها"
+      },
+      {
+        "type": "button",
+        "id": "igbz-open-provider-panel",
+        "name": "",
+        "text": "⚙"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_routing"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "shared",
+        "text": "1"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ذخیره"
+      },
+      {
+        "type": "button",
+        "id": "igbz-close-provider-panel",
+        "name": "",
+        "text": "انصراف"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_provider"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-id",
+        "name": "provider_id",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-title",
+        "name": "title",
+        "text": ""
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-protocol",
+        "name": "protocol",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-base-url",
+        "name": "base_url",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-models",
+        "name": "model_allowlist",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-default-model",
+        "name": "default_model",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "chat"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "tools"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "json"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "vision"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "stt"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "tts"
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-quality",
+        "name": "quality",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-budget",
+        "name": "daily_token_budget",
+        "text": "200000"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-timeout",
+        "name": "timeout",
+        "text": "60"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "enabled",
+        "text": "1"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "benchmark_passed",
+        "text": "1"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "geo_eligible",
+        "text": "1"
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-request-method",
+        "name": "request_method",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-request-path",
+        "name": "request_path",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-content-path",
+        "name": "response_content_path",
+        "text": "choices.0.message.content"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-prompt",
+        "name": "response_usage_prompt_path",
+        "text": "usage.prompt_tokens"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-completion",
+        "name": "response_usage_completion_path",
+        "text": "usage.completion_tokens"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-total",
+        "name": "response_usage_total_path",
+        "text": "usage.total_tokens"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "افزودن ارائه‌دهنده"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_settings"
+      },
+      {
+        "type": "input",
+        "id": "pado_model_label",
+        "name": "pado[model_label]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "pado_api_key",
+        "name": "pado[api_key]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "pado_endpoint",
+        "name": "pado[endpoint]",
+        "text": ""
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ذخیرهٔ تنظیمات"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "Close dialog"
+      }
+    ],
+    "hasGear": true,
+    "hasPanel": true,
+    "panelDisplay": "none",
+    "hasCustomBlock": true,
+    "customDisplay": "none"
+  },
+  "gear-visible": true,
+  "02-provider-panel": {
+    "h1": "پادو — مرکز هوش مصنوعی",
+    "inputs": [
+      {
+        "type": "button",
+        "id": "collapse-button",
+        "name": "",
+        "text": "Collapse Menu"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_keys"
+      },
+      {
+        "type": "input",
+        "id": "igbz-key-groq",
+        "name": "keys[groq]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-key-openrouter",
+        "name": "keys[openrouter]",
+        "text": ""
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ثبت کلیدها"
+      },
+      {
+        "type": "button",
+        "id": "igbz-open-provider-panel",
+        "name": "",
+        "text": "⚙"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_routing"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "shared",
+        "text": "1"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ذخیره"
+      },
+      {
+        "type": "button",
+        "id": "igbz-close-provider-panel",
+        "name": "",
+        "text": "انصراف"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_provider"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-id",
+        "name": "provider_id",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-title",
+        "name": "title",
+        "text": ""
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-protocol",
+        "name": "protocol",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-base-url",
+        "name": "base_url",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-models",
+        "name": "model_allowlist",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-default-model",
+        "name": "default_model",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "chat"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "tools"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "json"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "vision"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "stt"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "tts"
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-quality",
+        "name": "quality",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-budget",
+        "name": "daily_token_budget",
+        "text": "200000"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-timeout",
+        "name": "timeout",
+        "text": "60"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "enabled",
+        "text": "1"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "benchmark_passed",
+        "text": "1"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "geo_eligible",
+        "text": "1"
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-request-method",
+        "name": "request_method",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-request-path",
+        "name": "request_path",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-content-path",
+        "name": "response_content_path",
+        "text": "choices.0.message.content"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-prompt",
+        "name": "response_usage_prompt_path",
+        "text": "usage.prompt_tokens"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-completion",
+        "name": "response_usage_completion_path",
+        "text": "usage.completion_tokens"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-total",
+        "name": "response_usage_total_path",
+        "text": "usage.total_tokens"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "افزودن ارائه‌دهنده"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_settings"
+      },
+      {
+        "type": "input",
+        "id": "pado_model_label",
+        "name": "pado[model_label]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "pado_api_key",
+        "name": "pado[api_key]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "pado_endpoint",
+        "name": "pado[endpoint]",
+        "text": ""
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ذخیرهٔ تنظیمات"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "Close dialog"
+      }
+    ],
+    "hasGear": true,
+    "hasPanel": true,
+    "panelDisplay": "block",
+    "hasCustomBlock": true,
+    "customDisplay": "none"
+  },
+  "03-provider-edit-groq": {
+    "h1": "پادو — مرکز هوش مصنوعی",
+    "inputs": [
+      {
+        "type": "button",
+        "id": "collapse-button",
+        "name": "",
+        "text": "Collapse Menu"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings&edit=groq"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_keys"
+      },
+      {
+        "type": "input",
+        "id": "igbz-key-groq",
+        "name": "keys[groq]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-key-openrouter",
+        "name": "keys[openrouter]",
+        "text": ""
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ثبت کلیدها"
+      },
+      {
+        "type": "button",
+        "id": "igbz-open-provider-panel",
+        "name": "",
+        "text": "⚙"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings&edit=groq"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_routing"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "shared",
+        "text": "1"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ذخیره"
+      },
+      {
+        "type": "button",
+        "id": "igbz-close-provider-panel",
+        "name": "",
+        "text": "انصراف"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings&edit=groq"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_provider"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-id",
+        "name": "provider_id",
+        "text": "groq"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-title",
+        "name": "title",
+        "text": "Groq"
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-protocol",
+        "name": "protocol",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-base-url",
+        "name": "base_url",
+        "text": "https://api.groq.com/openai/v1"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-models",
+        "name": "model_allowlist",
+        "text": "llama-3.3-70b-versatile, llama-3.1-8b-instant, meta-llama/llama-4-scout-17b-16e-instruct, mixtral-8x7b-32768, gemma2-9b-it"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-default-model",
+        "name": "default_model",
+        "text": "llama-3.3-70b-versatile"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "chat"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "tools"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "json"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "vision"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "stt"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "tts"
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-quality",
+        "name": "quality",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-budget",
+        "name": "daily_token_budget",
+        "text": "200000"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-timeout",
+        "name": "timeout",
+        "text": "60"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "enabled",
+        "text": "1"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "benchmark_passed",
+        "text": "1"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "geo_eligible",
+        "text": "1"
+      },
+      {
+        "type": "select",
+        "id": "igbz-provider-request-method",
+        "name": "request_method",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-request-path",
+        "name": "request_path",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-content-path",
+        "name": "response_content_path",
+        "text": "choices.0.message.content"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-prompt",
+        "name": "response_usage_prompt_path",
+        "text": "usage.prompt_tokens"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-completion",
+        "name": "response_usage_completion_path",
+        "text": "usage.completion_tokens"
+      },
+      {
+        "type": "input",
+        "id": "igbz-provider-usage-total",
+        "name": "response_usage_total_path",
+        "text": "usage.total_tokens"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ذخیرهٔ ویرایش"
+      },
+      {
+        "type": "input",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "1e4084221e"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings&edit=groq"
+      },
+      {
+        "type": "input",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_settings"
+      },
+      {
+        "type": "input",
+        "id": "pado_model_label",
+        "name": "pado[model_label]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "pado_api_key",
+        "name": "pado[api_key]",
+        "text": ""
+      },
+      {
+        "type": "input",
+        "id": "pado_endpoint",
+        "name": "pado[endpoint]",
+        "text": ""
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "ذخیرهٔ تنظیمات"
+      },
+      {
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "Close dialog"
+      }
+    ],
+    "hasGear": true,
+    "hasPanel": true,
+    "panelDisplay": "block",
+    "hasCustomBlock": true,
+    "customDisplay": "none"
+  },
+  "04-custom-mapping-visible": true,
+  "title": "پادو (مرکز هوش مصنوعی) ‹ شاپ بیوتی — فروشگاه نمونه آرایشی — WordPress",
+  "dir": "rtl",
+  "lang": "fa-IR",
+  "hOverflow": 0,
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED",
+    "Failed to load resource: net::ERR_CONNECTION_CLOSED"
+  ],
+  "brokenImgs": [
+    "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=26&d=mm&r=g",
+    "https://secure.gravatar.com/avatar/8c9689fb60bd7c4c56112540c064fea2dea8e61c4e527dd53f7adfea094b490b?s=64&d=mm&r=g",
+    "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.1/assets/1f3a8.svg",
+    "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.1/assets/2705.svg",
+    "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.1/assets/1f4dc.svg",
+    "https://cdn.jsdelivr.net/gh/jdecked/twemoji@17.0.1/assets/2699.svg"
+  ]
+}

@@ -126,7 +126,7 @@ final class PaymentsPage {
 				PaymentService::STATUS_CANCELLED,
 			] as $value
 		) {
-			printf( '<option value="%1$s" %2$s>%1$s</option>', esc_attr( $value ), selected( $status, $value, false ) );
+			printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $status, $value, false ), esc_html__( (string) $value, 'igbz-suite' ) );
 		}
 		echo '</select> ';
 		submit_button( __( 'Filter', 'igbz-suite' ), 'secondary', '', false );
@@ -157,7 +157,7 @@ final class PaymentsPage {
 						PaymentService::STATUS_CREATED, PaymentService::STATUS_PENDING => 'warn',
 						default => 'error',
 					}
-				) . ' ' . esc_html( (string) $row['status'] ),
+				) . ' ' . esc_html__( (string) $row['status'], 'igbz-suite' ),
 				'ref'     => esc_html( (string) ( $row['reference_id'] ?: $row['authority'] ) ),
 				'card'    => esc_html( (string) $row['card_pan'] ),
 				'error'   => esc_html( trim( $row['error_code'] . ' ' . $row['error_message'] ) ),

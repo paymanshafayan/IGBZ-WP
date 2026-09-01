@@ -1987,7 +1987,7 @@ selector/بسته به‌عنوان وظیفهٔ پیگیری ارتقا ثبت 
 
 #### فاز ۷۰ — Railway و پایگاه‌دادهٔ LTS — 🔶 مصنوعات محلی کامل؛ اجرای ابری در انتظار کارفرما (۱۴۰۶/۰۶/۱۰)
 
-staging همسان، مهاجرت آزموده از MySQL 8.0 به نسخهٔ LTS مصوب، TLS، volume و health/readiness.
+staging همسان، تأیید MySQL 8.4 LTS یا مهاجرت آزموده از MySQL 8.0 واقعی به نسخهٔ LTS مصوب، TLS، volume و health/readiness.
 
 **وضعیت:** سندباکس به railway.app دسترسی ندارد (فقط npm باز است؛ آزموده) و توکن
 ریل‌وی سیکرت مخزن است — پس بخش ابری با ران‌بوک کپی-پیست `RUNBOOK-RAILWAY-LTS.md`
@@ -1997,9 +1997,9 @@ staging همسان، مهاجرت آزموده از MySQL 8.0 به نسخهٔ LT
 فروشگاه؛ بدون سیکرت؛ یونیت ۳ سناریو)؛ ناظر مستقل mu-plugin (اگر خود افزونه
 نباشد پاسخ صادقانهٔ 503، نه سکوت)؛ `IGBZ_DB_TLS` → MYSQLI_CLIENT_SSL؛ حلقهٔ
 `igbz: ready (health 200)` در entrypoint؛ `healthcheckPath` در railway.json؛
-ران‌بوک مهاجرت 8.0→8.4 (دیتابیس موازی + تله‌های 8.4 + rollback با بازگرداندن
-متغیر + چک‌لیست پذیرش). **مانده:** اجرای کارفرما (استقرار staging + تمرین
-مهاجرت) و تأیید نسخهٔ LTS مقصد.
+ران‌بوک MySQL 8.4 (مسیر تازه: ساخت مستقیم 8.4 اگر دیتابیس قدیمی نداریم؛ مسیر دادهٔ موجود: مهاجرت موازی 8.0→8.4 + rollback با بازگرداندن متغیر + چک‌لیست پذیرش). **مانده:** merge PR شمارهٔ ۱۶ به `main`، سپس اجرای کارفرما برای staging Railway، تأیید نسخهٔ دیتابیس، smoke سفارش/API و سه health سبز پیاپی.
+
+**یادداشت ۱۴۰۵/۰۶/۱۱:** PR شمارهٔ ۱۶ آمادهٔ merge به `main` است (`MERGEABLE/CLEAN`، آخرین preview بررسی‌شده `33551049368`). پس از merge، چت تازه باید از `main` ادامه دهد و `PHASE-70-RAILWAY-CLOSEOUT.md` را پر کند. workflow زندهٔ providerها روی GitHub Actions با run `33540909998` سبز شد: OpenRouter اتصال `HTTP 200` داشت ولی benchmark فارسی را با پاسخ خالی پاس نکرد؛ Groq با `qwen/qwen3.6-27b` پاس شد؛ NaraRouter با `agnes-2.5-flash` پاس شد؛ Zernio create/delete profile پاس شد. این گیت provider بسته است، اما «اجرای ابری staging + سه سبز health» فاز ۷۰ را جایگزین نمی‌کند.
 
 #### فاز ۷۱ — worker، cron و مشاهده‌پذیری — ✅ تمام‌شده ۱۴۰۶/۰۶/۱۰
 

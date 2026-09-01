@@ -73,7 +73,19 @@ final class LogisticsPage {
 		// Quick preview of the route rules.
 		$express = $service->categorize_route( 1, 'تهران', false );
 		$heavy   = $service->categorize_route( 50, 'شیراز', false );
-		printf( '<p class="description">%s</p>', esc_html( sprintf( 'Route preview — express: %s (%s IRT); heavy: %s (%s IRT).', $express['carrier'], number_format( $express['cost_irt'], 0 ), $heavy['carrier'], number_format( $heavy['cost_irt'], 0 ) ) ) );
+		printf(
+			'<p class="description">%s</p>',
+			esc_html(
+				sprintf(
+					/* translators: 1: express carrier name, 2: express cost, 3: heavy carrier name, 4: heavy cost. */
+					__( 'Route preview — express: %1$s (%2$s IRT); heavy: %3$s (%4$s IRT).', 'igbz-suite' ),
+					$express['carrier'],
+					number_format( $express['cost_irt'], 0 ),
+					$heavy['carrier'],
+					number_format( $heavy['cost_irt'], 0 )
+				)
+			)
+		);
 
 		submit_button( __( 'Create shipment', 'igbz-suite' ) );
 		echo '</form>';
@@ -88,7 +100,7 @@ final class LogisticsPage {
 		wp_nonce_field( 'igbz_labels_create' );
 		printf( '<input type="hidden" name="igbz_log_action" value="labels" />' );
 		echo '<p><input type="text" name="group_title" class="regular-text" placeholder="' . esc_attr__( 'Group title', 'igbz-suite' ) . '" required /> ';
-		echo '<select name="route_type"><option value="">' . esc_html__( 'All routes', 'igbz-suite' ) . '</option><option value="express">express</option><option value="national">national</option><option value="heavy">heavy</option></select> ';
+		echo '<select name="route_type"><option value="">' . esc_html__( 'All routes', 'igbz-suite' ) . '</option><option value="express">' . esc_html__( 'express', 'igbz-suite' ) . '</option><option value="national">' . esc_html__( 'national', 'igbz-suite' ) . '</option><option value="heavy">' . esc_html__( 'heavy', 'igbz-suite' ) . '</option></select> ';
 		submit_button( __( 'Create group & print', 'igbz-suite' ), 'secondary', '', false );
 		echo '</p></form>';
 
@@ -99,7 +111,7 @@ final class LogisticsPage {
 					'<tr><td>%1$d</td><td>%2$s</td><td>%3$s</td><td><a class="button button-small" target="_blank" href="%4$s">%5$s</a></td></tr>',
 					(int) $g['id'],
 					esc_html( (string) $g['title'] ),
-					esc_html( (string) $g['status'] ),
+					esc_html__( (string) $g['status'], 'igbz-suite' ),
 					esc_url( add_query_arg( [ 'igbz_labels' => (int) $g['id'] ], admin_url( 'admin.php' ) ) ),
 					esc_html__( 'Print', 'igbz-suite' )
 				);
@@ -125,11 +137,11 @@ final class LogisticsPage {
 				'<tr><td>#%1$d</td><td>%2$s</td><td>%3$s</td><td>%4$s</td><td>%5$s</td><td>%6$s</td><td>%7$s</td><td>',
 				(int) $row['id'],
 				esc_html( (string) $row['order_id'] ),
-				esc_html( (string) $row['route_type'] ),
+				esc_html__( (string) $row['route_type'], 'igbz-suite' ),
 				esc_html( (string) $row['carrier'] ),
 				esc_html( (string) $row['tracking_code'] ),
 				esc_html( (string) $row['delivery_pin'] ),
-				esc_html( (string) $row['status'] )
+				esc_html__( (string) $row['status'], 'igbz-suite' )
 			);
 
 			if ( LogisticsService::STATUS_DRAFT === $row['status'] ) {

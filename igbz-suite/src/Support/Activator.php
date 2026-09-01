@@ -124,6 +124,7 @@ final class Activator {
 			46 => [ self::class, 'migrate_to_v46' ],
 			47 => [ self::class, 'migrate_to_v47' ],
 			48 => [ self::class, 'migrate_to_v48' ],
+			49 => [ self::class, 'migrate_to_v49' ],
 		];
 	}
 
@@ -143,6 +144,31 @@ final class Activator {
 	 */
 	public static function migrate_to_v48(): void {
 		// Pure dbDelta work; see the api_idempotency table.
+	}
+
+	/**
+	 * v49 (ADR-0005): the provider-agnostic inference plane replaces the sole DeepInfra
+	 * adapter. The legacy `pado.deepinfra.*` flat keys are dropped and the two seed
+	 * providers (groq, openrouter) are written when the registry is still empty. No
+	 * schema change; the api_provider records live in the serialized settings option.
+	 */
+	public static function migrate_to_v49(): void {
+		$settings = new Settings();
+		$legacy = [
+			'pado.deepinfra.enabled',
+			'pado.deepinfra.benchmark_passed',
+			'pado.deepinfra.geo_eligible',
+			'pado.deepinfra.endpoint',
+			'pado.deepinfra.models',
+			'pado.deepinfra.daily_token_budget',
+		];
+		foreach ( $legacy as $key ) {
+			if ( $settings->has( $key ) ) {
+				$settings->set( $key, '' );
+			}
+		}
+
+		\IGBZ\Suite\Modules\Pado\Ai\ProviderRegistry::seed_into( $settings );
 	}
 
 	/**

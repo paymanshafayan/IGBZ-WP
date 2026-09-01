@@ -1,6 +1,7 @@
 <?php
 namespace IGBZ\Suite\Modules\Pado;
 
+use IGBZ\Suite\Modules\Pado\Admin\AiProvidersPage;
 use IGBZ\Suite\Modules\Pado\Admin\PadoPage;
 use IGBZ\Suite\Modules\Pado\Services\ApprovalRequestService;
 use IGBZ\Suite\Modules\Pado\Services\ThemeService;
@@ -41,14 +42,17 @@ final class PadoModule implements ModuleInterface {
 	public function register( Plugin $plugin ): void {
 		$this->bind_services( $plugin );
 		( new PadoPage() )->register();
+		// ADR-0005: provider/wiring is the senior administrator's domain — the central
+		// IGBZ control panel page (MANAGE_SUITE), never the tenant store panel.
+		( new AiProvidersPage() )->register();
 	}
 
 	public function health(): array {
 		return [
 			[
-				'label'  => 'Pado module',
+				'label'  => __( 'Pado module', 'igbz-suite' ),
 				'status' => 'ok',
-				'detail' => 'Approval queue, external Pado gateway and backend theme validator are loaded.',
+				'detail' => __( 'Approval queue, external Pado gateway and backend theme validator are loaded.', 'igbz-suite' ),
 			],
 		];
 	}
@@ -108,9 +112,29 @@ final class PadoModule implements ModuleInterface {
 		$plugin->bind( 'pado.validator', static fn () => new ThemeValidator() );
 		$plugin->bind( 'pado.themes', static fn ( Plugin $c ) => new ThemeService( $c->db() ) );
 
-		// Phase 56 — the versioned inference plane: toolbox allowlist + the sole
-		// version-one provider. Activation flags default to off (ADR-0004 §4).
+		// Phase 56 → provider-agnostic plane (ADR-0005): the tool allowlist, the panel
+		// key vault, the provider registry and the router. Activation gates default off
+		// and every provider is a settings record, never a class.
 		$plugin->bind( 'pado.ai.toolbox', static fn (): \IGBZ\Suite\Modules\Pado\Ai\AiToolbox => new \IGBZ\Suite\Modules\Pado\Ai\AiToolbox() );
+		$plugin->bind( 'pado.ai.vault', static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Ai\KeyVault => new \IGBZ\Suite\Modules\Pado\Ai\KeyVault( $c->settings() ) );
+		$plugin->bind(
+			'pado.ai.registry',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Ai\ProviderRegistry => new \IGBZ\Suite\Modules\Pado\Ai\ProviderRegistry(
+				$c->settings(),
+				$c->http(),
+				$c->db(),
+				$c->logger(),
+				$c->get( 'pado.ai.toolbox' ),
+				$c->get( 'pado.ai.vault' )
+			)
+		);
+		$plugin->bind(
+			'pado.ai.gateway',
+			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Ai\AiGateway => new \IGBZ\Suite\Modules\Pado\Ai\AiGateway(
+				$c->settings(),
+				$c->get( 'pado.ai.registry' )
+			)
+		);
 		// Phase 58 — the sensitive commercial operations ride the phase-57 queue.
 		$plugin->bind(
 			'pado.ops',
@@ -163,15 +187,7 @@ final class PadoModule implements ModuleInterface {
 				$c->settings()
 			)
 		);
-		$plugin->bind(
-			'pado.ai.deepinfra',
-			static fn ( Plugin $c ): \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter => new \IGBZ\Suite\Modules\Pado\Ai\DeepInfraAdapter(
-				$c->http(),
-				$c->db(),
-				$c->logger(),
-				$c->settings(),
-				$c->get( 'pado.ai.toolbox' )
-				)
-		);
+		// Seed the two default api providers once (groq, openrouter); idempotent.
+		$plugin->get( 'pado.ai.registry' )->seed_defaults();
 	}
 }

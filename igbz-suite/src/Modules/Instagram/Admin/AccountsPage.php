@@ -345,7 +345,7 @@ final class AccountsPage {
 		$rows = [];
 		foreach ( [ 'profile_ensured', 'legacy_deprecated' ] as $step ) {
 			$rows[] = [
-				'step'   => $step,
+				'step'   => __( $step, 'igbz-suite' ),
 				'status' => (string) ( $journal[ $step ] ?? 'pending' ),
 			];
 		}
@@ -359,7 +359,7 @@ final class AccountsPage {
 			static function ( array $row, string $key ) {
 				if ( 'status' === $key ) {
 					$pill = 'done' === $row['status'] ? 'ok' : ( 'failed' === $row['status'] ? 'error' : 'warn' );
-					return View::status_pill( $pill ) . ' ' . esc_html( $row['status'] );
+					return View::status_pill( $pill ) . ' ' . esc_html__( (string) $row['status'], 'igbz-suite' );
 				}
 				return esc_html( (string) $row[ $key ] );
 			}
