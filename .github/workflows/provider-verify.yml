@@ -46,7 +46,7 @@ on:
         required: false
         default: ''
       nararouter_models:
-        description: 'Comma-separated NaraRouter models (empty = glm-5.3-flash-free)'
+        description: 'Comma-separated NaraRouter models (empty = agnes-2.5-flash)'
         type: string
         required: false
         default: ''
@@ -154,7 +154,7 @@ jobs:
           if [ "${RUN_NARAROUTER:-true}" = "true" ]; then
             openai_probe "nararouter" "https://router.bynara.id/v1/chat/completions" \
               "${NARAROUTER_API_KEY:-}" \
-              "${NARAROUTER_MODELS:-glm-5.3-flash-free}"
+              "${NARAROUTER_MODELS:-agnes-2.5-flash}"
           else
             PASS "nararouter  skipped (RUN_NARAROUTER=false)"
           fi
