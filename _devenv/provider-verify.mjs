@@ -22,19 +22,32 @@
  *   GROQ_ENDPOINT           default https://api.groq.com/openai/v1/chat/completions
  *   GROQ_MODELS             comma list; empty = plugin pinned list
  *
+ *   NARAROUTER_API_KEY      NaraRouter key (openai dialect; optional test provider)
+ *   NARAROUTER_ENDPOINT     default https://router.bynara.id/v1/chat/completions
+ *   NARAROUTER_MODELS       comma list; empty = auto/bynara
+ *
  *   ANTHROPIC_API_KEY       Anthropic key (anthropic dialect; optional)
  *   ANTHROPIC_ENDPOINT      default https://api.anthropic.com/v1/messages
  *   ANTHROPIC_MODELS        comma list; empty = plugin pinned list
  *
  *   BENCHMARK_PROMPT        Persian prompt (tiny, ~128 tokens)
- *   RUN_ZERNIO / RUN_OPENROUTER / RUN_GROQ / RUN_ANTHROPIC  'false'/'0' to skip
+ *   RUN_ZERNIO / RUN_OPENROUTER / RUN_GROQ / RUN_NARAROUTER / RUN_ANTHROPIC
+ *                            'false'/'0' to skip
  */
 
-// Matches the plugin's seeded defaults (ProviderDefinition::seed_defaults).
+// Matches the plugin's seeded defaults (ProviderDefinition::seed_defaults). NaraRouter
+// is intentionally a test-only optional router for now, not a seeded/default provider.
 const PINNED = {
   openrouter: ['anthropic/claude-sonnet-4', 'openai/gpt-4o-mini', 'google/gemini-2.5-pro', 'meta-llama/llama-3.1-405b-instruct'],
   groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'meta-llama/llama-4-scout-17b-16e-instruct', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+  nararouter: ['auto/bynara'],
   anthropic: ['claude-sonnet-4-20250514'],
+};
+
+const OPENAI_ENDPOINTS = {
+  openrouter: 'https://openrouter.ai/api/v1/chat/completions',
+  groq: 'https://api.groq.com/openai/v1/chat/completions',
+  nararouter: 'https://router.bynara.id/v1/chat/completions',
 };
 
 const REDACT = /("?(?:api_?key|key|token|secret|access_token|authUrl|auth_url)"?\s*[:=]\s*)("[^"]*"|[^\s,}]+)/gi;
@@ -83,6 +96,7 @@ const env = process.env;
 const RUN_ZERNIO = env.RUN_ZERNIO !== 'false' && env.RUN_ZERNIO !== '0';
 const RUN_OPENROUTER = env.RUN_OPENROUTER !== 'false' && env.RUN_OPENROUTER !== '0';
 const RUN_GROQ = env.RUN_GROQ !== 'false' && env.RUN_GROQ !== '0';
+const RUN_NARAROUTER = env.RUN_NARAROUTER === 'true' || env.RUN_NARAROUTER === '1';
 const RUN_ANTHROPIC = env.RUN_ANTHROPIC === 'true' || env.RUN_ANTHROPIC === '1';
 const BENCH_PROMPT = env.BENCHMARK_PROMPT || 'در یک جمله کوتاه، مهم‌ترین مزیت یک فروشگاه اینستاگرامی را بنویس.';
 
@@ -94,8 +108,7 @@ function models(name, envList) {
 async function openaiDialect(name) {
   const keyEnv = `${name.toUpperCase()}_API_KEY`;
   const modelsEnv = `${name.toUpperCase()}_MODELS`;
-  const endpoint = env[`${name.toUpperCase()}_ENDPOINT`]
-    || (name === 'openrouter' ? 'https://openrouter.ai/api/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions');
+  const endpoint = env[`${name.toUpperCase()}_ENDPOINT`] || OPENAI_ENDPOINTS[name];
   if (!env[keyEnv]) {
     results.push({ name, ok: false, detail: `${keyEnv} secret missing` });
     return;
@@ -203,6 +216,9 @@ async function main() {
 
   if (RUN_GROQ) await openaiDialect('groq');
   else results.push({ name: 'groq', ok: true, detail: 'skipped (RUN_GROQ=false)' });
+
+  if (RUN_NARAROUTER) await openaiDialect('nararouter');
+  else results.push({ name: 'nararouter', ok: true, detail: 'skipped (RUN_NARAROUTER=false)' });
 
   if (RUN_ANTHROPIC) await anthropic();
   else results.push({ name: 'anthropic', ok: true, detail: 'skipped (RUN_ANTHROPIC=false)' });

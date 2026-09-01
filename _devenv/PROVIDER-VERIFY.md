@@ -3,12 +3,12 @@
 هدف: بررسی اینکه کلیدهای واقعی کار می‌کنند و قرارداد endpointها همان است که در کد افزونه
 پیاده شده — بدون استقرار و بدون عبور کلید از چت یا مخزن. طبق `ADR-0005` ارائه‌دهنده‌های
 استنتاج «رکورد تنظیمات» (`api_provider` با فیلد `protocol`) هستند؛ این ورک‌فلو هر دو گویش
-سیم را می‌سنجد: `openai` (OpenRouter و Groq) و `anthropic` (در صورت وجود کلید).
+سیم را می‌سنجد: `openai` (OpenRouter، Groq و NaraRouter) و `anthropic` (در صورت وجود کلید).
 
 ## چرا گیت‌هاب، نه سندباکس؟
 
 سندباکس agent فقط به `registry.npmjs.org` دسترسی دارد؛ اتصال به `zernio.com` و
-`openrouter.ai` و `api.groq.com` و `api.anthropic.com` از آن قطع است (تست‌شده: پاسخ
+`openrouter.ai` و `api.groq.com` و `router.bynara.id` و `api.anthropic.com` از آن قطع است (تست‌شده: پاسخ
 `http=000`). رانر گیت‌هاب اینترنت کامل دارد و همان‌جا سکرت‌ها فقط به‌صورت متغیر محیطی به
 ورک‌فلو تزریق می‌شوند — مقدارشان هرگز در لاگ یا مخزن دیده نمی‌شود.
 
@@ -18,6 +18,7 @@
    - نام `ZERNIO_API_KEY` ← کلید مرکزی Zernio
    - نام `OPENROUTER_API_KEY` ← کلید OpenRouter
    - نام `GROQ_API_KEY` ← کلید Groq
+   - نام `NARAROUTER_API_KEY` ← کلید NaraRouter / byNara Router (فقط برای تست provider تا عبور از گیت‌های ADR-0005)
    - نام `ANTHROPIC_API_KEY` ← کلید Anthropic (اختیاری؛ فقط اگر قصد سنجش گویش `anthropic` را دارید)
    ⚠️ کلیدها را فقط همین‌جا بچسبانید؛ هرگز در چت، کامیت یا فایل.
 
@@ -27,8 +28,9 @@
    - `Add file → Create new file`؛ نام فایل را `.github/workflows/provider-verify.yml` بگذارید و محتوای `_devenv/github-workflow-provider-verify.yml` را کپی و کامیت کنید.
    - اگر این فایل را قبلاً روی شاخهٔ arena ساخته‌اید، همان محتوا را یک‌بار روی `main` هم بسازید (نسخهٔ تازه خودکفاست و به هیچ فایل دیگری وابسته نیست).
 
-۳. **اجرا:** تب `Actions → Provider key verification (Zernio + OpenRouter + Groq + Anthropic)`
-   → دکمهٔ سبز `Run workflow` → شاخهٔ `main` → دوباره `Run workflow`. سپس روی اجرای تازه کلیک
+۳. **اجرا:** تب `Actions → Provider key verification (Zernio + OpenRouter + Groq + NaraRouter + Anthropic)`
+   → دکمهٔ سبز `Run workflow` → شاخهٔ `main` → دوباره `Run workflow`. برای اجرای فعلی اگر فقط
+   OpenRouter/Groq/NaraRouter مدنظر است، `zernio=false` و `anthropic=false` بماند. سپس روی اجرای تازه کلیک
    کنید، شغل `verify` را باز کنید و گام `Probe providers` را باز کنید تا خط‌های `PASS/FAIL` را ببینید.
 
 ## آنچه اجرا می‌شود
@@ -38,6 +40,10 @@
   می‌زند و وضعیت HTTP، `estimated_cost` و نخستین جملهٔ پاسخ را گزارش می‌کند. رد کلید یعنی
   `HTTP 401/403`.
 - **Groq (گویش openai):** همان پروب روی `https://api.groq.com/openai/v1/chat/completions`.
+- **NaraRouter (گویش openai؛ فقط تستی):** smoke test روی `https://router.bynara.id/v1/chat/completions`
+  با مدل پیش‌فرض `auto/bynara`. اگر حساب مدل‌های مستقیم بیشتری نشان داد، با ورودی
+  `nararouter_models` می‌توان آن‌ها را جداگانه آزمود؛ تا قبل از benchmark فارسی و گیت‌های
+  `enabled`/`benchmark_passed`/`geo_eligible` مسیر تولیدی به آن داده نمی‌شود.
 - **Anthropic (گویش anthropic):** در صورت فعال‌کردن و وجود کلید، پروب روی
   `https://api.anthropic.com/v1/messages` با هدرهای `x-api-key` و `anthropic-version` و
   بدنهٔ `{model, max_tokens, messages}`؛ پاسخ از بلوک‌های `content[].text` و مصرف از
@@ -54,7 +60,8 @@
 
 نکته: نسخهٔ اسکریپت مستقل `_devenv/provider-verify.mjs` (Node) نیز موجود است و همین بررسی‌ها
 را با خروجی ساخت‌یافته انجام می‌دهد؛ اما ورک‌فلوی مرجع عمداً خودکفا نوشته شده تا فقط با کپی
-یک فایل روی `main` کار کند.
+یک فایل روی `main` کار کند. **دستور دائمی کارفرما:** هرگاه این فایل workflow باید روی گیت‌هاب
+جایگزین شود، متن کامل workflow در پاسخ چت داخل یک باکس قابل کپی ارائه شود.
 
 ## توجه
 

@@ -1,12 +1,12 @@
 # API-KEYS — کلیدهای موردنیاز ادمین فروشگاه
 
-**آخرین به‌روزرسانی:** ۱۴۰۵/۰۶/۰۹ (2026-08-31)
+**آخرین به‌روزرسانی:** ۱۴۰۵/۰۶/۱۱ (2026-09-01)
 
 مرجع کلیدها و توکن‌های راه‌اندازی IGBZ Suite است. تصمیم جاری ADR-0004 سه اصل مهم دارد:
 
 - کلید مرکزی Zernio راز عملیاتی IGBZ است، فقط در secret store بک‌اند نگهداری می‌شود و هرگز
   در پنل فروشگاه، پادو، لاگ یا مرورگر قرار نمی‌گیرد؛
-- کلیدهای استنتاج پادو (Groq، OpenRouter و هر ارائه‌دهندهٔ دیگر) طبق `ADR-0005` در
+- کلیدهای استنتاج پادو (Groq، OpenRouter، NaraRouter و هر ارائه‌دهندهٔ دیگر) طبق `ADR-0005` در
   **مخزن کلید پنل** (`pado.ai.key_vault`) رمزشده ذخیره می‌شوند و لایهٔ ارائه‌دهنده فقط
   `keyRef` می‌گیرد؛ مقدار واقعی فقط لبهٔ connector در لحظهٔ فراخوانی و یک‌بار حل می‌شود.
   کلیدِ حساب مستقل فروشگاه همچنان runtime می‌آید و در IGBZ ذخیره نمی‌شود؛
@@ -72,7 +72,8 @@
 | سرویس | مالک حساب/هزینه | محل credential | کاربرد و وضعیت |
 |---|---|---|---|
 | Zernio | حساب مرکزی IGBZ؛ سهم هر profile در اشتراک فروشگاه | secret store بک‌اند، با دسترسی محدود به profile | تنها provider اجتماعی هدف؛ تا آزمون دو profile و callback امن production نیست |
-| Groq / OpenRouter | همان مدیر/فروشگاه | `pado.ai.key_vault` (رمزشده، keyRef) | providerهای هدف inference طبق `ADR-0005`؛ فعال‌سازی مشروط به benchmark فارسی و گیت‌های `enabled`/`benchmark_passed`/`geo_eligible` |
+| Groq / OpenRouter | همان مدیر/فروشگاه | `pado.ai.key_vault` (رمزشده، keyRef) + سکرت‌های تست `GROQ_API_KEY` / `OPENROUTER_API_KEY` | providerهای هدف inference طبق `ADR-0005`؛ فعال‌سازی مشروط به benchmark فارسی و گیت‌های `enabled`/`benchmark_passed`/`geo_eligible` |
+| NaraRouter / byNara Router | فعلاً فقط تست provider، نه تولید | سکرت GitHub Actions با نام `NARAROUTER_API_KEY`؛ در صورت ثبت دستی تولیدی: `pado.ai.key_vault` | OpenAI-compatible روی `https://router.bynara.id/v1`؛ تا قبل از smoke test، benchmark فارسی، ZDR/حریم خصوصی و گیت‌های `enabled`/`benchmark_passed`/`geo_eligible` نباید مسیر تولیدی بگیرد |
 | PST.NET | عملیات مالی IGBZ مطابق قرارداد | secret store پلتفرم | آداپتور تسویهٔ ارزی موجود؛ آزمون قرارداد زنده لازم است |
 | RedotPay | عملیات مالی IGBZ مطابق قرارداد | secret store پلتفرم | گزینهٔ پایلوت تسویه؛ آزمون قرارداد زنده لازم است |
 | مترجم/دامنه/STT | طبق provider منتخب هر حوزه | تنظیم امن متناسب با مالک | هنوز به آزمون قرارداد و تصمیم همان حوزه وابسته است |
@@ -124,7 +125,7 @@ blog_id / tenant_id ↔ zernio_profile_id ↔ instagram_account_reference
 ## ۴.۵ credential مستقل inference پادو
 
 طبق `ADR-0005` (جانشین `ADR-0004 §۴`) هر فروشگاه حساب و صورتحساب مستقل با ارائه‌دهندهٔ
-انتخابی خود (پیش‌فرض Groq/OpenRouter) دارد. دو مسیر کلید از هم جدا هستند:
+انتخابی خود (پیش‌فرض Groq/OpenRouter؛ NaraRouter فعلاً فقط گزینهٔ تستی) دارد. دو مسیر کلید از هم جدا هستند:
 
 - **کلید پنل** (ورودی ادمین در صفحهٔ «ثبت کلیدها») فقط رمزشده در مخزن `pado.ai.key_vault`
   می‌نشیند؛ لایهٔ ارائه‌دهنده فقط `keyRef` می‌گیرد و مقدار واقعی را لبهٔ connector در لحظهٔ

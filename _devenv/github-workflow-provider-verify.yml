@@ -5,12 +5,12 @@
 # DEFAULT branch (`main`) — the "Run workflow" button only appears for
 # workflows present on the default branch.
 #
-# Providers (ADR-0005): OpenRouter and Groq speak the `openai` dialect; Anthropic
+# Providers (ADR-0005): OpenRouter, Groq and NaraRouter speak the `openai` dialect; Anthropic
 # speaks its own `anthropic` dialect (x-api-key + anthropic-version). Zernio keeps
 # the central-key profile probe (create → verify → delete) plus optional cleanup
 # of leftover probe profiles.
 
-name: Provider key verification (Zernio + OpenRouter + Groq + Anthropic)
+name: Provider key verification (Zernio + OpenRouter + Groq + NaraRouter + Anthropic)
 
 on:
   workflow_dispatch:
@@ -18,13 +18,17 @@ on:
       zernio:
         description: 'Zernio: run the central-key profile probe (create → verify → delete)'
         type: boolean
-        default: true
+        default: false
       openrouter:
         description: 'OpenRouter: probe the key + pinned models (openai dialect)'
         type: boolean
         default: true
       groq:
         description: 'Groq: probe the key + pinned models (openai dialect)'
+        type: boolean
+        default: true
+      nararouter:
+        description: 'NaraRouter: probe the key + auto/bynara (openai dialect, test-only provider)'
         type: boolean
         default: true
       anthropic:
@@ -38,6 +42,11 @@ on:
         default: ''
       groq_models:
         description: 'Comma-separated Groq models (empty = plugin pinned list)'
+        type: string
+        required: false
+        default: ''
+      nararouter_models:
+        description: 'Comma-separated NaraRouter models (empty = auto/bynara)'
         type: string
         required: false
         default: ''
@@ -62,13 +71,16 @@ jobs:
           ZERNIO_API_KEY: ${{ secrets.ZERNIO_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          NARAROUTER_API_KEY: ${{ secrets.NARAROUTER_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           RUN_ZERNIO: ${{ inputs.zernio }}
           RUN_OPENROUTER: ${{ inputs.openrouter }}
           RUN_GROQ: ${{ inputs.groq }}
+          RUN_NARAROUTER: ${{ inputs.nararouter }}
           RUN_ANTHROPIC: ${{ inputs.anthropic }}
           OPENROUTER_MODELS: ${{ inputs.openrouter_models }}
           GROQ_MODELS: ${{ inputs.groq_models }}
+          NARAROUTER_MODELS: ${{ inputs.nararouter_models }}
           ANTHROPIC_MODELS: ${{ inputs.anthropic_models }}
           ZERNIO_CLEANUP_IDS: ${{ inputs.zernio_cleanup_ids }}
         run: |
@@ -128,6 +140,14 @@ jobs:
               "${GROQ_MODELS:-llama-3.3-70b-versatile,llama-3.1-8b-instant,meta-llama/llama-4-scout-17b-16e-instruct,mixtral-8x7b-32768,gemma2-9b-it}"
           else
             PASS "groq  skipped (RUN_GROQ=false)"
+          fi
+
+          if [ "${RUN_NARAROUTER:-true}" = "true" ]; then
+            openai_probe "nararouter" "https://router.bynara.id/v1/chat/completions" \
+              "${NARAROUTER_API_KEY:-}" \
+              "${NARAROUTER_MODELS:-auto/bynara}"
+          else
+            PASS "nararouter  skipped (RUN_NARAROUTER=false)"
           fi
 
           # ---------------- anthropic dialect: POST /v1/messages (x-api-key + anthropic-version) ----------------
