@@ -90,7 +90,7 @@ jobs:
           FAIL() { echo "FAIL  $1"; FAILED=$((FAILED+1)); }
           PROMPT="در یک جمله کوتاه، مهم‌ترین مزیت یک فروشگاه اینستاگرامی را بنویس."
 
-          # ---------------- openai dialect (OpenRouter + Groq): POST /chat/completions ----------------
+          # ---------------- openai dialect (OpenRouter + Groq + NaraRouter): POST /chat/completions ----------------
           openai_probe() {  # $1=label  $2=endpoint  $3=key  $4=models
             local LABEL="$1" ENDPOINT="$2" KEY="$3" MODELS="$4"
             if [ -z "$KEY" ]; then
