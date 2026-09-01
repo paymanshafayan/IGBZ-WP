@@ -11,10 +11,10 @@
 PR = https://github.com/paymanshafayan/IGBZ-WP/pull/16
 mergeable = MERGEABLE
 mergeStateStatus = CLEAN
-preview_run = 33550929190
-preview_job = 99999877598
+preview_run = 33551005987
+preview_job = 100000134063
 preview_conclusion = SUCCESS
-branch_head = 5b29796
+branch_head = ce9b039
 ```
 
 قدم بعدی برای بستن فاز ۷۰: merge PR به `main`، سپس ساخت/به‌روزرسانی staging Railway از `main`.
