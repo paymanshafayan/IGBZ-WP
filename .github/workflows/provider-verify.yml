@@ -36,12 +36,12 @@ on:
         type: boolean
         default: false
       openrouter_models:
-        description: 'Comma-separated OpenRouter models (empty = mistralai/mistral-nemo:free smoke model)'
+        description: 'Comma-separated OpenRouter models (empty = openrouter/free smoke router)'
         type: string
         required: false
         default: ''
       groq_models:
-        description: 'Comma-separated Groq models (empty = plugin pinned list)'
+        description: 'Comma-separated Groq models (empty = qwen/qwen3.6-27b smoke model)'
         type: string
         required: false
         default: ''
@@ -138,7 +138,7 @@ jobs:
           if [ "${RUN_OPENROUTER:-true}" = "true" ]; then
             openai_probe "openrouter" "https://openrouter.ai/api/v1/chat/completions" \
               "${OPENROUTER_API_KEY:-}" \
-              "${OPENROUTER_MODELS:-mistralai/mistral-nemo:free}"
+              "${OPENROUTER_MODELS:-openrouter/free}"
           else
             PASS "openrouter  skipped (RUN_OPENROUTER=false)"
           fi
@@ -146,7 +146,7 @@ jobs:
           if [ "${RUN_GROQ:-true}" = "true" ]; then
             openai_probe "groq" "https://api.groq.com/openai/v1/chat/completions" \
               "${GROQ_API_KEY:-}" \
-              "${GROQ_MODELS:-llama-3.3-70b-versatile,llama-3.1-8b-instant,meta-llama/llama-4-scout-17b-16e-instruct,mixtral-8x7b-32768,gemma2-9b-it}"
+              "${GROQ_MODELS:-qwen/qwen3.6-27b}"
           else
             PASS "groq  skipped (RUN_GROQ=false)"
           fi
