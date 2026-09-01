@@ -1,0 +1,142 @@
+# Railway Staging Verify — بستن گیت فاز ۷۰
+#
+# بازرس خودکار staging روی Railway: سه health سبز پیاپی با فاصلهٔ یک ساعت،
+# نسخهٔ MySQL (باید 8.4 باشد)، قرارداد API موبایل، و باز شدن ویترین.
+# در پایان یک خلاصهٔ شواهد (بدون هیچ رازی) چاپ می‌کند که برای ثبت نهایی به چت برگردد.
+#
+# نسخهٔ مرجع: _devenv/github-workflow-railway-staging-verify.yml
+# نصب: کپی دستی توسط مالک مخزن به .github/workflows/railway-staging-verify.yml
+# (توکن ایجنت مجوز push به .github/workflows ندارد — HANDOFF §۷.۶-پ)
+#
+# پیش‌نیازها (یک‌بار، طبق RUNBOOK-RAILWAY-LTS.md):
+#   ۱. پروژهٔ Railway با سرویس وب از همین مخزن + سرویس MySQL 8.4 LTS
+#      + ولوم دائمی روی /var/www/html/wp-content + دامنهٔ عمومی.
+#   ۲. متغیرهای سرویس: WP_ADMIN_PASSWORD و IGBZ_SERVER_CRON=1 و متغیرهای دیتابیس.
+#   ۳. سکرت RAILWAY_TOKEN (توکن پروژهٔ Railway) در Settings → Secrets مخزن گیت‌هاب.
+#      توکن فقط متغیر محیطی رانر است؛ هرگز در چت/مخزن نوشته نمی‌شود.
+
+name: Railway Staging Verify
+
+on:
+  workflow_dispatch:
+    inputs:
+      staging_url:
+        description: "نشانی عمومی staging مثل https://my-staging.up.railway.app (خالی = تشخیص خودکار با railway domain)"
+        required: false
+        default: ""
+      service_name:
+        description: "نام سرویس وب در Railway"
+        required: false
+        default: "IGBZ-WP"
+      three_green:
+        description: "سه بررسی health با فاصلهٔ یک ساعت انجام شود؟ (yes/no)"
+        required: false
+        default: "yes"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Resolve staging URL
+        id: url
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${RAILWAY_TOKEN}" ]; then
+            echo "::error::سکرت RAILWAY_TOKEN در مخزن تنظیم نشده است (Settings → Secrets)"
+            exit 1
+          fi
+          SVC="${{ github.event.inputs.service_name }}"
+          URL="${{ github.event.inputs.staging_url }}"
+          if [ -z "$URL" ]; then
+            URL="$(railway domain --service "$SVC" 2>/dev/null | tail -n 1 | tr -d '[:space:]' || true)"
+          fi
+          if [ -z "$URL" ]; then
+            echo "::error::نشانی staging پیدا نشد؛ سرویس دامنهٔ عمومی ندارد یا نام سرویس درست نیست. نشانی را در ورودی staging_url بدهید."
+            exit 1
+          fi
+          case "$URL" in http*) ;; *) URL="https://$URL" ;; esac
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Staging URL: $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Staging URL: $URL"
+
+      - name: Health checks (up to 3 rounds, 1h apart)
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="${{ steps.url.outputs.url }}"
+          THREE="${{ github.event.inputs.three_green }}"
+          if [ "$THREE" = "yes" ]; then ROUNDS="1 2 3"; else ROUNDS="1"; fi
+          for n in $ROUNDS; do
+            echo "=== phase70 health $n ==="
+            date -Is
+            CODE="$(curl -sS -L -o /tmp/health-$n.json -w '%{http_code}' --max-time 120 "$URL/?igbz_health=1")"
+            cat /tmp/health-$n.json; echo
+            echo "HTTP=$CODE"
+            if [ "$CODE" != "200" ]; then echo "::error::health $n: HTTP=$CODE"; exit 1; fi
+            if ! jq -e '.ok == true and .degraded == false' /tmp/health-$n.json >/dev/null; then
+              echo "::error::health $n: ok/degraded سبز نیست"; exit 1
+            fi
+            echo "health $n: PASS (HTTP=200, ok=true, degraded=false)"
+            # بین بررسی ۱ و ۲ و بین ۲ و ۳ یک ساعت فاصله باشد
+            if [ "$THREE" = "yes" ] && [ "$n" != "3" ]; then
+              echo "sleeping 3600s until next round…"
+              sleep 3600
+            fi
+          done
+          echo "HEALTH_ROUNDS_OK"
+
+      - name: Database version must be 8.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          SVC="${{ github.event.inputs.service_name }}"
+          VER="$(railway run --service "$SVC" bash -lc \
+            'wp db query "SELECT VERSION();" --path=/var/www/html --skip-column-names' 2>/dev/null | tr -d '[:space:]')"
+          echo "DB VERSION: $VER"
+          case "$VER" in
+            8.4*) echo "DB version PASS: $VER" ;;
+            *) echo "::error::نسخهٔ دیتابیس $VER است؛ مسیر مصوب MySQL 8.4 LTS است"; exit 1 ;;
+          esac
+
+      - name: Mobile API contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="${{ steps.url.outputs.url }}"
+          curl -fsS --max-time 60 "$URL/wp-json/igbz/v1/contract" -o /tmp/contract.json
+          jq -e '.info.version == "1.1.0"' /tmp/contract.json >/dev/null || { echo "::error::نسخهٔ قرارداد 1.1.0 نیست"; exit 1; }
+          jq -e '[ .paths | keys[] | select(startswith("/igbz/v1")) ] | length > 100' /tmp/contract.json >/dev/null \
+            || { echo "::error::مسیرهای قرارداد کامل نیست"; exit 1; }
+          echo "CONTRACT PASS: version 1.1.0, $(jq '.paths | length' /tmp/contract.json) paths"
+
+      - name: Storefront opens
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="${{ steps.url.outputs.url }}"
+          CODE="$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 120 "$URL/")"
+          echo "storefront HTTP=$CODE"
+          [ "$CODE" = "200" ] || { echo "::error::ویترین باز نشد (HTTP=$CODE)"; exit 1; }
+
+      - name: Evidence summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## شواهد فاز ۷۰ (خروجی ورک‌فلو — بدون راز)"
+            echo "- Staging URL: ${{ steps.url.outputs.url }}"
+            echo "- اجرا: $(date -Is) · run id: ${{ github.run_id }}"
+            for n in 1 2 3; do
+              if [ -f "/tmp/health-$n.json" ]; then
+                echo "- Health $n: HTTP=$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 60 '${{ steps.url.outputs.url }}/?igbz_health=1' 2>/dev/null || echo n/a) · $(cat /tmp/health-$n.json)"
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "SUMMARY WRITTEN — این خلاصه را کپی کنید و به چت بفرستید"

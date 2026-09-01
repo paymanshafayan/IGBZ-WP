@@ -182,6 +182,17 @@ done
 هر سه بار degraded=false
 ```
 
+## ورک‌فلو بررسی خودکار (جلسهٔ ۱۴۰۵/۰۶/۱۲ — پیشنهاد کارفرما)
+
+به‌جای اجرای دستی curlها، ورک‌فلو `Railway Staging Verify` همهٔ بررسی‌های بالا را خودکار انجام می‌دهد:
+
+- نسخهٔ مرجع: `_devenv/github-workflow-railway-staging-verify.yml`
+- نصب: کپی دستی مالک مخزن به `.github/workflows/railway-staging-verify.yml` (توکن ایجنت مجوز push به `.github/workflows` ندارد)
+- سکرت لازم: `RAILWAY_TOKEN` در Settings → Secrets مخزن (فقط متغیر محیطی رانر؛ هرگز در چت/مخزن نوشته نشود)
+- ورودی‌ها: `staging_url` (اختیاری؛ خالی = تشخیص با `railway domain`)، `service_name` (پیش‌فرض IGBZ-WP)، `three_green` (پیش‌فرض yes)
+- بررسی‌ها: health تا سه دور با فاصلهٔ یک ساعت (HTTP 200 + ok=true + degraded=false) · نسخهٔ DB باید 8.4 باشد (`railway run` + `wp db query`) · قرارداد API موبایل 1.1.0 با بیش از ۱۰۰ مسیر · ویترین 200
+- خروجی: خلاصهٔ شواهد بدون راز در Step Summary که برای ثبت نهایی به چت برمی‌گردد؛ سفارش تستی همچنان دستی از ویترین staging ساخته و ثبت می‌شود
+
 ## قالب شواهدی که باید برای ثبت نهایی برگردد
 
 رازها، رمزها، توکن‌ها و آدرس دیتابیس را نفرستید.
