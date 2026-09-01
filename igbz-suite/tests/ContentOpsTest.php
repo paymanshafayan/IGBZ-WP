@@ -137,9 +137,7 @@ final class ContentOpsTest extends TestCase {
 		$this->a_campaign_reaches_the_active_members();
 		$this->a_campaign_stops_at_a_failing_member();
 		$this->the_campaign_is_capped();
-		$this->a_policy_change_applies_with_old_value_on_record();
-		$this->a_policy_write_that_does_not_stick_is_compensated();
-		$this->policy_keys_outside_the_list_are_refused();
+		$this->provider_wiring_keys_are_closed_to_tenants();
 	}
 
 	// ---------------------------------------------------------------- publish
@@ -281,47 +279,25 @@ final class ContentOpsTest extends TestCase {
 
 	// --------------------------------------------------------------- policy
 
-	private function a_policy_change_applies_with_old_value_on_record(): void {
+	private function provider_wiring_keys_are_closed_to_tenants(): void {
 		$this->fresh();
-		ContentOpsWorld::$policy['pado.ai.routing.routine'] = 'groq';
 
-		$made = $this->ops->request_policy_change( 1, 'pado.ai.routing.routine', 'openrouter', 7, 'تغییر ارائه‌دهندهٔ امور اداری' );
-		$this->assert_true( $made['ok'], 'the policy change lands' , 'the invariant holds' );
-		$this->assert_same( 'critical', (string) $this->db->approvals[ $made['id'] ]['impact'], 'policy changes are critical impact' );
-
-		$payload = json_decode( (string) $this->db->approvals[ $made['id'] ]['payload'], true );
-		$this->assert_same( 'groq', (string) $payload['old_value'], 'the captured before-state is on record' );
-
-		$ok = $this->decide( $made['id'] );
-		$this->assert_true( $ok, 'the policy change executes' , 'the invariant holds' );
-		$this->assert_same( 'openrouter', (string) ContentOpsWorld::$policy['pado.ai.routing.routine'], 'the new routing applies' );
-
-		$meta = $this->outcome( $made['id'] );
-		$this->assert_same( 'groq', (string) $meta['from'], 'the outcome proves what it changed from' );
-		$this->assert_same( 'openrouter', (string) $meta['to'], 'the outcome proves what it changed to' );
-	}
-
-	private function a_policy_write_that_does_not_stick_is_compensated(): void {
-		$this->fresh();
-		ContentOpsWorld::$policy['pado.ai.routing.judgment'] = 'openrouter';
-
-		$id = $this->ops->request_policy_change( 1, 'pado.ai.routing.judgment', 'groq', 7, 'تغییر ارائه‌دهندهٔ مدیریت') ['id'];
-		ContentOpsWorld::$policy_lag = true; // the first write pretends and does not stick
-
-		$ok = $this->decide( $id );
-		$this->assert_true( $ok, 'the decision completes either way — the fate lives in the status' , 'the invariant holds' );
-		$this->assert_same( 'failed', (string) $this->db->approvals[ $id ]['status'], 'the row dies as failed' );
-		$this->assert_same( 'openrouter', (string) ContentOpsWorld::$policy['pado.ai.routing.judgment'], 'the routing stays — compensated back' );
-
-		$meta = $this->outcome( $id );
-		$this->assert_same( 'write_did_not_stick', (string) $meta['error'], 'the refusal is on record' );
-	}
-
-	private function policy_keys_outside_the_list_are_refused(): void {
-		$this->fresh();
-		$made = $this->ops->request_policy_change( 1, 'pado.ai.providers', 'https://evil.example', 7 );
-		$this->assert_false( $made['ok'], 'keys outside the closed list never reach the queue' , 'the invariant holds' );
-		$this->assert_same( 'policy_key_not_allowed', $made['error'], 'the invariant holds' );
+		// ADR-0005 correction: provider/wiring is the senior administrator's domain,
+		// edited directly in the central control panel — never a tenant-requestable
+		// policy change. Every wiring key must be refused up front.
+		$closed = [
+			'pado.ai.routing.routine'  => 'openrouter',
+			'pado.ai.routing.judgment' => 'groq',
+			'pado.ai.default_provider' => 'groq',
+			'pado.ai.providers'        => 'https://evil.example',
+			'pado.deepinfra.enabled'   => true,
+		];
+		foreach ( $closed as $key => $value ) {
+			$made = $this->ops->request_policy_change( 1, $key, $value, 7 );
+			$this->assert_false( $made['ok'], 'the wiring/provider key never reaches the queue' , 'the invariant holds' );
+			$this->assert_same( 'policy_key_not_allowed', $made['error'], 'the closed surface stays closed' );
+			$this->assert_same( 0, (int) $made['id'], 'no approval row is created' );
+		}
 
 		$bad_batch = $this->ops->request_publish( 1, array_map( static fn ( int $i ): int => 1000 + $i, range( 1, 51 ) ), 'viral', 7 );
 		$this->assert_false( $bad_batch['ok'], 'a 51-row batch is refused up front' , 'the invariant holds' );

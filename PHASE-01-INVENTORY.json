@@ -48,8 +48,8 @@
     "classification": "Files under ِDoc/ and the nopCommerce review are historical/proposal inputs, not automatically accepted WordPress requirements."
   },
   "code": {
-    "source_php_count": 270,
-    "source_php_sha256": "fe20483b0c184bb854bb901f8a8cec42710488cb54bafefc5a0b1450589a879a",
+    "source_php_count": 271,
+    "source_php_sha256": "fa353efd700ff3910ffef178f7b41952c96875a2efbd0d3daf09edfa7ccedc68",
     "source_php_files": [
       "igbz-suite/src/Modules/Domain/Contracts/DomainAdapterInterface.php",
       "igbz-suite/src/Modules/Domain/DomainAdapterRegistry.php",
@@ -223,6 +223,7 @@
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletGateway.php",
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletResult.php",
       "igbz-suite/src/Modules/MultiTenant/Wallet/WalletService.php",
+      "igbz-suite/src/Modules/Pado/Admin/AiProvidersPage.php",
       "igbz-suite/src/Modules/Pado/Admin/PadoPage.php",
       "igbz-suite/src/Modules/Pado/Ai/AbstractProtocolAdapter.php",
       "igbz-suite/src/Modules/Pado/Ai/AiGateway.php",
@@ -328,11 +329,11 @@
       "Hub": 11,
       "Instagram": 39,
       "MultiTenant": 102,
-      "Pado": 25,
+      "Pado": 26,
       "RestApi": 31
     },
     "support_php_count": 42,
-    "all_plugin_php_count": 365
+    "all_plugin_php_count": 366
   },
   "database": {
     "version": 49,

@@ -1,6 +1,7 @@
 <?php
 namespace IGBZ\Suite\Modules\Pado;
 
+use IGBZ\Suite\Modules\Pado\Admin\AiProvidersPage;
 use IGBZ\Suite\Modules\Pado\Admin\PadoPage;
 use IGBZ\Suite\Modules\Pado\Services\ApprovalRequestService;
 use IGBZ\Suite\Modules\Pado\Services\ThemeService;
@@ -41,6 +42,9 @@ final class PadoModule implements ModuleInterface {
 	public function register( Plugin $plugin ): void {
 		$this->bind_services( $plugin );
 		( new PadoPage() )->register();
+		// ADR-0005: provider/wiring is the senior administrator's domain — the central
+		// IGBZ control panel page (MANAGE_SUITE), never the tenant store panel.
+		( new AiProvidersPage() )->register();
 	}
 
 	public function health(): array {

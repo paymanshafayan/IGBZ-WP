@@ -47,7 +47,7 @@ TRANSLATIONS = {
     "Translator": "مترجم", "Master payment": "پرداخت مرکزی", "Domain": "دامنه",
     "Job queue": "صف کارها", "AI studio": "استودیوی هوش مصنوعی",
     "IG Accounts": "حساب‌های اینستاگرام", "VIP channel": "کانال VIP",
-    "Master hub": "هاب مرکزی", "Pado (AI Center)": "پادو (مرکز هوش مصنوعی)",
+    "Master hub": "هاب مرکزی", "Pado (AI Center)": "پادو (مرکز هوش مصنوعی)", "AI providers": "ارائه‌دهنده‌های هوش مصنوعی",
     "Mobile API": "API موبایل", "Nothing here yet.": "هنوز چیزی اینجا نیست.",
     "Save changes": "ذخیرهٔ تغییرات", "Run now": "همین حالا اجرا کن",
     # ------------------------------------------------------------- RestApi (mobile app surface)

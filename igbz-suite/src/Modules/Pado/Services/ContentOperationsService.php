@@ -42,16 +42,15 @@ class ContentOperationsService {
 	/**
 	 * The AI-policy keys a policy change may touch — closed list, backend-enforced.
 	 *
-	 * ADR-0005 moved the provider gates/budget into the provider records (admin-owned,
-	 * edited in the Pado panel), so the old `pado.deepinfra.*` keys are gone. The closed
-	 * list now covers the routing policy a tenant may request to change through the
-	 * approval queue.
+	 * ADR-0005 moved provider management (the provider records, the section routing
+	 * `pado.ai.routing.*`, the shared switch and `pado.ai.default_provider`) into the
+	 * central IGBZ control panel, owned by the senior administrator (MANAGE_SUITE) and
+	 * edited directly there. A tenant therefore has no requestable AI-policy key: the
+	 * provider/wiring surface is closed to the approval queue, and the old
+	 * `pado.deepinfra.*` keys were dropped by the v49 migration. The list is empty on
+	 * purpose — re-opening any key is a deliberate, reviewed change.
 	 */
-	public const POLICY_KEYS = [
-		'pado.ai.routing.routine'  => 'string',
-		'pado.ai.routing.judgment' => 'string',
-		'pado.ai.default_provider' => 'string',
-	];
+	public const POLICY_KEYS = [];
 
 	private const CATEGORIES = [
 		'viral'     => self::KIND_PUBLISH_VIRAL,

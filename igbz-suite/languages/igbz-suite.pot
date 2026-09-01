@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: IGBZ Suite 1.0.0\n"
 "Report-Msgid-Bugs-To: https://github.com/paymanshafayan/IGBZ-WP/issues\n"
-"POT-Creation-Date: 2026-08-31 14:53+0000\n"
+"POT-Creation-Date: 2026-09-01 06:36+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -317,12 +317,17 @@ msgstr ""
 msgid "A valid phone number is required."
 msgstr ""
 
-#: src/Modules/Pado/PadoModule.php:38
+#: src/Modules/Pado/PadoModule.php:39
 msgid "AI assistant center: theme design wizard, unified approval queue for sensitive actions, and integration with the Vira API gateway."
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:34
 msgid "AI content studio"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:50
+#: src/Modules/Pado/Admin/AiProvidersPage.php:79
+msgid "AI providers"
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AiStudioPage.php:27
@@ -754,7 +759,7 @@ msgstr ""
 msgid "App deep-link scheme"
 msgstr ""
 
-#: src/Modules/Pado/PadoModule.php:51
+#: src/Modules/Pado/PadoModule.php:55
 msgid "Approval queue, external Pado gateway and backend theme validator are loaded."
 msgstr ""
 
@@ -2850,7 +2855,7 @@ msgstr ""
 msgid "IGBZ Instalments (BNPL)"
 msgstr ""
 
-#: src/Support/Activator.php:954
+#: src/Support/Activator.php:980
 msgid "IGBZ Instructor"
 msgstr ""
 
@@ -2870,11 +2875,11 @@ msgstr ""
 msgid "IGBZ Suite status"
 msgstr ""
 
-#: src/Support/Activator.php:928
+#: src/Support/Activator.php:954
 msgid "IGBZ Tenant Owner"
 msgstr ""
 
-#: src/Support/Activator.php:948
+#: src/Support/Activator.php:974
 msgid "IGBZ Tenant Staff"
 msgstr ""
 
@@ -4591,11 +4596,11 @@ msgstr ""
 msgid "PST.NET card id"
 msgstr ""
 
-#: src/Modules/Pado/PadoModule.php:34
+#: src/Modules/Pado/PadoModule.php:35
 msgid "Pado (AI Assistant)"
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:56
+#: src/Modules/Pado/Admin/PadoPage.php:57
 msgid "Pado (AI Center)"
 msgstr ""
 
@@ -4607,7 +4612,7 @@ msgstr ""
 msgid "Pado guides the admin through obtaining Enamad; bank gateways unlock only with a verified domain + this flag."
 msgstr ""
 
-#: src/Modules/Pado/PadoModule.php:49
+#: src/Modules/Pado/PadoModule.php:53
 msgid "Pado module"
 msgstr ""
 
@@ -4619,7 +4624,7 @@ msgstr ""
 msgid "Pado service returned an invalid response."
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:99
+#: src/Modules/Pado/Admin/PadoPage.php:100
 msgid "Pado — AI Center"
 msgstr ""
 
@@ -5833,7 +5838,7 @@ msgstr ""
 msgid "Save prices"
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:169
+#: src/Modules/Pado/Admin/PadoPage.php:178
 msgid "Save settings"
 msgstr ""
 
@@ -8128,7 +8133,7 @@ msgid "Your session expired. Please try again."
 msgstr ""
 
 #: src/Modules/MultiTenant/Otp/OtpService.php:226
-#: src/Support/Activator.php:1047
+#: src/Support/Activator.php:1073
 msgid "Your verification code: {code}"
 msgstr ""
 
@@ -8444,6 +8449,42 @@ msgstr ""
 msgid "yes"
 msgstr ""
 
+#: src/Modules/Pado/Admin/PadoPage.php:143
+msgid "اتصال سرویس پادو (دروازهٔ ویرا)"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:207
+msgid "ارائه‌دهنده:"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:250
+msgid "ارائه‌دهنده‌های ثبت‌شده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:192
+msgid "استفاده از یک ارائه‌دهنده برای هر دو بخش"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:396
+msgid "افزودن ارائه‌دهنده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:247
+msgid "افزودن/ویرایش ارائه‌دهنده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:241
+msgid "انصراف"
+msgstr ""
+
+#: src/Modules/Pado/Admin/PadoPage.php:145
+msgid "این بخش مربوط به سرویس طراحی قالب پادو است و ربطی به ارائه‌دهنده‌های هوش مصنوعی بالا ندارد."
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:348
+msgid "این فیلدها فقط برای گویش custom خوانده می‌شوند؛ برای openai و anthropic بی‌اثرند. مقدار خالی یعنی پیش‌فرض (POST بدون مسیر؛ پاسخ choices.0.message.content؛ مصرف usage.*_tokens)."
+msgstr ""
+
 #: src/Modules/MultiTenant/Admin/WalletPage.php:195
 msgid "بازگشت نقدی"
 msgstr ""
@@ -8452,12 +8493,74 @@ msgstr ""
 msgid "بازگشت نقدی خرید"
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:99
+#: src/Modules/Pado/Admin/AiProvidersPage.php:157
+#: src/Modules/Pado/Admin/AiProvidersPage.php:185
+msgid "تغییر ارائه‌دهنده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:127
+#: src/Modules/Pado/Admin/AiProvidersPage.php:156
+msgid "ثبت کلیدها"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:423
+msgid "حذف"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:416
+msgid "خاموش"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:420
+msgid "در حال استفاده — قابل حذف نیست"
+msgstr ""
+
+#: src/Modules/Pado/Admin/PadoPage.php:100
 msgid "دستیار هوشمند فروشگاه شما"
 msgstr ""
 
-#: src/Modules/Pado/Admin/PadoPage.php:136
-msgid "مدل/سرویس پادو توسط تیم توسعه انتخاب می‌شود. شما در این صفحه فقط کلید API مدلی را که ما اعلام می‌کنیم وارد می‌کنید."
+#: src/Modules/Pado/Admin/AiProvidersPage.php:240
+msgid "ذخیره"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:396
+msgid "ذخیرهٔ ویرایش"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:416
+msgid "فعال"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:219
+msgid "مدل:"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:346
+msgid "نگاشت گویش custom"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:407
+msgid "هیچ ارائه‌دهنده‌ای ثبت نشده است."
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:418
+msgid "ویرایش"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:224
+msgid "پیش‌فرض ارائه‌دهنده"
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:148
+msgid "کلید ذخیره‌شده است؛ برای تعویض، کلید جدید را وارد کنید."
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:129
+msgid "کلید هر ارائه‌دهنده فقط به‌صورت رمزنگاری‌شده در مخزن کلید پنل نگه‌داری می‌شود و هرگز نمایش داده یا ثبت لاگ نمی‌شود. راستی‌آزمایی اتصال از طریق همین صفحه یا ورک‌فلوی GitHub انجام می‌شود."
+msgstr ""
+
+#: src/Modules/Pado/Admin/AiProvidersPage.php:149
+msgid "کلیدی برای این ارائه‌دهنده ثبت نشده است."
 msgstr ""
 
 #: src/Modules/Instagram/Admin/AccountsPage.php:264

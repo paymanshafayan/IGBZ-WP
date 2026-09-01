@@ -14,7 +14,7 @@ final class DriftGuardTest extends TestCase {
 	/** Registry members that are generated tokens, not admin-form password fields. */
 	private const REGISTRY_WITHOUT_FIELD = [
 		'pado.api_key', // rendered on the Pado page, not the shared settings form
-		'pado.ai.key_vault', // ADR-0005: the provider key vault, edited via the Pado wizard
+		'pado.ai.key_vault', // ADR-0005: the provider key vault, edited via the central AI providers page
 		'vip.media_hmac_secret', // generated token, no form field
 	];
 

@@ -1,0 +1,449 @@
+{
+  "01-key-screen": {
+    "h1": "ارائه‌دهنده‌های هوش مصنوعی",
+    "lang": "fa-IR",
+    "dir": "rtl",
+    "rtlCard": true,
+    "scrollW": 1280,
+    "clientW": 1280,
+    "hOverflow": 0,
+    "providerPanel": true,
+    "gearButton": true,
+    "keyInputs": 2,
+    "viraForm": {
+      "apiKey": false,
+      "endpoint": false,
+      "modelLabel": false
+    },
+    "inputs": [
+      {
+        "tag": "button",
+        "type": "button",
+        "id": "collapse-button",
+        "name": "",
+        "text": "Collapse Menu"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "2fc6280f28"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-ai-providers"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "",
+        "name": "action",
+        "text": "igbz_ai_provider_save_keys"
+      },
+      {
+        "tag": "input",
+        "type": "password",
+        "id": "igbz-key-groq",
+        "name": "keys[groq]",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "type": "password",
+        "id": "igbz-key-openrouter",
+        "name": "keys[openrouter]",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "type": "submit",
+        "id": "",
+        "name": "",
+        "text": "ثبت کلیدها"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "id": "igbz-open-provider-panel",
+        "name": "",
+        "text": "⚙"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "2fc6280f28"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-ai-providers"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "",
+        "name": "action",
+        "text": "igbz_ai_provider_save_routing"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "shared",
+        "text": "1"
+      },
+      {
+        "tag": "select",
+        "type": "",
+        "id": "",
+        "name": "routing[routine]",
+        "text": "Groq\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tOpenRouter"
+      },
+      {
+        "tag": "select",
+        "type": "",
+        "id": "",
+        "name": "model[routine]",
+        "text": "پیش‌فرض ارائه‌دهنده\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tllama-3.3-70b-versatile\n\t\t\t\t\t\t"
+      },
+      {
+        "tag": "select",
+        "type": "",
+        "id": "",
+        "name": "routing[judgment]",
+        "text": "Groq\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tOpenRouter"
+      },
+      {
+        "tag": "select",
+        "type": "",
+        "id": "",
+        "name": "model[judgment]",
+        "text": "پیش‌فرض ارائه‌دهنده\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tanthropic/claude-sonnet-4\n\t\t\t\t"
+      },
+      {
+        "tag": "button",
+        "type": "submit",
+        "id": "",
+        "name": "",
+        "text": "ذخیره"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "id": "igbz-close-provider-panel",
+        "name": "",
+        "text": "انصراف"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "2fc6280f28"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-ai-providers"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "",
+        "name": "action",
+        "text": "igbz_ai_provider_save_provider"
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-id",
+        "name": "provider_id",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-title",
+        "name": "title",
+        "text": ""
+      },
+      {
+        "tag": "select",
+        "type": "",
+        "id": "igbz-provider-protocol",
+        "name": "protocol",
+        "text": "openai\n\t\t\t\t\t\t\tanthropic\n\t\t\t\t\t\t\tcustom"
+      },
+      {
+        "tag": "input",
+        "type": "url",
+        "id": "igbz-provider-base-url",
+        "name": "base_url",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-models",
+        "name": "model_allowlist",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-default-model",
+        "name": "default_model",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "chat"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "tools"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "json"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "vision"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "stt"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "capabilities[]",
+        "text": "tts"
+      },
+      {
+        "tag": "select",
+        "type": "",
+        "id": "igbz-provider-quality",
+        "name": "quality",
+        "text": "استاندارد\n\t\t\t\t\t\t\tعالی"
+      },
+      {
+        "tag": "input",
+        "type": "number",
+        "id": "igbz-provider-budget",
+        "name": "daily_token_budget",
+        "text": "200000"
+      },
+      {
+        "tag": "input",
+        "type": "number",
+        "id": "igbz-provider-timeout",
+        "name": "timeout",
+        "text": "60"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "enabled",
+        "text": "1"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "benchmark_passed",
+        "text": "1"
+      },
+      {
+        "tag": "input",
+        "type": "checkbox",
+        "id": "",
+        "name": "geo_eligible",
+        "text": "1"
+      },
+      {
+        "tag": "select",
+        "type": "",
+        "id": "igbz-provider-request-method",
+        "name": "request_method",
+        "text": "POST\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tGET\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tPUT\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tPATCH"
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-request-path",
+        "name": "request_path",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-content-path",
+        "name": "response_content_path",
+        "text": "choices.0.message.content"
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-usage-prompt",
+        "name": "response_usage_prompt_path",
+        "text": "usage.prompt_tokens"
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-usage-completion",
+        "name": "response_usage_completion_path",
+        "text": "usage.completion_tokens"
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "igbz-provider-usage-total",
+        "name": "response_usage_total_path",
+        "text": "usage.total_tokens"
+      },
+      {
+        "tag": "button",
+        "type": "submit",
+        "id": "",
+        "name": "",
+        "text": "افزودن ارائه‌دهنده"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "Close dialog"
+      }
+    ]
+  },
+  "02-panel-open": {
+    "display": "block",
+    "routingRows": 7,
+    "sharedSwitch": true,
+    "providerForm": true,
+    "providerList": true
+  },
+  "03-edit-groq": {
+    "providerId": "groq",
+    "title": "Groq",
+    "protocol": "openai",
+    "baseUrl": "https://api.groq.com/openai/v1"
+  },
+  "04-pado-settings": {
+    "h1": "پادو — مرکز هوش مصنوعی",
+    "lang": "fa-IR",
+    "dir": "rtl",
+    "rtlCard": true,
+    "scrollW": 1280,
+    "clientW": 1280,
+    "hOverflow": 0,
+    "providerPanel": false,
+    "gearButton": false,
+    "keyInputs": 0,
+    "viraForm": {
+      "apiKey": true,
+      "endpoint": true,
+      "modelLabel": true
+    },
+    "inputs": [
+      {
+        "tag": "button",
+        "type": "button",
+        "id": "collapse-button",
+        "name": "",
+        "text": "Collapse Menu"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "_wpnonce",
+        "name": "_wpnonce",
+        "text": "2807c253ad"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "",
+        "name": "_wp_http_referer",
+        "text": "/wp-admin/admin.php?page=igbz-pado&tab=settings"
+      },
+      {
+        "tag": "input",
+        "type": "hidden",
+        "id": "",
+        "name": "action",
+        "text": "igbz_pado_save_settings"
+      },
+      {
+        "tag": "input",
+        "type": "text",
+        "id": "pado_model_label",
+        "name": "pado[model_label]",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "type": "password",
+        "id": "pado_api_key",
+        "name": "pado[api_key]",
+        "text": ""
+      },
+      {
+        "tag": "input",
+        "type": "url",
+        "id": "pado_endpoint",
+        "name": "pado[endpoint]",
+        "text": ""
+      },
+      {
+        "tag": "button",
+        "type": "submit",
+        "id": "",
+        "name": "",
+        "text": "ذخیرهٔ تنظیمات"
+      },
+      {
+        "tag": "button",
+        "type": "button",
+        "id": "",
+        "name": "",
+        "text": "Close dialog"
+      }
+    ]
+  },
+  "summary": {
+    "problems": [],
+    "verdict": "PASS"
+  }
+}
