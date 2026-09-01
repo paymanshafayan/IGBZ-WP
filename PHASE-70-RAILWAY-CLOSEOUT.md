@@ -11,13 +11,28 @@
 PR = https://github.com/paymanshafayan/IGBZ-WP/pull/16
 mergeable = MERGEABLE
 mergeStateStatus = CLEAN
-preview_run = 33551005987
-preview_job = 100000134063
+preview_run_pre_final_handoff = 33551049368
+preview_job_pre_final_handoff = 100000280505
 preview_conclusion = SUCCESS
-branch_head = ce9b039
+branch_head_pre_final_handoff = c350271
 ```
 
-قدم بعدی برای بستن فاز ۷۰: merge PR به `main`، سپس ساخت/به‌روزرسانی staging Railway از `main`.
+قدم بعدی برای بستن فاز ۷۰: merge PR شمارهٔ ۱۶ به `main`، سپس شروع چت تازه از وضعیت به‌روز `main` و ساخت/به‌روزرسانی staging Railway از `main`.
+
+
+## نقطهٔ تحویل به چت تازه
+
+در پایان این نوبت، کار کدنویسی/مستندسازی روی شاخهٔ جلسه تمام است. کارفرما باید PR شمارهٔ ۱۶ را
+در GitHub به `main` merge کند و سپس چت تازه را از وضعیت به‌روز `main` شروع کند.
+
+در چت تازه، اولین کار این است:
+
+```text
+۱. خواندن HANDOFF-PROMPT.md و همین فایل.
+۲. تأیید اینکه main شامل PR شمارهٔ ۱۶ است.
+۳. اجرای staging Railway از main.
+۴. پرکردن قالب شواهد پایین بدون ارسال هیچ راز، رمز، توکن یا آدرس دیتابیس.
+```
 
 ## وضعیت گیت‌ها
 
