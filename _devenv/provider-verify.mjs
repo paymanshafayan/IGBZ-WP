@@ -36,13 +36,13 @@
  */
 
 // Default probe lists. OpenRouter's plugin-pinned production models still need credits,
-// so the default here is a no-credit smoke model; pass OPENROUTER_MODELS explicitly
+// so the default here follows the current smoke-test router alias; pass OPENROUTER_MODELS explicitly
 // when running the production benchmark. NaraRouter is test-only, currently skipped
 // by default, and uses a direct free-plan alias from /api/plans when explicitly enabled
 // because auto/bynara returned 403 in the first live run.
 const PINNED = {
-  openrouter: ['mistralai/mistral-nemo:free'],
-  groq: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'meta-llama/llama-4-scout-17b-16e-instruct', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
+  openrouter: ['openrouter/free'],
+  groq: ['qwen/qwen3.6-27b'],
   nararouter: ['glm-5.3-flash-free'],
   anthropic: ['claude-sonnet-4-20250514'],
 };

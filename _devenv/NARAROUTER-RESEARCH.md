@@ -78,7 +78,7 @@ NARAROUTER_API_KEY
 اقدام اصلاحی: workflow و اسکریپت مستقل به no-credit smoke defaults تغییر کردند:
 
 ```text
-OPENROUTER_MODELS default = mistralai/mistral-nemo:free
+OPENROUTER_MODELS default = openrouter/free
 NARAROUTER_MODELS default = glm-5.3-flash-free
 ```
 
@@ -114,3 +114,21 @@ FAIL  nararouter:glm-5.3-flash-free  HTTP 403 — telegram_required: Join the re
 - NaraRouter تا انجام شرط بیرونی خودش (`telegram_required` و relink در `/settings`) قابل سنجش
   نیست. بنابراین در workflow پیش‌فرض خاموش شد؛ پس از انجام آن شرط باید اجرای دستی با
   `nararouter=true` انجام شود.
+
+
+## نتیجهٔ سومین اجرای زنده — ۱۴۰۵/۰۶/۱۱
+
+خروجی ارائه‌شده از GitHub Actions نشان داد:
+
+- `mistralai/mistral-nemo:free` در OpenRouter دیگر رایگان/در دسترس نبود و `HTTP 404` داد.
+- فهرست قبلی Groq نامعتبر شده بود: چند مدل `HTTP 404` گرفتند و `mixtral-8x7b-32768` و
+  `gemma2-9b-it` رسماً decommissioned گزارش شدند.
+- طبق دستور کارفرما، مدل‌های تست به این‌ها تغییر کردند:
+
+```text
+OpenRouter: openrouter/free
+Groq: qwen/qwen3.6-27b
+```
+
+این اصلاح فقط برای smoke test workflow است؛ تصمیم تغییر seed تولیدی providerها جداگانه و پس از
+عبور مدل‌ها از پروب و benchmark فارسی انجام می‌شود.

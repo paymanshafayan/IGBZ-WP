@@ -78,7 +78,7 @@
   test بدون credit، مقدار پیش‌فرض workflow به مدل رایگان زیر تغییر کرد:
 
 ```text
-mistralai/mistral-nemo:free
+openrouter/free
 ```
 
 - Groq مقدار سکرت نگرفت. نام سکرت باید دقیقاً این باشد:
@@ -103,8 +103,31 @@ glm-5.3-flash-free
 
 - OpenRouter با مدل رایگان `inclusionai/ling-3.0-flash-fin:free` از نظر HTTP سبز شد، اما پاسخ
   خالی داد؛ از این پس workflow پاسخ خالی را failure می‌داند و مدل پیش‌فرض smoke به
-  `mistralai/mistral-nemo:free` تغییر کرد.
+  `openrouter/free` تغییر کرد.
 - Groq هنوز مقدار نگرفت؛ secret باید دقیقاً `GROQ_API_KEY` باشد.
 - NaraRouter پاسخ `telegram_required` داد. تا وقتی در داشبورد NaraRouter عضویت تلگرام و relink
   در `/settings` انجام نشود، `nararouter=false` بماند؛ بعد از رفع شرط بیرونی، با
   `nararouter=true` اجرا شود.
+
+
+### نتیجهٔ اجرای سوم و مدل‌های اعلام‌شده توسط کارفرما
+
+خروجی اجرای سوم نشان داد:
+
+```text
+FAIL openrouter:mistralai/mistral-nemo:free HTTP 404 — This model is unavailable for free. The paid version is available now - use this slug instead: mistralai/mistral-nemo
+FAIL groq:llama-3.3-70b-versatile HTTP 404
+FAIL groq:llama-3.1-8b-instant HTTP 404
+FAIL groq:meta-llama/llama-4-scout-17b-16e-instruct HTTP 404
+FAIL groq:mixtral-8x7b-32768 HTTP 400 — decommissioned
+FAIL groq:gemma2-9b-it HTTP 400 — decommissioned
+```
+
+طبق دستور کارفرما، defaults تست زنده از این پس چنین است:
+
+```text
+OPENROUTER_MODELS default = openrouter/free
+GROQ_MODELS default = qwen/qwen3.6-27b
+```
+
+این تغییر فعلاً فقط برای تست زندهٔ provider است و seed تولیدی providerها را تغییر نمی‌دهد.
