@@ -1213,6 +1213,7 @@ DESIGN-PADO.md        ← §۸ طراحی قالب بدون صفحه‌ساز ث
 DESIGN-DEPLOY-VIRA.md   ← §۸ دفتر رویداد · §۱۴ امنیت · §۱۴.۷ باز
 DESIGN-APPS-ROADMAP.md    ← ⏸️ معلق تا تکمیل بک‌اند
 DESIGN-AUTOMATION.md      ← سند معماری اتوماسیون (v1.2، ۱۴۰۶/۰۵/۳۱ — المنتور از پیش‌نیازها حذف شد)
+DESIGN-THEME-INSPIRATION.md ← نشانی‌های کامل و قابل کپی منابع الهام طراحی قالب (۷ مرجع کارفرما + اسکیل نصب‌شده)
 امنیت و مراقبت/           ← README + منابع/{OWASP,WordPress,IETF,AI-Commerce}
 
 igbz-suite/src/Support/CoreSurfaceGuard.php                      ← تازه
